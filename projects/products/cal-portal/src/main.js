@@ -149,7 +149,8 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color('#0b1220')
 
 const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100)
-camera.position.set(0, 1.2, 2.8)
+// default framing: face/upper-body
+camera.position.set(0, 1.6, 2.6)
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.55)
 scene.add(ambient)
@@ -349,9 +350,9 @@ function animate(now) {
     setMorph(mouthMesh, blinkRightIndex, blink)
 
     // keep camera roughly following
-    const desired = new THREE.Vector3(avatarRoot.position.x, 1.2, avatarRoot.position.z + 2.6)
-    camera.position.lerp(desired, 0.04)
-    camera.lookAt(avatarRoot.position.x, 1.0, avatarRoot.position.z)
+    const desired = new THREE.Vector3(avatarRoot.position.x, 1.6, avatarRoot.position.z + 2.4)
+    camera.position.lerp(desired, 0.05)
+    camera.lookAt(avatarRoot.position.x, 1.45, avatarRoot.position.z)
 
     if (mixer) mixer.update(dt)
   }
