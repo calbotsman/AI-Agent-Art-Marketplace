@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cal Portal</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background:#0b1220; color:#e5e7eb; }
+      #app { display:grid; grid-template-columns: 1.4fr 1fr; height: 100vh; }
+      .panel { padding: 16px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
+      .stage { position:relative; }
+      canvas { display:block; width:100%; height:100%; }
+      .hud { position:absolute; left:12px; top:12px; right:12px; display:flex; gap:8px; align-items:center; justify-content:space-between; pointer-events:none; }
+      .hud .left, .hud .right { display:flex; gap:8px; align-items:center; pointer-events:auto; }
+      button { background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); padding:10px 12px; border-radius:10px; cursor:pointer; }
+      button.primary { background:linear-gradient(135deg,#7c3aed,#22d3ee); border:none; color:#0b1220; font-weight:700; }
+      button:disabled{ opacity:.5; cursor:not-allowed; }
+      .badge { font-size: 12px; opacity:.9; padding: 6px 10px; border:1px solid rgba(148,163,184,.25); border-radius:999px; background:rgba(17,24,39,.6); }
+      textarea { width:100%; min-height: 96px; resize: vertical; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:12px; }
+      .row { display:flex; gap:8px; }
+      .row > * { flex:1; }
+      .chatlog { margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
+      .msg { padding:10px 12px; border-radius:12px; border:1px solid rgba(148,163,184,.15); background:rgba(15,23,42,.65); }
+      .msg .meta { font-size: 12px; opacity:.7; margin-bottom: 6px; }
+      .msg.user { border-color: rgba(34,211,238,.25); }
+      .msg.cal { border-color: rgba(124,58,237,.25); }
+      .small { font-size:12px; opacity:.8; line-height:1.35; }
+      a { color:#22d3ee; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="stage">
+        <div class="hud">
+          <div class="left">
+            <span class="badge" id="status">Idle</span>
+            <span class="badge" id="micStatus">Mic: off</span>
+          </div>
+          <div class="right">
+            <button id="btnMic">Start mic</button>
+            <button class="primary" id="btnTalk">Say it</button>
+          </div>
+        </div>
+        <canvas id="c"></canvas>
+      </div>
+      <div class="panel">
+        <h2 style="margin:0 0 10px 0;">Cal Portal</h2>
+        <div class="small">
+          Local buddy-mode cockpit. Uses Web Speech API for mic + voice. No cloud required.
+          <br/>Tip: Chrome required for SpeechRecognition.
+        </div>
+        <hr style="border:0;border-top:1px solid rgba(148,163,184,.15); margin:14px 0;"/>
+        <label class="small">You</label>
+        <textarea id="input" placeholder="Talk to Cal (type here)…"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="btnSend">Send</button>
+          <button id="btnClear">Clear</button>
+        </div>
+        <div class="chatlog" id="chatlog"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
