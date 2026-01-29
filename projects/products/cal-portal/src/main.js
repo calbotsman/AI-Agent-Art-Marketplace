@@ -270,18 +270,21 @@ async function connectGateway() {
         messages: [{ role: 'user', content: 'ping' }],
       }),
     })
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    if (!r.ok) {
+      const t = await r.text().catch(() => '')
+      throw new Error(`HTTP ${r.status} ${t.slice(0, 120)}`)
+    }
     const j = await r.json()
     const txt = j?.choices?.[0]?.message?.content || ''
     state.connected = true
     setLink('Agent: connected')
     if (txt && txt.toLowerCase().includes('pong')) {
-      // noop
+      // ok
     }
   } catch (e) {
     console.warn('connectGateway failed', e)
     state.connected = false
-    setLink('Agent: error')
+    setLink(`Agent: error (${String(e.message || e).slice(0, 60)})`)
   }
 }
 
