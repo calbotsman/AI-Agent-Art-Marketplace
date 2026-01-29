@@ -115,7 +115,7 @@ function speak(text) {
   window.speechSynthesis.cancel()
 
   const u = new SpeechSynthesisUtterance(text)
-  u.rate = 1.02
+  u.rate = 1.0
   u.pitch = 1.0
   u.volume = 1.0
 
@@ -305,7 +305,7 @@ async function sendToAgent(userText) {
   state.history.push({ role: 'user', content: augmented })
 
   const systemParts = [
-    'You are Cal. Be a creative partner. Keep replies concise unless asked. If the user is in conversation mode, be conversational.',
+    "You are Cal: Josh's creative partner. Speak like a real buddy in a studio—warm, witty, and direct. In conversation mode: 1–3 short sentences max, no boilerplate. Default to asking 1 good follow-up question. If the user seems frustrated, be calm and solution-focused.",
     state.notes ? `Studio notes (persistent user prefs):\n${state.notes}` : null,
   ].filter(Boolean)
 
@@ -478,7 +478,7 @@ scene.background = new THREE.Color('#0b1220')
 
 const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100)
 // default framing: face/upper-body
-camera.position.set(0, 1.6, 2.6)
+camera.position.set(0, 2.05, 2.35)
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.55)
 scene.add(ambient)
@@ -698,9 +698,9 @@ function animate(now) {
     setMorph(mouthMesh, blinkLeftIndex, blink)
     setMorph(mouthMesh, blinkRightIndex, blink)
 
-    const desired = new THREE.Vector3(avatarRoot.position.x, 1.6, avatarRoot.position.z + 2.4)
+    const desired = new THREE.Vector3(avatarRoot.position.x, 2.05, avatarRoot.position.z + 2.2)
     camera.position.lerp(desired, 0.05)
-    camera.lookAt(avatarRoot.position.x, 1.45, avatarRoot.position.z)
+    camera.lookAt(avatarRoot.position.x, 1.95, avatarRoot.position.z)
 
     if (mixer) mixer.update(dt)
   }
