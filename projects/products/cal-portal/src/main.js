@@ -215,7 +215,11 @@ function loadSettings() {
   const tokenParam = params.get('token')
   const gatewayParam = params.get('gateway')
   if (gatewayParam) state.gatewayUrl = gatewayParam
-  if (tokenParam) state.gatewayToken = tokenParam
+  if (tokenParam) {
+    state.gatewayToken = tokenParam
+    // persist immediately so a refresh doesn't lose it
+    localStorage.setItem('cal.gatewayToken', state.gatewayToken)
+  }
 
   // If someone passes the gateway host without a path, normalize to /v1/chat/completions
   if (state.gatewayUrl && !state.gatewayUrl.includes('/v1/')) {
@@ -284,7 +288,8 @@ async function connectGateway() {
   } catch (e) {
     console.warn('connectGateway failed', e)
     state.connected = false
-    setLink(`Agent: error (${String(e.message || e).slice(0, 60)})`)
+    const msg = String(e.message || e)
+    setLink(`Agent: error (${msg.slice(0, 80)})`)
   }
 }
 
