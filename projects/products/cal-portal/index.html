@@ -50,7 +50,9 @@
           </div>
           <div class="right">
             <button id="btnMic">Start mic</button>
+            <button id="btnVoiceHud">Voice: on</button>
             <button class="primary" id="btnConvo">Conversation: off</button>
+            <button class="primary" id="btnCall">Call Cal</button>
           </div>
         </div>
         <canvas id="c"></canvas>
@@ -58,6 +60,11 @@
 
       <div class="panel">
         <h2 style="margin:0 0 10px 0;">Cal Portal</h2>
+        <div class="small" style="margin-bottom:10px;">
+          <span class="pill">Studio</span>
+          <span class="pill">Collab</span>
+          <span class="pill">Build</span>
+        </div>
         <div class="small">
           Your creative cockpit in Cal’s office. Drop images, talk hands‑free, and get spoken replies.
           <br/>Best in Chrome (SpeechRecognition).
@@ -107,6 +114,17 @@
         </div>
 
         <div class="chatlog" id="chatlog"></div>
+
+        <hr class="divider"/>
+        <details open id="studioNotes">
+          <summary>Studio notes</summary>
+          <div class="small" style="margin:8px 0;">This is Cal’s home. Drop ideas here; I’ll keep them and evolve the space.</div>
+          <textarea id="notes" placeholder="Ideas, rules, vibes, projects…"></textarea>
+          <div class="row" style="margin-top:8px;">
+            <button id="btnSaveNotes">Save notes</button>
+            <button id="btnClearNotes">Clear notes</button>
+          </div>
+        </details>
       </div>
     </div>
 

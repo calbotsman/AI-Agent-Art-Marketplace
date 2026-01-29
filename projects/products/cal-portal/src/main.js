@@ -8,7 +8,9 @@ const elMicStatus = document.getElementById('micStatus')
 const elLinkStatus = document.getElementById('linkStatus')
 
 const btnMic = document.getElementById('btnMic')
+const btnVoiceHud = document.getElementById('btnVoiceHud')
 const btnConvo = document.getElementById('btnConvo')
+const btnCall = document.getElementById('btnCall')
 const btnSend = document.getElementById('btnSend')
 const btnClear = document.getElementById('btnClear')
 
@@ -27,6 +29,10 @@ const fileEl = document.getElementById('file')
 const btnClearImages = document.getElementById('btnClearImages')
 const thumbs = document.getElementById('thumbs')
 
+const notesEl = document.getElementById('notes')
+const btnSaveNotes = document.getElementById('btnSaveNotes')
+const btnClearNotes = document.getElementById('btnClearNotes')
+
 const state = {
   listening: false,
   speaking: false,
@@ -39,6 +45,7 @@ const state = {
   gatewayToken: '',
   history: [], // {role, content}
   pendingImages: [], // File[]
+  notes: '',
 }
 
 function setStatus(text) { elStatus.textContent = text }
@@ -194,10 +201,12 @@ function loadSettings() {
   const t = localStorage.getItem('cal.gatewayToken')
   const v = localStorage.getItem('cal.voiceEnabled')
   const a = localStorage.getItem('cal.autoSpeak')
+  const n = localStorage.getItem('cal.studioNotes')
   if (u) state.gatewayUrl = u
   if (t) state.gatewayToken = t
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
+  if (n != null) state.notes = n
 
   // Auto-config via URL query params (Option 1)
   // Example: http://127.0.0.1:5173/?token=...&gateway=http://127.0.0.1:18789/v1/chat/completions
@@ -211,6 +220,9 @@ function loadSettings() {
   gatewayTokenEl.value = state.gatewayToken
   toggleVoice.checked = state.voiceEnabled
   toggleAutoSpeak.checked = state.autoSpeak
+
+  if (notesEl) notesEl.value = state.notes
+  if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
 }
 
 function saveSettings() {
@@ -218,6 +230,7 @@ function saveSettings() {
   localStorage.setItem('cal.gatewayToken', state.gatewayToken)
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
   localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
+  localStorage.setItem('cal.studioNotes', String(state.notes || ''))
 }
 
 async function connectGateway() {
@@ -282,11 +295,16 @@ async function sendToAgent(userText) {
   // Maintain conversation context in this UI
   state.history.push({ role: 'user', content: augmented })
 
+  const systemParts = [
+    'You are Cal. Be a creative partner. Keep replies concise unless asked. If the user is in conversation mode, be conversational.',
+    state.notes ? `Studio notes (persistent user prefs):\n${state.notes}` : null,
+  ].filter(Boolean)
+
   const body = {
     model: 'clawdbot',
     user: 'cal-portal',
     messages: [
-      { role: 'system', content: 'You are Cal. Be a creative partner. Keep replies concise unless asked. If the user is in conversation mode, be conversational.' },
+      { role: 'system', content: systemParts.join('\n\n') },
       ...state.history,
     ],
   }
@@ -346,9 +364,25 @@ btnConvo?.addEventListener('click', () => {
 
   if (state.conversationMode) {
     startMic()
-  } else {
-    // leave mic as-is; user can stop it
   }
+})
+
+btnCall?.addEventListener('click', async () => {
+  // One click: connect (if token present) + turn on conversation + start mic
+  if (!state.connected && state.gatewayToken) {
+    await connectGateway()
+  }
+  state.conversationMode = true
+  btnConvo.textContent = 'Conversation: on'
+  btnConvo.classList.add('primary')
+  startMic()
+})
+
+btnVoiceHud?.addEventListener('click', () => {
+  state.voiceEnabled = !state.voiceEnabled
+  toggleVoice.checked = state.voiceEnabled
+  btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
+  saveSettings()
 })
 
 btnSend?.addEventListener('click', () => sendUserMessage(input.value))
@@ -381,7 +415,7 @@ btnTestVoice?.addEventListener('click', () => {
   window.speechSynthesis.speak(u)
 })
 
-toggleVoice?.addEventListener('change', () => { state.voiceEnabled = !!toggleVoice.checked; saveSettings() })
+toggleVoice?.addEventListener('change', () => { state.voiceEnabled = !!toggleVoice.checked; if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'; saveSettings() })
 toggleAutoSpeak?.addEventListener('change', () => { state.autoSpeak = !!toggleAutoSpeak.checked; saveSettings() })
 
 dropzone?.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'rgba(34,211,238,.55)' })
@@ -399,6 +433,18 @@ window.addEventListener('paste', (e) => {
 
 fileEl?.addEventListener('change', (e) => addImages(e.target.files))
 btnClearImages?.addEventListener('click', () => clearImages())
+
+btnSaveNotes?.addEventListener('click', () => {
+  state.notes = (notesEl?.value || '').trim()
+  saveSettings()
+  addMsg('cal', 'Saved studio notes.')
+})
+
+btnClearNotes?.addEventListener('click', () => {
+  state.notes = ''
+  if (notesEl) notesEl.value = ''
+  saveSettings()
+})
 
 setStatus('Idle')
 loadSettings()
@@ -444,9 +490,38 @@ floor.rotation.x = -Math.PI / 2
 floor.position.y = 0
 scene.add(floor)
 
-const grid = new THREE.GridHelper(20, 20, 0x1f2a44, 0x111827)
+// studio vibe: subtle grid + walls + a "desk"
+const grid = new THREE.GridHelper(20, 20, 0x1a2540, 0x0f172a)
+grid.material.opacity = 0.35
+grid.material.transparent = true
 grid.position.y = 0.001
 scene.add(grid)
+
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x0b1220, roughness: 0.95, metalness: 0.0 })
+const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6), wallMat)
+backWall.position.set(0, 3, -6)
+scene.add(backWall)
+
+const sideWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), wallMat)
+sideWall.position.set(-6, 3, -1)
+sideWall.rotation.y = Math.PI / 2
+scene.add(sideWall)
+
+// desk
+const desk = new THREE.Mesh(
+  new THREE.BoxGeometry(2.6, 0.12, 1.2),
+  new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.6, metalness: 0.1 })
+)
+desk.position.set(1.6, 0.72, -0.6)
+scene.add(desk)
+
+// neon sign
+const neon = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.6, 0.5),
+  new THREE.MeshStandardMaterial({ color: 0x111827, emissive: 0x22d3ee, emissiveIntensity: 1.2 })
+)
+neon.position.set(0, 2.4, -5.95)
+scene.add(neon)
 
 // fallback “brain orb” while the avatar loads
 const fallbackGroup = new THREE.Group()
