@@ -199,6 +199,14 @@ function loadSettings() {
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
 
+  // Auto-config via URL query params (Option 1)
+  // Example: http://127.0.0.1:5173/?token=...&gateway=http://127.0.0.1:18789/v1/chat/completions
+  const params = new URLSearchParams(window.location.search)
+  const tokenParam = params.get('token')
+  const gatewayParam = params.get('gateway')
+  if (gatewayParam) state.gatewayUrl = gatewayParam
+  if (tokenParam) state.gatewayToken = tokenParam
+
   gatewayUrlEl.value = state.gatewayUrl
   gatewayTokenEl.value = state.gatewayToken
   toggleVoice.checked = state.voiceEnabled
@@ -395,6 +403,11 @@ btnClearImages?.addEventListener('click', () => clearImages())
 setStatus('Idle')
 loadSettings()
 setLink(state.gatewayToken ? 'Agent: disconnected' : 'Agent: token missing')
+
+// Auto-connect if a token is present (e.g., passed via ?token=...)
+if (state.gatewayToken) {
+  connectGateway()
+}
 
 // ensure voices list is populated on some platforms
 window.speechSynthesis?.getVoices?.()
