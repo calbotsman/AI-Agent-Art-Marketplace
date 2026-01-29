@@ -18,14 +18,24 @@
       button:disabled{ opacity:.5; cursor:not-allowed; }
       .badge { font-size: 12px; opacity:.9; padding: 6px 10px; border:1px solid rgba(148,163,184,.25); border-radius:999px; background:rgba(17,24,39,.6); }
       textarea { width:100%; min-height: 96px; resize: vertical; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:12px; }
+      input[type="text"], input[type="password"] { width:100%; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:10px 12px; }
       .row { display:flex; gap:8px; }
       .row > * { flex:1; }
       .chatlog { margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
       .msg { padding:10px 12px; border-radius:12px; border:1px solid rgba(148,163,184,.15); background:rgba(15,23,42,.65); }
-      .msg .meta { font-size: 12px; opacity:.7; margin-bottom: 6px; }
+      .msg .meta { font-size: 12px; opacity:.7; margin-bottom: 6px; display:flex; justify-content:space-between; gap:8px; }
       .msg.user { border-color: rgba(34,211,238,.25); }
       .msg.cal { border-color: rgba(124,58,237,.25); }
       .small { font-size:12px; opacity:.8; line-height:1.35; }
+      .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid rgba(148,163,184,.25); background:rgba(17,24,39,.6); font-size:12px; opacity:.95; }
+      .divider { border:0;border-top:1px solid rgba(148,163,184,.15); margin:14px 0; }
+      .drop { margin-top:10px; border:1px dashed rgba(148,163,184,.35); border-radius:14px; padding:10px 12px; background:rgba(17,24,39,.35); }
+      .drop strong { color:#e5e7eb; }
+      .thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+      .thumb { width:74px; height:74px; border-radius:12px; overflow:hidden; border:1px solid rgba(148,163,184,.2); background:#0b1220; }
+      .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+      details { border:1px solid rgba(148,163,184,.15); border-radius:14px; padding:10px 12px; background:rgba(15,23,42,.35); }
+      summary { cursor:pointer; user-select:none; }
       a { color:#22d3ee; }
     </style>
   </head>
@@ -36,27 +46,66 @@
           <div class="left">
             <span class="badge" id="status">Idle</span>
             <span class="badge" id="micStatus">Mic: off</span>
+            <span class="badge" id="linkStatus">Agent: disconnected</span>
           </div>
           <div class="right">
             <button id="btnMic">Start mic</button>
-            <button class="primary" id="btnTalk">Say it</button>
+            <button class="primary" id="btnConvo">Conversation: off</button>
           </div>
         </div>
         <canvas id="c"></canvas>
       </div>
+
       <div class="panel">
         <h2 style="margin:0 0 10px 0;">Cal Portal</h2>
         <div class="small">
-          Local buddy-mode cockpit. Uses Web Speech API for mic + voice. No cloud required.
-          <br/>Tip: Chrome required for SpeechRecognition.
+          Your creative cockpit in Cal’s office. Drop images, talk hands‑free, and get spoken replies.
+          <br/>Best in Chrome (SpeechRecognition).
         </div>
-        <hr style="border:0;border-top:1px solid rgba(148,163,184,.15); margin:14px 0;"/>
+
+        <details id="settings" style="margin-top:12px;">
+          <summary>Settings</summary>
+          <div style="margin-top:10px; display:grid; gap:10px;">
+            <div class="row">
+              <label class="pill"><input id="toggleVoice" type="checkbox" checked /> Voice output</label>
+              <label class="pill"><input id="toggleAutoSpeak" type="checkbox" checked /> Auto-speak replies</label>
+            </div>
+
+            <div>
+              <div class="small" style="margin-bottom:6px;">Gateway URL</div>
+              <input id="gatewayUrl" type="text" placeholder="http://127.0.0.1:18789/v1/chat/completions" />
+            </div>
+            <div>
+              <div class="small" style="margin-bottom:6px;">Gateway token (stored locally in this browser)</div>
+              <input id="gatewayToken" type="password" placeholder="Paste token…" />
+              <div class="small" style="margin-top:6px;">Tip: token lives in your Clawdbot dashboard URL.</div>
+            </div>
+            <div class="row">
+              <button id="btnConnect">Connect</button>
+              <button id="btnTestVoice">Test voice</button>
+            </div>
+          </div>
+        </details>
+
+        <hr class="divider"/>
+
         <label class="small">You</label>
-        <textarea id="input" placeholder="Talk to Cal (type here)…"></textarea>
-        <div class="row" style="margin-top:8px;">
-          <button id="btnSend">Send</button>
-          <button id="btnClear">Clear</button>
+        <textarea id="input" placeholder="Type or use mic…"></textarea>
+
+        <div class="drop" id="dropzone">
+          <div class="small"><strong>Drop images here</strong> (or paste / choose files). I’ll display them in the chat and (next) we’ll enable vision so I can truly "see" them.</div>
+          <div style="margin-top:8px;" class="row">
+            <input id="file" type="file" accept="image/*" multiple />
+            <button id="btnClearImages">Clear images</button>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
         </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="btnSend">Send</button>
+          <button id="btnClear">Clear chat</button>
+        </div>
+
         <div class="chatlog" id="chatlog"></div>
       </div>
     </div>

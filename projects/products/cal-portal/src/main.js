@@ -5,40 +5,125 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 // ---------- UI ----------
 const elStatus = document.getElementById('status')
 const elMicStatus = document.getElementById('micStatus')
+const elLinkStatus = document.getElementById('linkStatus')
+
 const btnMic = document.getElementById('btnMic')
-const btnTalk = document.getElementById('btnTalk')
+const btnConvo = document.getElementById('btnConvo')
 const btnSend = document.getElementById('btnSend')
 const btnClear = document.getElementById('btnClear')
+
 const input = document.getElementById('input')
 const chatlog = document.getElementById('chatlog')
+
+const toggleVoice = document.getElementById('toggleVoice')
+const toggleAutoSpeak = document.getElementById('toggleAutoSpeak')
+const gatewayUrlEl = document.getElementById('gatewayUrl')
+const gatewayTokenEl = document.getElementById('gatewayToken')
+const btnConnect = document.getElementById('btnConnect')
+const btnTestVoice = document.getElementById('btnTestVoice')
+
+const dropzone = document.getElementById('dropzone')
+const fileEl = document.getElementById('file')
+const btnClearImages = document.getElementById('btnClearImages')
+const thumbs = document.getElementById('thumbs')
 
 const state = {
   listening: false,
   speaking: false,
   transcript: '',
+  conversationMode: false,
+  voiceEnabled: true,
+  autoSpeak: true,
+  connected: false,
+  gatewayUrl: 'http://127.0.0.1:18789/v1/chat/completions',
+  gatewayToken: '',
+  history: [], // {role, content}
+  pendingImages: [], // File[]
 }
 
-function setStatus(text) {
-  elStatus.textContent = text
-}
-function setMic(text) {
-  elMicStatus.textContent = text
-}
+function setStatus(text) { elStatus.textContent = text }
+function setMic(text) { elMicStatus.textContent = text }
+function setLink(text) { elLinkStatus.textContent = text }
 
-function addMsg(role, text) {
+function addMsg(role, content, opts = {}) {
   const d = document.createElement('div')
   d.className = `msg ${role}`
+
   const meta = document.createElement('div')
   meta.className = 'meta'
-  meta.textContent = role === 'user' ? 'You' : 'Cal'
+  const left = document.createElement('div')
+  left.textContent = role === 'user' ? 'You' : 'Cal'
+  const right = document.createElement('div')
+  right.textContent = opts.note || ''
+  meta.appendChild(left)
+  meta.appendChild(right)
+
   const body = document.createElement('div')
-  body.textContent = text
+  if (typeof content === 'string') {
+    body.textContent = content
+  } else {
+    body.appendChild(content)
+  }
+
   d.appendChild(meta)
   d.appendChild(body)
   chatlog.prepend(d)
 }
 
-// ---------- Voice (Web Speech API) ----------
+function renderThumbs() {
+  thumbs.innerHTML = ''
+  for (const f of state.pendingImages) {
+    const url = URL.createObjectURL(f)
+    const wrap = document.createElement('div')
+    wrap.className = 'thumb'
+    const img = document.createElement('img')
+    img.src = url
+    img.title = f.name
+    wrap.appendChild(img)
+    thumbs.appendChild(wrap)
+  }
+}
+
+function addImages(files) {
+  const list = Array.from(files || []).filter(f => f.type.startsWith('image/'))
+  if (!list.length) return
+  state.pendingImages.push(...list)
+  renderThumbs()
+}
+
+function clearImages() {
+  state.pendingImages = []
+  renderThumbs()
+}
+
+// ---------- Voice output ----------
+function speak(text) {
+  // Always log Cal's text response in chat; speaking is optional
+  addMsg('cal', text)
+
+  if (!state.voiceEnabled || !state.autoSpeak) return
+  if (!('speechSynthesis' in window)) return
+
+  window.speechSynthesis.cancel()
+
+  const u = new SpeechSynthesisUtterance(text)
+  u.rate = 1.02
+  u.pitch = 1.0
+  u.volume = 1.0
+
+  // Choose a decent voice if available
+  const voices = window.speechSynthesis.getVoices?.() || []
+  const preferred = voices.find(v => /Samantha|Alex|Daniel|Google US English/i.test(v.name))
+  if (preferred) u.voice = preferred
+
+  u.onstart = () => { state.speaking = true; setStatus('Speaking') }
+  u.onend = () => { state.speaking = false; setStatus('Idle') }
+  u.onerror = () => { state.speaking = false; setStatus('Idle') }
+
+  window.speechSynthesis.speak(u)
+}
+
+// ---------- SpeechRecognition (mic) ----------
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
 let rec = null
 if (SpeechRecognition) {
@@ -56,8 +141,18 @@ if (SpeechRecognition) {
       if (res.isFinal) finalText += t
       else interimText += t
     }
-    state.transcript = (finalText + ' ' + interimText).trim()
-    input.value = state.transcript
+
+    const combined = (finalText + ' ' + interimText).trim()
+    state.transcript = combined
+    input.value = combined
+
+    // Conversation mode: auto-send finalized chunks
+    if (state.conversationMode && finalText.trim()) {
+      const sendText = finalText.trim()
+      input.value = ''
+      state.transcript = ''
+      sendUserMessage(sendText)
+    }
   }
 
   rec.onstart = () => {
@@ -69,6 +164,11 @@ if (SpeechRecognition) {
     state.listening = false
     setMic('Mic: off')
     btnMic.textContent = 'Start mic'
+
+    // In conversation mode, keep listening (some browsers stop unexpectedly)
+    if (state.conversationMode) {
+      try { rec.start() } catch { /* ignore */ }
+    }
   }
   rec.onerror = (e) => {
     console.warn('SpeechRecognition error', e)
@@ -79,66 +179,225 @@ if (SpeechRecognition) {
   btnMic.disabled = true
 }
 
-function speak(text) {
-  if (!('speechSynthesis' in window)) {
-    addMsg('cal', text)
+function startMic() {
+  if (!rec) return
+  try { rec.start() } catch { /* ignore */ }
+}
+function stopMic() {
+  if (!rec) return
+  try { rec.stop() } catch { /* ignore */ }
+}
+
+// ---------- Gateway bridge (Clawdbot OpenAI-compatible endpoint) ----------
+function loadSettings() {
+  const u = localStorage.getItem('cal.gatewayUrl')
+  const t = localStorage.getItem('cal.gatewayToken')
+  const v = localStorage.getItem('cal.voiceEnabled')
+  const a = localStorage.getItem('cal.autoSpeak')
+  if (u) state.gatewayUrl = u
+  if (t) state.gatewayToken = t
+  if (v != null) state.voiceEnabled = v === 'true'
+  if (a != null) state.autoSpeak = a === 'true'
+
+  gatewayUrlEl.value = state.gatewayUrl
+  gatewayTokenEl.value = state.gatewayToken
+  toggleVoice.checked = state.voiceEnabled
+  toggleAutoSpeak.checked = state.autoSpeak
+}
+
+function saveSettings() {
+  localStorage.setItem('cal.gatewayUrl', state.gatewayUrl)
+  localStorage.setItem('cal.gatewayToken', state.gatewayToken)
+  localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
+  localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
+}
+
+async function connectGateway() {
+  state.gatewayUrl = gatewayUrlEl.value.trim() || state.gatewayUrl
+  state.gatewayToken = gatewayTokenEl.value.trim()
+  state.voiceEnabled = !!toggleVoice.checked
+  state.autoSpeak = !!toggleAutoSpeak.checked
+  saveSettings()
+
+  if (!state.gatewayToken) {
+    state.connected = false
+    setLink('Agent: token missing')
     return
   }
-  window.speechSynthesis.cancel()
 
-  const u = new SpeechSynthesisUtterance(text)
-  u.rate = 1.02
-  u.pitch = 1.0
-  u.volume = 1.0
-
-  // Choose a decent voice if available
-  const voices = window.speechSynthesis.getVoices?.() || []
-  const preferred = voices.find(v => /Samantha|Alex|Daniel|Google US English/i.test(v.name))
-  if (preferred) u.voice = preferred
-
-  u.onstart = () => { state.speaking = true; setStatus('Speaking') }
-  u.onend = () => { state.speaking = false; setStatus('Idle') }
-  u.onerror = () => { state.speaking = false; setStatus('Idle') }
-
-  addMsg('cal', text)
-  window.speechSynthesis.speak(u)
+  setLink('Agent: connecting…')
+  try {
+    const r = await fetch(state.gatewayUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.gatewayToken}`,
+        'Content-Type': 'application/json',
+        'x-clawdbot-agent-id': 'main',
+      },
+      body: JSON.stringify({
+        model: 'clawdbot',
+        user: 'cal-portal',
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+    })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    const j = await r.json()
+    const txt = j?.choices?.[0]?.message?.content || ''
+    state.connected = true
+    setLink('Agent: connected')
+    if (txt && txt.toLowerCase().includes('pong')) {
+      // noop
+    }
+  } catch (e) {
+    console.warn('connectGateway failed', e)
+    state.connected = false
+    setLink('Agent: error')
+  }
 }
 
-function calRespond(userText) {
-  // Placeholder: local “buddy” response. Next step is wiring to Clawdbot gateway/agent.
-  const trimmed = (userText || '').trim()
-  if (!trimmed) return
+async function sendToAgent(userText) {
+  if (!state.connected) {
+    // Try auto-connect if token is present
+    if (state.gatewayToken) await connectGateway()
+  }
+  if (!state.connected) {
+    return `I’m not connected to the gateway yet. Open Settings → paste the gateway token, then hit Connect.`
+  }
 
-  // simple vibe
-  const reply = `Got you. I heard: “${trimmed}”.\n\nI’m spinning up the Cal Portal (voice + 3D avatar) as our first project; next we’ll wire this UI into the real agent so you can talk to me hands-free.`
-  speak(reply)
+  // Attach image names to the text until we add vision
+  let augmented = userText
+  if (state.pendingImages.length) {
+    const names = state.pendingImages.map(f => f.name).join(', ')
+    augmented += `\n\n[Attached images (not yet vision-enabled): ${names}]`
+  }
+
+  // Maintain conversation context in this UI
+  state.history.push({ role: 'user', content: augmented })
+
+  const body = {
+    model: 'clawdbot',
+    user: 'cal-portal',
+    messages: [
+      { role: 'system', content: 'You are Cal. Be a creative partner. Keep replies concise unless asked. If the user is in conversation mode, be conversational.' },
+      ...state.history,
+    ],
+  }
+
+  const r = await fetch(state.gatewayUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${state.gatewayToken}`,
+      'Content-Type': 'application/json',
+      'x-clawdbot-agent-id': 'main',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!r.ok) {
+    const t = await r.text().catch(() => '')
+    throw new Error(`Gateway error HTTP ${r.status}: ${t.slice(0, 200)}`)
+  }
+  const j = await r.json()
+  const txt = j?.choices?.[0]?.message?.content || ''
+  state.history.push({ role: 'assistant', content: txt })
+
+  // clear one-shot attachments after send
+  clearImages()
+
+  return txt
 }
 
+async function sendUserMessage(text) {
+  const t = (text || '').trim()
+  if (!t) return
+
+  addMsg('user', t, { note: state.pendingImages.length ? `${state.pendingImages.length} image(s)` : '' })
+
+  setStatus('Thinking')
+  try {
+    const reply = await sendToAgent(t)
+    setStatus('Idle')
+    speak(reply)
+  } catch (e) {
+    console.warn(e)
+    setStatus('Idle')
+    speak(`Hmm. Something went wrong talking to the gateway. ${String(e.message || e)}`)
+  }
+}
+
+// ---------- Event wiring ----------
 btnMic?.addEventListener('click', () => {
   if (!rec) return
-  if (state.listening) rec.stop()
-  else rec.start()
+  if (state.listening) stopMic()
+  else startMic()
 })
 
-btnTalk?.addEventListener('click', () => {
-  const t = input.value.trim() || 'Hey Josh. I’m here. What are we building first?'
-  speak(t)
+btnConvo?.addEventListener('click', () => {
+  state.conversationMode = !state.conversationMode
+  btnConvo.textContent = state.conversationMode ? 'Conversation: on' : 'Conversation: off'
+  btnConvo.classList.toggle('primary', state.conversationMode)
+
+  if (state.conversationMode) {
+    startMic()
+  } else {
+    // leave mic as-is; user can stop it
+  }
 })
 
-btnSend?.addEventListener('click', () => {
-  const t = input.value.trim()
-  if (!t) return
-  addMsg('user', t)
-  input.value = ''
-  state.transcript = ''
-  calRespond(t)
+btnSend?.addEventListener('click', () => sendUserMessage(input.value))
+
+input?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    sendUserMessage(input.value)
+    input.value = ''
+  }
 })
 
 btnClear?.addEventListener('click', () => {
   chatlog.innerHTML = ''
+  state.history = []
+  clearImages()
 })
 
+btnConnect?.addEventListener('click', () => connectGateway())
+btnTestVoice?.addEventListener('click', () => {
+  state.voiceEnabled = !!toggleVoice.checked
+  state.autoSpeak = !!toggleAutoSpeak.checked
+  saveSettings()
+  if (!state.voiceEnabled) return
+  // direct synth test
+  if (!('speechSynthesis' in window)) return
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance('Hey Josh. Cal here. Voice is online.')
+  u.rate = 1.02
+  window.speechSynthesis.speak(u)
+})
+
+toggleVoice?.addEventListener('change', () => { state.voiceEnabled = !!toggleVoice.checked; saveSettings() })
+toggleAutoSpeak?.addEventListener('change', () => { state.autoSpeak = !!toggleAutoSpeak.checked; saveSettings() })
+
+dropzone?.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'rgba(34,211,238,.55)' })
+dropzone?.addEventListener('dragleave', () => { dropzone.style.borderColor = 'rgba(148,163,184,.35)' })
+dropzone?.addEventListener('drop', (e) => {
+  e.preventDefault()
+  dropzone.style.borderColor = 'rgba(148,163,184,.35)'
+  addImages(e.dataTransfer?.files)
+})
+
+window.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.files
+  if (items && items.length) addImages(items)
+})
+
+fileEl?.addEventListener('change', (e) => addImages(e.target.files))
+btnClearImages?.addEventListener('click', () => clearImages())
+
 setStatus('Idle')
+loadSettings()
+setLink(state.gatewayToken ? 'Agent: disconnected' : 'Agent: token missing')
+
+// ensure voices list is populated on some platforms
+window.speechSynthesis?.getVoices?.()
 
 // ---------- Three.js: Cal in a small space ----------
 const canvas = document.getElementById('c')
@@ -255,13 +514,12 @@ loader.load(
     const sk = findFirstSkinnedMesh(avatarRoot)
     mouthMesh = sk
     mouthIndex = findMorphIndex(sk, ['mouthopen', 'mouth_open', 'jawopen', 'jaw_open', 'aa', 'viseme'])
-    blinkLeftIndex = findMorphIndex(sk, ['blinkleft', 'eyeBlinkLeft'.toLowerCase(), 'eye_blink_l', 'blink_l'])
-    blinkRightIndex = findMorphIndex(sk, ['blinkright', 'eyeBlinkRight'.toLowerCase(), 'eye_blink_r', 'blink_r'])
+    blinkLeftIndex = findMorphIndex(sk, ['blinkleft', 'eyeblinkleft', 'eye_blink_l', 'blink_l'])
+    blinkRightIndex = findMorphIndex(sk, ['blinkright', 'eyeblinkright', 'eye_blink_r', 'blink_r'])
 
     // animations
     if (gltf.animations?.length) {
       mixer = new THREE.AnimationMixer(avatarRoot)
-      // prefer idle if present
       const idle = gltf.animations.find(a => /idle/i.test(a.name)) || gltf.animations[0]
       mixer.clipAction(idle).play()
     }
@@ -318,38 +576,30 @@ function animate(now) {
     fallbackGroup.scale.setScalar(1 + 0.015 * Math.sin(t * 1.6))
   }
 
-  // avatar idle breathing + look-at camera
   if (avatarRoot) {
-    // subtle bob
     avatarRoot.position.y = 0.02 * Math.sin(t * 1.2)
 
-    // basic movement
     const speed = 1.2
     const dz = (keys.has('w') ? -1 : 0) + (keys.has('s') ? 1 : 0)
     const dx = (keys.has('a') ? -1 : 0) + (keys.has('d') ? 1 : 0)
     if (dx || dz) {
       const v = new THREE.Vector3(dx, 0, dz).normalize().multiplyScalar(speed * dt)
       avatarRoot.position.add(v)
-      // face direction of travel
       const targetRot = Math.atan2(v.x, v.z)
       avatarRoot.rotation.y = THREE.MathUtils.lerp(avatarRoot.rotation.y, targetRot, 0.12)
     } else {
-      // slowly face camera when idle
       const toCam = new THREE.Vector3().subVectors(camera.position, avatarRoot.position)
       const targetRot = Math.atan2(toCam.x, toCam.z)
       avatarRoot.rotation.y = THREE.MathUtils.lerp(avatarRoot.rotation.y, targetRot, 0.04)
     }
 
-    // speech-driven mouth (best effort)
     const mouth = state.speaking ? (0.5 + 0.4 * Math.abs(Math.sin(t * 18))) : 0
     setMorph(mouthMesh, mouthIndex, mouth)
 
-    // blinking
     const blink = Math.abs(Math.sin(t * 0.9 + 1.2)) < 0.04 ? 1 : 0
     setMorph(mouthMesh, blinkLeftIndex, blink)
     setMorph(mouthMesh, blinkRightIndex, blink)
 
-    // keep camera roughly following
     const desired = new THREE.Vector3(avatarRoot.position.x, 1.6, avatarRoot.position.z + 2.4)
     camera.position.lerp(desired, 0.05)
     camera.lookAt(avatarRoot.position.x, 1.45, avatarRoot.position.z)
@@ -361,6 +611,3 @@ function animate(now) {
   requestAnimationFrame(animate)
 }
 requestAnimationFrame(animate)
-
-// ensure voices list is populated on some platforms
-window.speechSynthesis?.getVoices?.()
