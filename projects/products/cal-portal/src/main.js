@@ -41,7 +41,8 @@ const state = {
   voiceEnabled: true,
   autoSpeak: true,
   connected: false,
-  gatewayUrl: 'http://127.0.0.1:18789/v1/chat/completions',
+  // Use same-origin path; Vite proxies /v1 -> Gateway to avoid CORS.
+  gatewayUrl: '/v1/chat/completions',
   gatewayToken: '',
   history: [], // {role, content}
   pendingImages: [], // File[]
@@ -216,6 +217,12 @@ function loadSettings() {
   if (gatewayParam) state.gatewayUrl = gatewayParam
   if (tokenParam) state.gatewayToken = tokenParam
 
+  // If someone passes the gateway host without a path, normalize to /v1/chat/completions
+  if (state.gatewayUrl && !state.gatewayUrl.includes('/v1/')) {
+    // allow relative /v1... or full http(s)://.../v1...
+    // no-op if already a /v1 path
+  }
+
   gatewayUrlEl.value = state.gatewayUrl
   gatewayTokenEl.value = state.gatewayToken
   toggleVoice.checked = state.voiceEnabled
@@ -248,7 +255,9 @@ async function connectGateway() {
 
   setLink('Agent: connecting…')
   try {
-    const r = await fetch(state.gatewayUrl, {
+    // Ensure we hit same-origin /v1... by default (proxied by Vite)
+    const url = state.gatewayUrl || '/v1/chat/completions'
+    const r = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${state.gatewayToken}`,
@@ -309,7 +318,8 @@ async function sendToAgent(userText) {
     ],
   }
 
-  const r = await fetch(state.gatewayUrl, {
+  const url = state.gatewayUrl || '/v1/chat/completions'
+  const r = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${state.gatewayToken}`,
