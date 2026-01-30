@@ -82,7 +82,9 @@ const runListEl = document.getElementById('runList')
 const runsCountEl = document.getElementById('runsCount')
 
 const btnExportHub = document.getElementById('btnExportHub')
+const btnCopyHub = document.getElementById('btnCopyHub')
 const btnImportHub = document.getElementById('btnImportHub')
+const btnPasteHub = document.getElementById('btnPasteHub')
 const hubFileEl = document.getElementById('hubFile')
 
 const state = {
@@ -217,10 +219,9 @@ function exportHub() {
   addMsg('cal', 'Exported hub data as JSON.')
 }
 
-async function importHubFromFile(file) {
-  const raw = await file.text()
-  const j = JSON.parse(raw)
+function importHubFromObject(j) {
   if (!j || typeof j !== 'object') throw new Error('Invalid JSON')
+
   const refs = Array.isArray(j.refs) ? j.refs : []
   const tasks = Array.isArray(j.tasks) ? j.tasks : []
   const runs = Array.isArray(j.runs) ? j.runs : []
@@ -239,6 +240,17 @@ async function importHubFromFile(file) {
   renderRuns()
 
   addMsg('cal', `Imported hub data. (${refs.length} refs, ${tasks.length} tasks, ${runs.length} runs)`)
+}
+
+async function importHubFromFile(file) {
+  const raw = await file.text()
+  const j = JSON.parse(raw)
+  importHubFromObject(j)
+}
+
+function importHubFromText(raw) {
+  const j = JSON.parse(String(raw || ''))
+  importHubFromObject(j)
 }
 
 function esc(s) {
@@ -600,10 +612,28 @@ function bindHubUI() {
 
   btnExportHub?.addEventListener('click', () => exportHub())
 
+  btnCopyHub?.addEventListener('click', async () => {
+    const payload = hubExportPayload()
+    await copyText(JSON.stringify(payload, null, 2))
+  })
+
   btnImportHub?.addEventListener('click', () => {
     if (!hubFileEl) return
     hubFileEl.value = ''
     hubFileEl.click()
+  })
+
+  btnPasteHub?.addEventListener('click', () => {
+    const raw = window.prompt('Paste hub JSON here:')
+    if (!raw) return
+    const ok = window.confirm('Import hub data from pasted JSON? This will REPLACE current refs/tasks/runs/notes in this browser.')
+    if (!ok) return
+    try {
+      importHubFromText(raw)
+    } catch (e) {
+      console.warn(e)
+      addMsg('cal', `Paste import failed: ${String(e.message || e).slice(0, 120)}`)
+    }
   })
 
   hubFileEl?.addEventListener('change', async () => {
