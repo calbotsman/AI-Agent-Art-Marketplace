@@ -59,6 +59,12 @@ const taskTitleEl = document.getElementById('taskTitle')
 const btnAddTask = document.getElementById('btnAddTask')
 const taskListEl = document.getElementById('taskList')
 
+// Runs (tiny)
+const runTitleEl = document.getElementById('runTitle')
+const runNotesEl = document.getElementById('runNotes')
+const btnAddRun = document.getElementById('btnAddRun')
+const runListEl = document.getElementById('runList')
+
 const btnExportHub = document.getElementById('btnExportHub')
 const btnImportHub = document.getElementById('btnImportHub')
 const hubFileEl = document.getElementById('hubFile')
@@ -82,6 +88,11 @@ const state = {
   notes: '',
   refs: [], // {id,title,url,body,ts}
   tasks: [], // {id,title,status,ts}
+  runs: [], // {id,title,status,ts,notes}
+
+  // speech helpers
+  lastFinalTranscript: '',
+  pttActive: false,
 }
 
 function setStatus(text) { elStatus.textContent = text }
@@ -135,6 +146,7 @@ function saveLocalHub() {
   try {
     localStorage.setItem('cal.refs', JSON.stringify(state.refs || []))
     localStorage.setItem('cal.tasks', JSON.stringify(state.tasks || []))
+    localStorage.setItem('cal.runs', JSON.stringify(state.runs || []))
   } catch {
     // ignore
   }
@@ -144,8 +156,10 @@ function loadLocalHub() {
   try {
     const r = localStorage.getItem('cal.refs')
     const t = localStorage.getItem('cal.tasks')
+    const runs = localStorage.getItem('cal.runs')
     if (r) state.refs = JSON.parse(r) || []
     if (t) state.tasks = JSON.parse(t) || []
+    if (runs) state.runs = JSON.parse(runs) || []
   } catch {
     // ignore
   }
@@ -158,6 +172,7 @@ function hubExportPayload() {
     exportedAt: new Date().toISOString(),
     refs: state.refs || [],
     tasks: state.tasks || [],
+    runs: state.runs || [],
     notes: state.notes || '',
   }
 }
@@ -187,10 +202,12 @@ async function importHubFromFile(file) {
   if (!j || typeof j !== 'object') throw new Error('Invalid JSON')
   const refs = Array.isArray(j.refs) ? j.refs : []
   const tasks = Array.isArray(j.tasks) ? j.tasks : []
+  const runs = Array.isArray(j.runs) ? j.runs : []
   const notes = typeof j.notes === 'string' ? j.notes : ''
 
   state.refs = refs
   state.tasks = tasks
+  state.runs = runs
   state.notes = notes
   if (notesEl) notesEl.value = state.notes
 
@@ -198,8 +215,9 @@ async function importHubFromFile(file) {
   saveSettings()
   renderRefs()
   renderTasks()
+  renderRuns()
 
-  addMsg('cal', `Imported hub data. (${refs.length} refs, ${tasks.length} tasks)`)
+  addMsg('cal', `Imported hub data. (${refs.length} refs, ${tasks.length} tasks, ${runs.length} runs)`)
 }
 
 function esc(s) {
@@ -302,6 +320,74 @@ function renderTasks() {
   })
 }
 
+function renderRuns() {
+  if (!runListEl) return
+  const runs = state.runs || []
+  if (!runs.length) {
+    runListEl.innerHTML = '<div class="small" style="opacity:.7;">No runs yet.</div>'
+    return
+  }
+
+  runListEl.innerHTML = runs
+    .slice()
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .map(r => {
+      const title = esc(r.title || '(untitled)')
+      const notes = esc(r.notes || '')
+      const status = r.status || 'running'
+      const pill = status === 'done'
+        ? '<span class="pill" style="border-color: rgba(34,197,94,.35);">done</span>'
+        : '<span class="pill" style="border-color: rgba(245,158,11,.35);">running</span>'
+      return `
+        <div class="msg" style="margin-top:10px;">
+          <div class="meta"><div>Run</div><div>${new Date(r.ts || Date.now()).toLocaleString()}</div></div>
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+            <div style="flex:1;">
+              <div><strong>${title}</strong></div>
+              <div style="margin-top:6px;">${pill}</div>
+              ${notes ? `<div style="margin-top:8px; opacity:.9; white-space:pre-wrap;">${notes}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button data-run-toggle="${esc(r.id)}">Toggle</button>
+              <button data-run-del="${esc(r.id)}">Delete</button>
+            </div>
+          </div>
+        </div>
+      `.trim()
+    })
+    .join('\n')
+
+  runListEl.querySelectorAll('[data-run-toggle]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-run-toggle')
+      state.runs = (state.runs || []).map(x => x.id === id ? { ...x, status: x.status === 'done' ? 'running' : 'done' } : x)
+      saveLocalHub()
+      renderRuns()
+    })
+  })
+
+  runListEl.querySelectorAll('[data-run-del]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-run-del')
+      state.runs = (state.runs || []).filter(x => x.id !== id)
+      saveLocalHub()
+      renderRuns()
+    })
+  })
+}
+
+function addRunFromUI() {
+  const title = runTitleEl?.value?.trim() || ''
+  const notes = runNotesEl?.value?.trim() || ''
+  if (!title && !notes) return
+  state.runs = state.runs || []
+  state.runs.push({ id: uid('run'), title: title || notes.slice(0, 60) || 'Run', notes, status: 'running', ts: Date.now() })
+  if (runTitleEl) runTitleEl.value = ''
+  if (runNotesEl) runNotesEl.value = ''
+  saveLocalHub()
+  renderRuns()
+}
+
 function addRefFromUI() {
   const title = refTitleEl?.value?.trim() || ''
   const url = refUrlEl?.value?.trim() || ''
@@ -339,6 +425,14 @@ function bindHubUI() {
     if (e.key === 'Enter') {
       e.preventDefault()
       addTaskFromUI()
+    }
+  })
+
+  btnAddRun?.addEventListener('click', addRunFromUI)
+  runNotesEl?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      addRunFromUI()
     }
   })
 
@@ -442,6 +536,13 @@ function speak(text) {
   window.speechSynthesis.speak(u)
 }
 
+function setDraftText(text) {
+  const t = String(text || '')
+  state.transcript = t
+  if (input) input.value = t
+  if (talkInput) talkInput.value = t
+}
+
 // ---------- SpeechRecognition (mic) ----------
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
 let rec = null
@@ -462,14 +563,15 @@ if (SpeechRecognition) {
     }
 
     const combined = (finalText + ' ' + interimText).trim()
-    state.transcript = combined
-    input.value = combined
+    setDraftText(combined)
+
+    if (finalText.trim()) state.lastFinalTranscript = finalText.trim()
 
     // Conversation mode: auto-send finalized chunks
     if (state.conversationMode && finalText.trim()) {
       const sendText = finalText.trim()
-      input.value = ''
-      state.transcript = ''
+      state.lastFinalTranscript = ''
+      setDraftText('')
       sendUserMessage(sendText)
     }
   }
@@ -552,6 +654,7 @@ function loadSettings() {
   loadLocalHub()
   renderRefs()
   renderTasks()
+  renderRuns()
 
   // keep talk tray in sync
   if (talkInput && input) talkInput.value = input.value
@@ -1090,10 +1193,52 @@ loader.load(
 // movement controls (WASD)
 const keys = new Set()
 window.addEventListener('keydown', (e) => {
-  keys.add(e.key.toLowerCase())
+  const k = e.key.toLowerCase()
+  if (['w', 'a', 's', 'd'].includes(k)) keys.add(k)
 })
 window.addEventListener('keyup', (e) => {
-  keys.delete(e.key.toLowerCase())
+  const k = e.key.toLowerCase()
+  keys.delete(k)
+})
+
+// Push-to-talk: hold Space to listen (when not typing in an input)
+function isTypingTarget(el) {
+  const tag = (el?.tagName || '').toLowerCase()
+  return tag === 'input' || tag === 'textarea' || el?.isContentEditable
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.repeat) return
+  if (e.code !== 'Space') return
+  if (isTypingTarget(document.activeElement)) return
+  if (!rec) return
+
+  // don't steal spacebar from page scrolling
+  e.preventDefault()
+
+  state.pttActive = true
+  state.lastFinalTranscript = ''
+  startMic()
+})
+
+window.addEventListener('keyup', (e) => {
+  if (e.code !== 'Space') return
+  if (!state.pttActive) return
+  state.pttActive = false
+
+  e.preventDefault()
+  stopMic()
+
+  // If we captured a final transcript chunk, fire it on release.
+  // (Conversation mode already auto-sends, so skip.)
+  if (!state.conversationMode) {
+    const sendText = (state.lastFinalTranscript || state.transcript || '').trim()
+    state.lastFinalTranscript = ''
+    if (sendText) {
+      setDraftText('')
+      sendUserMessage(sendText)
+    }
+  }
 })
 
 function resize() {

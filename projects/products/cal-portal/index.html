@@ -160,6 +160,25 @@
 
           <hr class="divider" style="margin:12px 0;" />
 
+          <div class="small" style="margin:0 0 8px 0;">Runs (tiny)</div>
+          <div class="small" style="margin:-4px 0 8px 0; opacity:.75;">Log quick “agent runs” / work bursts with notes. ⌘/Ctrl+Enter in notes to add.</div>
+          <div style="display:grid; gap:10px;">
+            <div>
+              <div class="small" style="margin-bottom:6px;">Title</div>
+              <input id="runTitle" type="text" placeholder="e.g., ‘Night sprint: tasks + UI polish’" />
+            </div>
+            <div>
+              <div class="small" style="margin-bottom:6px;">Notes (optional)</div>
+              <textarea id="runNotes" placeholder="What did we do? What’s blocked? Links, commands, decisions…"></textarea>
+            </div>
+            <div class="row">
+              <button id="btnAddRun" class="primary">Add run</button>
+            </div>
+            <div id="runList" class="small"></div>
+          </div>
+
+          <hr class="divider" style="margin:12px 0;" />
+
           <div class="small" style="margin:0 0 8px 0;">Portable hub data (share tasks + refs + notes between machines)</div>
           <div class="row">
             <button id="btnExportHub">Export hub</button>
