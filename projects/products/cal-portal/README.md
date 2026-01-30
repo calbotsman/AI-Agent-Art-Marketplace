@@ -35,6 +35,7 @@ Notes:
 - The bottom status bar is always visible and shows **gateway connectivity** and **token status**.
 
 ## Next steps
-- Wire chat to Clawdbot gateway/session.
-- Add "push-to-talk" and hotkeys.
-- Add a proper avatar rig + expressions.
+- Add **image/vision** to the gateway call (right now we only attach image *names*).
+- Add a lightweight **agent selector** (x-clawdbot-agent-id) + “clear conversation” UX.
+- Polish the **hub import/export** UX (merge/preview vs replace; better error messages).
+- Avatar: add **expressions / visemes** + blink and subtle idle motion.

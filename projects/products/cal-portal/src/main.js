@@ -1432,7 +1432,12 @@ btnVoiceHud?.addEventListener('click', () => {
   saveSettings()
 })
 
-btnSend?.addEventListener('click', () => sendUserMessage(input.value))
+btnSend?.addEventListener('click', () => {
+  sendUserMessage(input.value)
+  if (input) input.value = ''
+  if (talkInput) talkInput.value = ''
+  setDraftText('')
+})
 
 input?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
