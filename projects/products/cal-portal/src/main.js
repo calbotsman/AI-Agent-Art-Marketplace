@@ -503,6 +503,7 @@ function renderRefs() {
           <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
             ${url ? `<button data-ref-copy-url="${esc(r.id)}">Copy URL</button>` : ''}
             <button data-ref-copy="${esc(r.id)}">Copy</button>
+            <button data-ref-edit="${esc(r.id)}">Edit</button>
             <button data-ref-del="${esc(r.id)}">Delete</button>
           </div>
         </div>
@@ -528,6 +529,30 @@ function renderRefs() {
       copyText(parts.join('\n'))
     })
   })
+  refListEl.querySelectorAll('[data-ref-edit]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-ref-edit')
+      const hit = (state.refs || []).find(x => x.id === id)
+      if (!hit) return
+
+      const nextTitle = window.prompt('Edit ref title:', hit.title || '')
+      if (nextTitle === null) return
+      const nextUrl = window.prompt('Edit ref URL (optional):', hit.url || '')
+      if (nextUrl === null) return
+      const nextBody = window.prompt('Edit ref notes (optional):', hit.body || '')
+      if (nextBody === null) return
+
+      state.refs = (state.refs || []).map(x => x.id === id ? {
+        ...x,
+        title: String(nextTitle || '').trim() || '(untitled)',
+        url: String(nextUrl || '').trim(),
+        body: String(nextBody || '').trim(),
+      } : x)
+      saveLocalHub()
+      renderRefs()
+    })
+  })
+
   refListEl.querySelectorAll('[data-ref-del]')?.forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-ref-del')
@@ -575,6 +600,8 @@ function renderTasks() {
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button data-task-copy="${esc(t.id)}">Copy</button>
+              <button data-task-edit="${esc(t.id)}">Edit</button>
+              <button data-task-start-run="${esc(t.id)}">Start run</button>
               <button data-task-toggle="${esc(t.id)}">Toggle</button>
               <button data-task-del="${esc(t.id)}">Delete</button>
             </div>
@@ -590,6 +617,47 @@ function renderTasks() {
       const hit = (state.tasks || []).find(x => x.id === id)
       if (!hit) return
       copyText(`[${hit.status || 'todo'}] ${hit.title} (${hit.id})`)
+    })
+  })
+
+  taskListEl.querySelectorAll('[data-task-edit]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-task-edit')
+      const hit = (state.tasks || []).find(x => x.id === id)
+      if (!hit) return
+      const nextTitle = window.prompt('Edit task title:', hit.title || '')
+      if (nextTitle === null) return
+      state.tasks = (state.tasks || []).map(x => x.id === id ? { ...x, title: String(nextTitle || '').trim() || '(untitled)' } : x)
+      saveLocalHub()
+      renderTasks()
+    })
+  })
+
+  taskListEl.querySelectorAll('[data-task-start-run]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-task-start-run')
+      const hit = (state.tasks || []).find(x => x.id === id)
+      if (!hit) return
+
+      const notes = window.prompt('Optional run notes:', '')
+      if (notes === null) return
+
+      state.runs = state.runs || []
+      state.runs.push({
+        id: uid('run'),
+        title: hit.title || 'Run',
+        notes: String(notes || '').trim(),
+        status: 'running',
+        ts: Date.now(),
+      })
+
+      // Mark the originating task done, so tasks become the "inbox" and runs become active work.
+      state.tasks = (state.tasks || []).map(x => x.id === id ? { ...x, status: 'done' } : x)
+
+      saveLocalHub()
+      renderTasks()
+      renderRuns()
+      addMsg('cal', `Started run from task: ${hit.title || hit.id}`)
     })
   })
 
@@ -648,6 +716,8 @@ function renderRuns() {
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button data-run-copy="${esc(r.id)}">Copy</button>
+              <button data-run-copy-summary="${esc(r.id)}">Copy summary</button>
+              <button data-run-edit="${esc(r.id)}">Edit</button>
               <button data-run-toggle="${esc(r.id)}">Toggle</button>
               <button data-run-del="${esc(r.id)}">Delete</button>
             </div>
@@ -667,6 +737,41 @@ function renderRuns() {
         hit.notes || '',
       ].map(x => String(x || '').trim()).filter(Boolean)
       copyText(parts.join('\n\n'))
+    })
+  })
+
+  runListEl.querySelectorAll('[data-run-copy-summary]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-run-copy-summary')
+      const hit = (state.runs || []).find(x => x.id === id)
+      if (!hit) return
+      const notesFirstLine = String(hit.notes || '').trim().split('\n')[0] || ''
+      const summary = [
+        `[${hit.status || 'running'}] ${hit.title || 'Run'} (${hit.id})`,
+        notesFirstLine ? `— ${notesFirstLine}` : '',
+      ].filter(Boolean).join(' ')
+      copyText(summary)
+    })
+  })
+
+  runListEl.querySelectorAll('[data-run-edit]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-run-edit')
+      const hit = (state.runs || []).find(x => x.id === id)
+      if (!hit) return
+
+      const nextTitle = window.prompt('Edit run title:', hit.title || '')
+      if (nextTitle === null) return
+      const nextNotes = window.prompt('Edit run notes (optional):', hit.notes || '')
+      if (nextNotes === null) return
+
+      state.runs = (state.runs || []).map(x => x.id === id ? {
+        ...x,
+        title: String(nextTitle || '').trim() || '(untitled)',
+        notes: String(nextNotes || '').trim(),
+      } : x)
+      saveLocalHub()
+      renderRuns()
     })
   })
 
