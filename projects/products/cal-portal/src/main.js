@@ -6,6 +6,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 const elStatus = document.getElementById('status')
 const elMicStatus = document.getElementById('micStatus')
 const elLinkStatus = document.getElementById('linkStatus')
+const elPresence = document.getElementById('presence')
+const elAgentDock = document.getElementById('agentDock')
 
 // always-visible status bar
 const elGatewayDot = document.getElementById('gatewayDot')
@@ -91,6 +93,7 @@ const state = {
   mode: 'talk', // 'talk' | 'ops'
   listening: false,
   speaking: false,
+  thinking: false,
   transcript: '',
   conversationMode: false,
   voiceEnabled: true,
@@ -118,9 +121,18 @@ const state = {
   pttActive: false,
 }
 
-function setStatus(text) { elStatus.textContent = text }
-function setMic(text) { elMicStatus.textContent = text }
-function setLink(text) { elLinkStatus.textContent = text }
+function setStatus(text) {
+  elStatus.textContent = text
+  renderPresence()
+}
+function setMic(text) {
+  elMicStatus.textContent = text
+  renderPresence()
+}
+function setLink(text) {
+  elLinkStatus.textContent = text
+  renderPresence()
+}
 
 function maskToken(t) {
   const s = String(t || '')
@@ -182,6 +194,71 @@ function renderStatusBar() {
     else if (state.connected) elGatewayDot.classList.add('ok')
     else elGatewayDot.classList.add('bad')
   }
+
+  renderPresence()
+}
+
+function derivePresence() {
+  // disconnected beats everything
+  if (!state.gatewayToken || !state.connected) return 'disconnected'
+  if (state.listening || state.pttActive || state.conversationMode) return 'listening'
+  if (state.thinking) return 'thinking'
+  if (state.speaking) return 'speaking'
+  return 'idle'
+}
+
+function renderPresence() {
+  const p = derivePresence()
+  document.body.dataset.presence = p
+
+  // Agent dock: light identities + who's active right now.
+  if (!elAgentDock) return
+  const agents = [
+    { id: 'cal', name: 'Cal', hint: 'creative', color: '#22d3ee' },
+    { id: 'builder', name: 'Builder', hint: 'ship it', color: '#a78bfa' },
+    { id: 'ops', name: 'Ops', hint: 'systems', color: '#f59e0b' },
+  ]
+
+  const activeId = (p === 'speaking' || p === 'thinking') ? 'cal' : (state.mode === 'ops' ? 'ops' : 'builder')
+
+  if (!elAgentDock.dataset.rendered) {
+    elAgentDock.innerHTML = agents.map(a => {
+      const initial = a.name.slice(0, 1).toUpperCase()
+      return `
+        <button class="agent" type="button" data-agent="${a.id}" title="${a.name}">
+          <div class="avatar" style="background:${a.color}">${initial}</div>
+          <div class="name">${a.name}</div>
+          <div class="hint">${a.hint}</div>
+        </button>
+      `.trim()
+    }).join('\n')
+    elAgentDock.dataset.rendered = '1'
+
+    // quick actions
+    elAgentDock.querySelectorAll('[data-agent]')?.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-agent')
+        if (id === 'ops') {
+          state.mode = 'ops'; saveSettings(); renderMode();
+        } else if (id === 'builder') {
+          state.mode = 'talk'; saveSettings(); renderMode();
+        } else {
+          // Cal: focus input
+          focusPrimaryInput()
+        }
+      })
+    })
+  }
+
+  elAgentDock.querySelectorAll('[data-agent]')?.forEach(btn => {
+    const id = btn.getAttribute('data-agent')
+    btn.classList.toggle('active', id === activeId)
+  })
+}
+
+function focusPrimaryInput() {
+  if (state.mode === 'talk') talkInput?.focus()
+  else input?.focus()
 }
 
 // ---------- Library + Tasks (local-first) ----------
@@ -1063,6 +1140,13 @@ function showCommandHelp() {
     '  /talk                      → switch to Talk mode',
     '  /clear                     → clear chat + draft',
     '  /help                      → show this list',
+    '',
+    'Shortcuts:',
+    '  Space (hold)               → push-to-talk (when not typing)',
+    '  ⌘/Ctrl+Enter               → send',
+    '  ⌘/Ctrl+K                   → focus input',
+    '  ⌘/Ctrl+,                   → settings',
+    '  ⌘/Ctrl+Shift+O / +T         → ops / talk modes',
   ].join('\n'))
 }
 
@@ -1204,13 +1288,16 @@ async function sendUserMessage(text) {
     return
   }
 
+  state.thinking = true
   setStatus('Thinking')
   try {
     const reply = await sendToAgent(t)
+    state.thinking = false
     setStatus('Idle')
     speak(reply)
   } catch (e) {
     console.warn(e)
+    state.thinking = false
     setStatus('Idle')
     speak(`Hmm. Something went wrong talking to the gateway. ${String(e.message || e)}`)
   }
@@ -1226,6 +1313,30 @@ window.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === '/') {
     e.preventDefault()
     showCommandHelp()
+    return
+  }
+
+  // Cmd/Ctrl + K → focus primary input
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault()
+    focusPrimaryInput()
+    return
+  }
+
+  // Cmd/Ctrl + , → open settings
+  if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+    e.preventDefault()
+    state.mode = 'ops'
+    saveSettings()
+    renderMode()
+    if (settingsDetails) settingsDetails.open = true
+    settingsDetails?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  // Esc → blur focus (so Space PTT works again)
+  if (e.key === 'Escape') {
+    document.activeElement?.blur?.()
     return
   }
 
@@ -1462,10 +1573,14 @@ rim.position.set(-2, 2.5, -2)
 scene.add(rim)
 
 // simple floor
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(20, 20),
-  new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95, metalness: 0.0 })
-)
+const floorMat = new THREE.MeshStandardMaterial({
+  color: 0x0f172a,
+  roughness: 0.95,
+  metalness: 0.0,
+  emissive: new THREE.Color('#000000'),
+  emissiveIntensity: 0.0,
+})
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), floorMat)
 floor.rotation.x = -Math.PI / 2
 floor.position.y = 0
 scene.add(floor)
@@ -1476,6 +1591,23 @@ grid.material.opacity = 0.35
 grid.material.transparent = true
 grid.position.y = 0.001
 scene.add(grid)
+
+// Presence halo: a subtle ring on the floor under Cal.
+const halo = new THREE.Mesh(
+  new THREE.RingGeometry(0.62, 0.78, 64),
+  new THREE.MeshStandardMaterial({
+    color: 0x111827,
+    emissive: new THREE.Color('#22d3ee'),
+    emissiveIntensity: 0.35,
+    transparent: true,
+    opacity: 0.75,
+    roughness: 0.35,
+    metalness: 0.0,
+  })
+)
+halo.rotation.x = -Math.PI / 2
+halo.position.set(0, 0.012, 0)
+scene.add(halo)
 
 const wallMat = new THREE.MeshStandardMaterial({ color: 0x0b1220, roughness: 0.95, metalness: 0.0 })
 const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 6), wallMat)
@@ -1675,8 +1807,28 @@ function animate(now) {
 
   const t = now / 1000
 
+  // presence → subtle environment cues (halo + floor)
+  const presence = derivePresence()
+  const haloMat = halo.material
+  if (haloMat) {
+    const c = presence === 'speaking' ? '#a78bfa'
+      : presence === 'thinking' ? '#f59e0b'
+        : presence === 'listening' ? '#22d3ee'
+          : '#334155'
+    haloMat.emissive = new THREE.Color(c)
+    const active = (presence === 'speaking' || presence === 'thinking' || presence === 'listening') ? 1 : 0
+    haloMat.emissiveIntensity = 0.22 + 0.55 * active
+    haloMat.opacity = 0.55 + 0.18 * active
+  }
+  grid.material.opacity = (presence === 'disconnected') ? 0.18 : 0.35
+  floorMat.emissiveIntensity = (presence === 'disconnected') ? 0.0 : (presence === 'speaking' ? 0.14 : 0.06)
+  floorMat.emissive = new THREE.Color(presence === 'speaking' ? '#a78bfa' : '#0b1220')
+
   // fallback animation
   if (fallbackGroup.visible) {
+    halo.position.x = fallbackGroup.position.x
+    halo.position.z = fallbackGroup.position.z
+
     orb.rotation.y = t * 0.35
     orb.rotation.x = Math.sin(t * 0.4) * 0.05
     wire.rotation.copy(orb.rotation)
@@ -1687,6 +1839,10 @@ function animate(now) {
   }
 
   if (avatarRoot) {
+    // track halo under Cal
+    halo.position.x = avatarRoot.position.x
+    halo.position.z = avatarRoot.position.z
+
     avatarRoot.position.y = 0.02 * Math.sin(t * 1.2)
 
     const speed = 1.2

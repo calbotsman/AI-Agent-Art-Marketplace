@@ -11,11 +11,30 @@
       body.mode-talk #app { grid-template-columns: 1fr; }
       body.mode-talk .panel { display:none; }
 
-      .panel { padding: 16px; padding-bottom: 96px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
+      .panel { padding: 18px 18px 104px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
       .stage { position:relative; padding-bottom: 64px; }
       canvas { display:block; width:100%; height:100%; }
-      .hud { position:absolute; left:12px; top:12px; right:12px; display:flex; gap:8px; align-items:center; justify-content:space-between; pointer-events:none; }
-      .hud .left, .hud .right { display:flex; gap:8px; align-items:center; pointer-events:auto; }
+      .hud { position:absolute; left:14px; top:14px; right:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; pointer-events:none; }
+      .hud .left, .hud .right { display:flex; gap:10px; align-items:center; pointer-events:auto; flex-wrap:wrap; }
+
+      /* Presence pipeline (listen → think → speak) */
+      .presence { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; border:1px solid rgba(148,163,184,.22); background:rgba(17,24,39,.55); }
+      .presence .dot { width:8px; height:8px; border-radius:999px; background:rgba(148,163,184,.35); box-shadow: 0 0 0 2px rgba(148,163,184,.12) inset; }
+      body[data-presence="listening"] .presence [data-dot="listen"] { background:#22d3ee; box-shadow: 0 0 18px rgba(34,211,238,.55); }
+      body[data-presence="thinking"] .presence [data-dot="think"] { background:#f59e0b; box-shadow: 0 0 18px rgba(245,158,11,.5); }
+      body[data-presence="speaking"] .presence [data-dot="speak"] { background:#a78bfa; box-shadow: 0 0 18px rgba(167,139,250,.55); }
+      body[data-presence="disconnected"] .presence .dot { background:rgba(239,68,68,.35); }
+
+      /* Agent roster dock */
+      .agentDock { position:absolute; left:14px; bottom:72px; z-index:30; display:flex; gap:10px; align-items:flex-end; pointer-events:auto; }
+      .agent { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:64px; padding:10px 10px 8px; border:1px solid rgba(148,163,184,.16); background:rgba(15,23,42,.45); backdrop-filter: blur(10px);
+        border-radius:14px; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+      .agent:hover { transform: translateY(-2px); border-color: rgba(34,211,238,.22); }
+      .agent .avatar { width:34px; height:34px; border-radius:999px; display:grid; place-items:center; font-weight:800; letter-spacing:.02em; color:#0b1220; }
+      .agent .name { font-size:12px; opacity:.85; }
+      .agent .hint { font-size:11px; opacity:.55; line-height:1.1; text-align:center; }
+      .agent.active { border-color: rgba(34,211,238,.3); background:rgba(15,23,42,.58); }
+      .agent.active .avatar { box-shadow: 0 0 22px rgba(34,211,238,.22); }
 
       /* Always-visible bottom status bar (mode + gateway + token) */
       .statusbar { position:fixed; left:0; right:0; bottom:0; z-index:50; display:flex; gap:10px; align-items:center; justify-content:space-between;
@@ -32,9 +51,11 @@
       .talkTray { position:absolute; left:12px; right:12px; bottom:58px; z-index:40; display:none; gap:10px; align-items:flex-end; }
       body.mode-talk .talkTray { display:flex; }
       .talkTray textarea { min-height: 60px; max-height: 180px; }
-      button { background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); padding:10px 12px; border-radius:10px; cursor:pointer; }
-      button.primary { background:linear-gradient(135deg,#7c3aed,#22d3ee); border:none; color:#0b1220; font-weight:700; }
-      button:disabled{ opacity:.5; cursor:not-allowed; }
+      button { background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); padding:10px 12px; border-radius:10px; cursor:pointer; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+      button:hover { transform: translateY(-1px); border-color: rgba(34,211,238,.25); }
+      button:active { transform: translateY(0px); }
+      button.primary { background:linear-gradient(135deg,#7c3aed,#22d3ee); border:none; color:#0b1220; font-weight:800; }
+      button:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
       .badge { font-size: 12px; opacity:.9; padding: 6px 10px; border:1px solid rgba(148,163,184,.25); border-radius:999px; background:rgba(17,24,39,.6); }
       textarea { width:100%; min-height: 96px; resize: vertical; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:12px; }
       input[type="text"], input[type="password"] { width:100%; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:10px 12px; }
@@ -64,16 +85,23 @@
         <div class="hud">
           <div class="left">
             <span class="badge" id="status">Idle</span>
+            <span class="presence" id="presence" title="Presence">
+              <span class="dot" data-dot="listen"></span>
+              <span class="dot" data-dot="think"></span>
+              <span class="dot" data-dot="speak"></span>
+            </span>
             <span class="badge" id="micStatus">Mic: off</span>
             <span class="badge" id="linkStatus">Agent: disconnected</span>
           </div>
           <div class="right">
-            <button id="btnMic">Start mic</button>
+            <button id="btnMic" title="Hold Space for push‑to‑talk">Start mic</button>
             <button id="btnVoiceHud">Voice: on</button>
-            <button class="primary" id="btnConvo">Conversation: off</button>
-            <button class="primary" id="btnCall">Call Cal</button>
+            <button class="primary" id="btnConvo" title="Hands‑free: auto-send finalized speech">Conversation: off</button>
+            <button class="primary" id="btnCall" title="Connect + start conversation">Call Cal</button>
           </div>
         </div>
+
+        <div class="agentDock" id="agentDock" aria-label="Agents"></div>
 
         <canvas id="c"></canvas>
 
