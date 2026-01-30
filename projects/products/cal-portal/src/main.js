@@ -59,6 +59,10 @@ const taskTitleEl = document.getElementById('taskTitle')
 const btnAddTask = document.getElementById('btnAddTask')
 const taskListEl = document.getElementById('taskList')
 
+const btnExportHub = document.getElementById('btnExportHub')
+const btnImportHub = document.getElementById('btnImportHub')
+const hubFileEl = document.getElementById('hubFile')
+
 const state = {
   mode: 'talk', // 'talk' | 'ops'
   listening: false,
@@ -145,6 +149,57 @@ function loadLocalHub() {
   } catch {
     // ignore
   }
+}
+
+function hubExportPayload() {
+  return {
+    kind: 'cal-portal-hub',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    refs: state.refs || [],
+    tasks: state.tasks || [],
+    notes: state.notes || '',
+  }
+}
+
+function downloadJson(filename, obj) {
+  const json = JSON.stringify(obj, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 500)
+}
+
+function exportHub() {
+  const ts = new Date().toISOString().replaceAll(':', '').replaceAll('-', '').slice(0, 15)
+  downloadJson(`cal-portal-hub_${ts}.json`, hubExportPayload())
+  addMsg('cal', 'Exported hub data as JSON.')
+}
+
+async function importHubFromFile(file) {
+  const raw = await file.text()
+  const j = JSON.parse(raw)
+  if (!j || typeof j !== 'object') throw new Error('Invalid JSON')
+  const refs = Array.isArray(j.refs) ? j.refs : []
+  const tasks = Array.isArray(j.tasks) ? j.tasks : []
+  const notes = typeof j.notes === 'string' ? j.notes : ''
+
+  state.refs = refs
+  state.tasks = tasks
+  state.notes = notes
+  if (notesEl) notesEl.value = state.notes
+
+  saveLocalHub()
+  saveSettings()
+  renderRefs()
+  renderTasks()
+
+  addMsg('cal', `Imported hub data. (${refs.length} refs, ${tasks.length} tasks)`)
 }
 
 function esc(s) {
@@ -284,6 +339,27 @@ function bindHubUI() {
     if (e.key === 'Enter') {
       e.preventDefault()
       addTaskFromUI()
+    }
+  })
+
+  btnExportHub?.addEventListener('click', () => exportHub())
+
+  btnImportHub?.addEventListener('click', () => {
+    if (!hubFileEl) return
+    hubFileEl.value = ''
+    hubFileEl.click()
+  })
+
+  hubFileEl?.addEventListener('change', async () => {
+    const f = hubFileEl.files?.[0]
+    if (!f) return
+    const ok = window.confirm('Import hub data from JSON? This will REPLACE current refs/tasks/notes in this browser.')
+    if (!ok) return
+    try {
+      await importHubFromFile(f)
+    } catch (e) {
+      console.warn(e)
+      addMsg('cal', `Import failed: ${String(e.message || e).slice(0, 120)}`)
     }
   })
 }
