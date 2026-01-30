@@ -338,14 +338,16 @@ function importHubFromObject(j) {
   if (j.version && j.version !== 1) throw new Error('Unsupported hub export version')
 
   const ensureIds = (list, prefix) => {
+    const now = Date.now()
     return (Array.isArray(list) ? list : [])
       .map(it => (it && typeof it === 'object') ? it : null)
       .filter(Boolean)
-      .map(it => ({
-        ...it,
-        id: String(it.id || '') || uid(prefix),
-        ts: typeof it.ts === 'number' ? it.ts : (it.ts ? Number(it.ts) : it.ts),
-      }))
+      .map(it => {
+        const id = String(it.id || '').trim() || uid(prefix)
+        const tsNum = (typeof it.ts === 'number') ? it.ts : (it.ts ? Number(it.ts) : NaN)
+        const ts = Number.isFinite(tsNum) ? tsNum : now
+        return { ...it, id, ts }
+      })
   }
 
   const incoming = {
@@ -380,21 +382,34 @@ function importHubFromObject(j) {
     mode = (c === 'm' || c === 'merge') ? 'merge' : 'replace'
   }
 
+  const before = {
+    refs: (state.refs || []).length,
+    tasks: (state.tasks || []).length,
+    runs: (state.runs || []).length,
+    notes: String(state.notes || ''),
+  }
+
   if (mode == 'replace') {
     state.refs = incoming.refs
     state.tasks = incoming.tasks
     state.runs = incoming.runs
     state.notes = incoming.notes
   } else {
-    const mergeById = (existing, inc) => {
+    const mergeById = (existing, inc, prefix) => {
       const m = new Map()
-      for (const it of (existing || [])) m.set(String(it?.id || ''), it)
-      for (const it of (inc || [])) m.set(String(it?.id || ''), it)
+      for (const it of (existing || [])) {
+        const id = String(it?.id || '').trim() || uid(prefix)
+        m.set(id, { ...it, id })
+      }
+      for (const it of (inc || [])) {
+        const id = String(it?.id || '').trim() || uid(prefix)
+        m.set(id, { ...it, id })
+      }
       return Array.from(m.values()).filter(Boolean)
     }
-    state.refs = mergeById(state.refs, incoming.refs)
-    state.tasks = mergeById(state.tasks, incoming.tasks)
-    state.runs = mergeById(state.runs, incoming.runs)
+    state.refs = mergeById(state.refs, incoming.refs, 'ref')
+    state.tasks = mergeById(state.tasks, incoming.tasks, 'task')
+    state.runs = mergeById(state.runs, incoming.runs, 'run')
     // notes: keep existing if incoming is empty
     if (incoming.notes) state.notes = incoming.notes
   }
@@ -406,7 +421,21 @@ function importHubFromObject(j) {
   renderTasks()
   renderRuns()
 
-  addMsg('cal', `Imported hub data. (${(state.refs || []).length} refs, ${(state.tasks || []).length} tasks, ${(state.runs || []).length} runs)`)
+  const after = {
+    refs: (state.refs || []).length,
+    tasks: (state.tasks || []).length,
+    runs: (state.runs || []).length,
+    notes: String(state.notes || ''),
+  }
+
+  const noteMsg = (before.notes !== after.notes)
+    ? (after.notes ? 'notes updated' : 'notes cleared')
+    : 'notes unchanged'
+
+  addMsg('cal', `Imported hub data (${mode}). Refs: ${after.refs}, Tasks: ${after.tasks}, Runs: ${after.runs} (${noteMsg}).`)
+  if (before.refs || before.tasks || before.runs) {
+    addMsg('cal', `Before import: ${before.refs} refs, ${before.tasks} tasks, ${before.runs} runs.`)
+  }
 }
 
 async function importHubFromFile(file) {
