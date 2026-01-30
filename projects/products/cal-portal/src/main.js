@@ -860,11 +860,131 @@ async function sendToAgent(userText) {
   return txt
 }
 
+function showCommandHelp() {
+  addMsg('cal', [
+    'Local commands (no gateway needed):',
+    '  /task <title>              → add a task',
+    '  /done <query|id>           → mark first matching task done',
+    '  /run <title> | <notes>     → add a run (notes optional)',
+    '  /ref <url> | <title> | <notes> → add a library ref (title/notes optional)',
+    '  /note <text>               → append to Studio notes',
+    '  /export                    → export hub JSON',
+    '  /help                      → show this list',
+  ].join('\n'))
+}
+
+function normalizeSpaces(s) {
+  return String(s || '').replace(/\s+/g, ' ').trim()
+}
+
+function findTaskByQuery(q) {
+  const query = normalizeSpaces(q).toLowerCase()
+  if (!query) return null
+  const tasks = state.tasks || []
+  // exact id match
+  const byId = tasks.find(t => String(t.id) === q)
+  if (byId) return byId
+  // first title substring match
+  return tasks
+    .slice()
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .find(t => normalizeSpaces(t.title).toLowerCase().includes(query)) || null
+}
+
+function handleLocalCommand(rawText) {
+  const t = String(rawText || '').trim()
+  if (!t.startsWith('/')) return false
+
+  const [cmdRaw, ...rest] = t.split(' ')
+  const cmd = (cmdRaw || '').toLowerCase()
+  const arg = rest.join(' ').trim()
+
+  try {
+    if (cmd === '/help' || cmd === '/?') {
+      showCommandHelp()
+      return true
+    }
+
+    if (cmd === '/task') {
+      const title = arg
+      if (!title) { addMsg('cal', 'Usage: /task <title>'); return true }
+      state.tasks = state.tasks || []
+      state.tasks.push({ id: uid('task'), title, status: 'todo', ts: Date.now() })
+      saveLocalHub(); renderTasks()
+      addMsg('cal', `Added task: ${title}`)
+      return true
+    }
+
+    if (cmd === '/done') {
+      const hit = findTaskByQuery(arg)
+      if (!hit) { addMsg('cal', 'No matching task found. Try /done <some words from the title>'); return true }
+      state.tasks = (state.tasks || []).map(x => x.id === hit.id ? { ...x, status: 'done' } : x)
+      saveLocalHub(); renderTasks()
+      addMsg('cal', `Marked done: ${hit.title}`)
+      return true
+    }
+
+    if (cmd === '/run') {
+      const parts = arg.split('|').map(s => s.trim()).filter(Boolean)
+      const title = parts[0] || ''
+      const notes = parts.slice(1).join('\n')
+      if (!title && !notes) { addMsg('cal', 'Usage: /run <title> | <notes (optional)>'); return true }
+      state.runs = state.runs || []
+      state.runs.push({ id: uid('run'), title: title || (notes || '').slice(0, 60) || 'Run', notes, status: 'running', ts: Date.now() })
+      saveLocalHub(); renderRuns()
+      addMsg('cal', `Added run: ${title || 'Run'}`)
+      return true
+    }
+
+    if (cmd === '/ref') {
+      const parts = arg.split('|').map(s => s.trim())
+      const url = parts[0] || ''
+      const title = parts[1] || url
+      const body = (parts.slice(2).join('\n') || '').trim()
+      if (!url) { addMsg('cal', 'Usage: /ref <url> | <title (optional)> | <notes (optional)>'); return true }
+      state.refs = state.refs || []
+      state.refs.push({ id: uid('ref'), title: title || url, url, body, ts: Date.now() })
+      saveLocalHub(); renderRefs()
+      addMsg('cal', `Added ref: ${title || url}`)
+      return true
+    }
+
+    if (cmd === '/note') {
+      const text = arg
+      if (!text) { addMsg('cal', 'Usage: /note <text>'); return true }
+      state.notes = [String(state.notes || '').trim(), text].filter(Boolean).join('\n')
+      if (notesEl) notesEl.value = state.notes
+      saveSettings()
+      addMsg('cal', 'Appended to Studio notes.')
+      return true
+    }
+
+    if (cmd === '/export') {
+      exportHub()
+      return true
+    }
+
+    // Unknown /command: show help so it feels intentional.
+    addMsg('cal', `Unknown command: ${cmd}. Try /help.`)
+    return true
+  } catch (e) {
+    console.warn('handleLocalCommand error', e)
+    addMsg('cal', `Command failed: ${String(e.message || e)}`)
+    return true
+  }
+}
+
 async function sendUserMessage(text) {
   const t = (text || '').trim()
   if (!t) return
 
   addMsg('user', t, { note: state.pendingImages.length ? `${state.pendingImages.length} image(s)` : '' })
+
+  // Local-first: slash commands for hub actions.
+  if (handleLocalCommand(t)) {
+    setStatus('Idle')
+    return
+  }
 
   setStatus('Thinking')
   try {
@@ -879,6 +999,35 @@ async function sendUserMessage(text) {
 }
 
 // ---------- Event wiring ----------
+// Global hotkeys (when you're not typing into an input)
+window.addEventListener('keydown', (e) => {
+  if (e.repeat) return
+  if (isTypingTarget(document.activeElement)) return
+
+  // Cmd/Ctrl + / → help
+  if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+    e.preventDefault()
+    showCommandHelp()
+    return
+  }
+
+  // Cmd/Ctrl + Shift + O/T → mode switch
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'O' || e.key === 'o')) {
+    e.preventDefault()
+    state.mode = 'ops'
+    saveSettings()
+    renderMode()
+    return
+  }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+    e.preventDefault()
+    state.mode = 'talk'
+    saveSettings()
+    renderMode()
+    return
+  }
+})
+
 btnModeTalk?.addEventListener('click', () => {
   state.mode = 'talk'
   saveSettings()

@@ -79,7 +79,7 @@
 
         <!-- Talk mode: keep chat controls reachable even when the Ops panel is hidden -->
         <div class="talkTray" id="talkTray">
-          <textarea id="talkInput" placeholder="Talk mode: type here (⌘/Ctrl+Enter to send)…"></textarea>
+          <textarea id="talkInput" placeholder="Talk mode: type here (⌘/Ctrl+Enter to send). Try /help for local commands…"></textarea>
           <div style="display:flex; flex-direction:column; gap:8px;">
             <button class="primary" id="btnTalkSend">Send</button>
             <button id="btnTalkClear">Clear</button>
@@ -196,7 +196,7 @@
         <hr class="divider"/>
 
         <label class="small">You</label>
-        <textarea id="input" placeholder="Type or use mic…"></textarea>
+        <textarea id="input" placeholder="Type or use mic… (try /help)" ></textarea>
 
         <div class="drop" id="dropzone">
           <div class="small"><strong>Drop images here</strong> (or paste / choose files). I’ll display them in the chat and (next) we’ll enable vision so I can truly "see" them.</div>
