@@ -1,4 +1,5 @@
 import './style.css'
+import './portal.css'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
@@ -18,6 +19,11 @@ const btnModeTalk = document.getElementById('btnModeTalk')
 const btnModeOps = document.getElementById('btnModeOps')
 const btnOpenSettings = document.getElementById('btnOpenSettings')
 const btnNewThread = document.getElementById('btnNewThread')
+
+// Room look (Velvet/Chrome)
+const btnRoomVelvet = document.getElementById('btnRoomVelvet')
+const btnRoomChrome = document.getElementById('btnRoomChrome')
+const roomLabel = document.getElementById('roomLabel')
 
 const btnMic = document.getElementById('btnMic')
 const btnVoiceHud = document.getElementById('btnVoiceHud')
@@ -94,6 +100,7 @@ const hubFileEl = document.getElementById('hubFile')
 
 const state = {
   mode: 'talk', // 'talk' | 'ops'
+  room: 'velvet', // 'velvet' | 'chrome'
   listening: false,
   speaking: false,
   thinking: false,
@@ -1147,6 +1154,7 @@ function stopMic() {
 // ---------- Gateway bridge (Clawdbot OpenAI-compatible endpoint) ----------
 function loadSettings() {
   const m = localStorage.getItem('cal.mode')
+  const room = localStorage.getItem('cal.room')
   const u = localStorage.getItem('cal.gatewayUrl')
   const t = localStorage.getItem('cal.gatewayToken')
   const aId = localStorage.getItem('cal.agentId')
@@ -1155,6 +1163,7 @@ function loadSettings() {
   const n = localStorage.getItem('cal.studioNotes')
   const sd = localStorage.getItem('cal.showDoneTasks')
   if (m === 'talk' || m === 'ops') state.mode = m
+  if (room === 'velvet' || room === 'chrome') state.room = room
   if (u) state.gatewayUrl = normalizeGatewayUrl(u)
   if (t) state.gatewayToken = t
   if (aId) state.agentId = String(aId || 'main').trim() || 'main'
@@ -1204,14 +1213,27 @@ function loadSettings() {
   // keep talk tray in sync
   if (talkInput && input) talkInput.value = input.value
 
+  // room
+  document.body.dataset.room = state.room || 'velvet'
+  if (roomLabel) roomLabel.textContent = state.room === 'chrome' ? 'Chrome' : 'Velvet'
+  btnRoomVelvet?.classList.toggle('primary', state.room === 'velvet')
+  btnRoomChrome?.classList.toggle('primary', state.room === 'chrome')
+
   renderMode()
   renderStatusBar()
 }
 
 function saveSettings() {
   localStorage.setItem('cal.mode', state.mode)
+  localStorage.setItem('cal.room', state.room)
   localStorage.setItem('cal.gatewayUrl', state.gatewayUrl)
   localStorage.setItem('cal.gatewayToken', state.gatewayToken)
+
+  // apply room immediately
+  document.body.dataset.room = state.room || 'velvet'
+  if (roomLabel) roomLabel.textContent = state.room === 'chrome' ? 'Chrome' : 'Velvet'
+  btnRoomVelvet?.classList.toggle('primary', state.room === 'velvet')
+  btnRoomChrome?.classList.toggle('primary', state.room === 'chrome')
   localStorage.setItem('cal.agentId', String(state.agentId || 'main'))
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
   localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
@@ -1785,6 +1807,16 @@ notesEl?.addEventListener('input', () => {
 btnClearNotes?.addEventListener('click', () => {
   state.notes = ''
   if (notesEl) notesEl.value = ''
+  saveSettings()
+})
+
+// Room look switch
+btnRoomVelvet?.addEventListener('click', () => {
+  state.room = 'velvet'
+  saveSettings()
+})
+btnRoomChrome?.addEventListener('click', () => {
+  state.room = 'chrome'
   saveSettings()
 })
 

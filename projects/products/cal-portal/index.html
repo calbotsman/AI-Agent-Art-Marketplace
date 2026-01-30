@@ -4,82 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cal Portal</title>
-    <style>
-      :root { color-scheme: dark; }
-      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background:#0b1220; color:#e5e7eb; }
-      #app { display:grid; grid-template-columns: 1.4fr 1fr; height: 100vh; }
-      body.mode-talk #app { grid-template-columns: 1fr; }
-      body.mode-talk .panel { display:none; }
-
-      .panel { padding: 18px 18px 104px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
-      .stage { position:relative; padding-bottom: 64px; }
-      canvas { display:block; width:100%; height:100%; }
-      .hud { position:absolute; left:14px; top:14px; right:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; pointer-events:none; }
-      .hud .left, .hud .right { display:flex; gap:10px; align-items:center; pointer-events:auto; flex-wrap:wrap; }
-
-      /* Presence pipeline (listen → think → speak) */
-      .presence { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; border:1px solid rgba(148,163,184,.22); background:rgba(17,24,39,.55); }
-      .presence .dot { width:8px; height:8px; border-radius:999px; background:rgba(148,163,184,.35); box-shadow: 0 0 0 2px rgba(148,163,184,.12) inset; }
-      body[data-presence="listening"] .presence [data-dot="listen"] { background:#22d3ee; box-shadow: 0 0 18px rgba(34,211,238,.55); }
-      body[data-presence="thinking"] .presence [data-dot="think"] { background:#f59e0b; box-shadow: 0 0 18px rgba(245,158,11,.5); }
-      body[data-presence="speaking"] .presence [data-dot="speak"] { background:#a78bfa; box-shadow: 0 0 18px rgba(167,139,250,.55); }
-      body[data-presence="disconnected"] .presence .dot { background:rgba(239,68,68,.35); }
-
-      /* Agent roster dock */
-      .agentDock { position:absolute; left:14px; bottom:72px; z-index:30; display:flex; gap:10px; align-items:flex-end; pointer-events:auto; }
-      .agent { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:64px; padding:10px 10px 8px; border:1px solid rgba(148,163,184,.16); background:rgba(15,23,42,.45); backdrop-filter: blur(10px);
-        border-radius:14px; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
-      .agent:hover { transform: translateY(-2px); border-color: rgba(34,211,238,.22); }
-      .agent .avatar { width:34px; height:34px; border-radius:999px; display:grid; place-items:center; font-weight:800; letter-spacing:.02em; color:#0b1220; }
-      .agent .name { font-size:12px; opacity:.85; }
-      .agent .hint { font-size:11px; opacity:.55; line-height:1.1; text-align:center; }
-      .agent.active { border-color: rgba(34,211,238,.3); background:rgba(15,23,42,.58); }
-      .agent.active .avatar { box-shadow: 0 0 22px rgba(34,211,238,.22); }
-
-      /* Always-visible bottom status bar (mode + gateway + token) */
-      .statusbar { position:fixed; left:0; right:0; bottom:0; z-index:50; display:flex; gap:10px; align-items:center; justify-content:space-between;
-        padding:10px 12px; border-top:1px solid rgba(148,163,184,.18); background:rgba(11,18,32,.86); backdrop-filter: blur(10px);
-      }
-      .statusbar .left, .statusbar .right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-      .statusdot { width:10px; height:10px; border-radius:999px; background:#64748b; box-shadow: 0 0 0 2px rgba(148,163,184,.18) inset; }
-      .statusdot.ok { background:#22c55e; }
-      .statusdot.warn { background:#f59e0b; }
-      .statusdot.bad { background:#ef4444; }
-      .mini { font-size:12px; opacity:.9; }
-
-      /* Talk-mode tray */
-      .talkTray { position:absolute; left:12px; right:12px; bottom:58px; z-index:40; display:none; gap:10px; align-items:flex-end; }
-      body.mode-talk .talkTray { display:flex; }
-      .talkTray textarea { min-height: 60px; max-height: 180px; }
-      button { background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); padding:10px 12px; border-radius:10px; cursor:pointer; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
-      button:hover { transform: translateY(-1px); border-color: rgba(34,211,238,.25); }
-      button:active { transform: translateY(0px); }
-      button.primary { background:linear-gradient(135deg,#7c3aed,#22d3ee); border:none; color:#0b1220; font-weight:800; }
-      button:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
-      .badge { font-size: 12px; opacity:.9; padding: 6px 10px; border:1px solid rgba(148,163,184,.25); border-radius:999px; background:rgba(17,24,39,.6); }
-      textarea { width:100%; min-height: 96px; resize: vertical; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:12px; }
-      input[type="text"], input[type="password"] { width:100%; background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:10px 12px; }
-      .row { display:flex; gap:8px; }
-      .row > * { flex:1; }
-      .chatlog { margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
-      .msg { padding:10px 12px; border-radius:12px; border:1px solid rgba(148,163,184,.15); background:rgba(15,23,42,.65); }
-      .msg .meta { font-size: 12px; opacity:.7; margin-bottom: 6px; display:flex; justify-content:space-between; gap:8px; }
-      .msg.user { border-color: rgba(34,211,238,.25); }
-      .msg.cal { border-color: rgba(124,58,237,.25); }
-      .small { font-size:12px; opacity:.8; line-height:1.35; }
-      .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid rgba(148,163,184,.25); background:rgba(17,24,39,.6); font-size:12px; opacity:.95; }
-      .divider { border:0;border-top:1px solid rgba(148,163,184,.15); margin:14px 0; }
-      .drop { margin-top:10px; border:1px dashed rgba(148,163,184,.35); border-radius:14px; padding:10px 12px; background:rgba(17,24,39,.35); }
-      .drop strong { color:#e5e7eb; }
-      .thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-      .thumb { width:74px; height:74px; border-radius:12px; overflow:hidden; border:1px solid rgba(148,163,184,.2); background:#0b1220; }
-      .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-      details { border:1px solid rgba(148,163,184,.15); border-radius:14px; padding:10px 12px; background:rgba(15,23,42,.35); }
-      summary { cursor:pointer; user-select:none; }
-      a { color:#22d3ee; }
-    </style>
   </head>
-  <body>
+  <body data-room="velvet">
     <div id="app">
       <div class="stage">
         <div class="hud">
@@ -115,17 +41,23 @@
         </div>
       </div>
 
-      <div class="panel">
-        <h2 style="margin:0 0 10px 0;">Cal Portal</h2>
-        <div class="small" style="margin-bottom:10px;">
-          <span class="pill">Studio</span>
-          <span class="pill">Collab</span>
-          <span class="pill">Build</span>
-        </div>
-        <div class="small">
-          Your creative cockpit in Cal’s office. Drop images, talk hands‑free, and get spoken replies.
-          <br/>Best in Chrome (SpeechRecognition).
-        </div>
+      <div class="panel" aria-label="Ops panel">
+        <div class="panelInner">
+          <div class="panelHeader">
+            <div class="brand">
+              <h2 class="brandTitle">Cal Portal</h2>
+              <p class="brandSubtitle">Studio cockpit: talk, collect refs, and keep Josh’s lane clean. Best in <strong>Chrome</strong> (SpeechRecognition).</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+              <div class="pill tight" title="Room look">
+                <span class="mini" style="opacity:.85;">Room</span>
+                <span class="mini" id="roomLabel" style="opacity:.9;">Velvet</span>
+              </div>
+              <div class="small" style="text-align:right;">
+                <span class="kbd">⌘/Ctrl+K</span> focus • <span class="kbd">⌘/Ctrl+,</span> settings
+              </div>
+            </div>
+          </div>
 
         <details id="settings" style="margin-top:12px;">
           <summary>Settings</summary>
@@ -193,7 +125,10 @@
         </details>
 
         <details id="tasks" open style="margin-top:12px;">
-          <summary>Josh Tasks <span class="mini" id="tasksCount"></span></summary>
+          <summary>
+            <span class="laneTag"><span class="laneDot" aria-hidden="true"></span> Josh Tasks</span>
+            <span class="mini" id="tasksCount"></span>
+          </summary>
           <div class="small" style="margin:8px 0;">What Josh should do next. Local-first (saved in this browser). Mark done as you go.</div>
           <div style="display:grid; gap:10px;">
             <div class="row">
@@ -281,6 +216,7 @@
             <button id="btnClearNotes">Clear notes</button>
           </div>
         </details>
+        </div>
       </div>
     </div>
 
@@ -304,6 +240,11 @@
         </span>
         <span class="pill" style="gap:8px;">
           <span class="mini" id="agentStatus">Agent: main</span>
+        </span>
+        <span class="pill" style="gap:6px;" title="Room look">
+          <span class="mini" style="opacity:.85;">Room</span>
+          <button class="ghost" id="btnRoomVelvet" type="button">Velvet</button>
+          <button class="ghost" id="btnRoomChrome" type="button">Chrome</button>
         </span>
         <button id="btnNewThread" title="Clear chat + start a fresh gateway thread">New thread</button>
         <button id="btnOpenSettings">Settings</button>
