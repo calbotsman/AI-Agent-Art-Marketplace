@@ -15,6 +15,12 @@ const elGatewayDot = document.getElementById('gatewayDot')
 const elGatewayStatus = document.getElementById('gatewayStatus')
 const elTokenStatus = document.getElementById('tokenStatus')
 const elAgentStatus = document.getElementById('agentStatus')
+const elBuildInfo = document.getElementById('buildInfo')
+
+const BUILD = (typeof __CAL_PORTAL_BUILD__ !== 'undefined')
+  ? __CAL_PORTAL_BUILD__
+  : { git: 'dev', builtAt: '' }
+
 const btnModeTalk = document.getElementById('btnModeTalk')
 const btnModeOps = document.getElementById('btnModeOps')
 const btnOpenSettings = document.getElementById('btnOpenSettings')
@@ -27,7 +33,7 @@ const roomLabel = document.getElementById('roomLabel')
 
 const btnMic = document.getElementById('btnMic')
 const btnVoiceHud = document.getElementById('btnVoiceHud')
-const btnConvo = document.getElementById('btnConvo')
+const btnOpenChrome = document.getElementById('btnOpenChrome')
 const btnCall = document.getElementById('btnCall')
 const btnSend = document.getElementById('btnSend')
 const btnClear = document.getElementById('btnClear')
@@ -42,6 +48,7 @@ const btnTalkClear = document.getElementById('btnTalkClear')
 
 const toggleVoice = document.getElementById('toggleVoice')
 const toggleAutoSpeak = document.getElementById('toggleAutoSpeak')
+const toggleBargeIn = document.getElementById('toggleBargeIn')
 const settingsDetails = document.getElementById('settings')
 const gatewayUrlEl = document.getElementById('gatewayUrl')
 const gatewayTokenEl = document.getElementById('gatewayToken')
@@ -102,13 +109,15 @@ const state = {
   mode: 'talk', // 'talk' | 'ops'
   room: 'velvet', // 'velvet' | 'chrome'
   listening: false,
+  micWanted: false,
   speaking: false,
   thinking: false,
   transcript: '',
-  conversationMode: false,
   voiceEnabled: true,
   autoSpeak: true,
+  interruptOnSpeech: true,
   connected: false,
+  gatewayChecking: false,
   lastGatewayOkAt: 0,
   lastGatewayErr: '',
   // Use same-origin path; Vite proxies /v1 -> Gateway to avoid CORS.
@@ -130,6 +139,23 @@ const state = {
   // speech helpers
   lastFinalTranscript: '',
   pttActive: false,
+  voiceAutoSend: true,
+  voiceSendCooldownMs: 900,
+  lastVoiceSendAt: 0,
+  pendingVoiceChunk: '',
+  pendingVoiceTimer: null,
+
+  // token thrift
+  summary: '',
+  maxHistoryMessages: 12,
+  maxHistoryCharsPerMsg: 1400,
+
+  // connectivity
+  heartbeatMinIntervalMs: 60000,
+  lastHeartbeatAt: 0,
+  heartbeatInFlight: false,
+  reconnectBackoffMs: 1000,
+  reconnectTimer: null,
 }
 
 function setStatus(text) {
@@ -199,10 +225,22 @@ function renderStatusBar() {
 
   // gateway / connectivity
   if (elGatewayStatus) {
-    const base = state.connected ? 'Gateway: connected' : 'Gateway: disconnected'
     const age = state.lastGatewayOkAt ? Math.round((Date.now() - state.lastGatewayOkAt) / 1000) : null
-    const suffix = state.connected && age != null ? ` (ok ${age}s ago)` : (state.lastGatewayErr ? ` (${state.lastGatewayErr})` : '')
-    elGatewayStatus.textContent = `${base}${suffix}`
+    const base = state.connected
+      ? 'Gateway: connected'
+      : (state.gatewayChecking ? 'Gateway: connecting…' : (state.reconnectTimer ? 'Gateway: reconnecting…' : 'Gateway: disconnected'))
+    const suffix = state.connected && age != null
+      ? ` (ok ${age}s ago)`
+      : (state.lastGatewayErr ? ` (${state.lastGatewayErr})` : '')
+    elGatewayStatus.textContent = `${base}${suffix}`.replace(/\s+/g, ' ').trim()
+  }
+
+  // build + heartbeat (tiny but always visible so you can tell the UI is alive)
+  if (elBuildInfo) {
+    const git = (BUILD?.git || 'dev').toString().slice(0, 7)
+    const age = state.lastGatewayOkAt ? Math.round((Date.now() - state.lastGatewayOkAt) / 1000) : null
+    const hb = state.connected && age != null ? `hb ${age}s` : (state.gatewayToken ? 'hb —' : 'no token')
+    elBuildInfo.textContent = `build ${git} · ${hb}`
   }
 
   if (elGatewayDot) {
@@ -218,7 +256,7 @@ function renderStatusBar() {
 function derivePresence() {
   // disconnected beats everything
   if (!state.gatewayToken || !state.connected) return 'disconnected'
-  if (state.listening || state.pttActive || state.conversationMode) return 'listening'
+  if (state.listening || state.pttActive) return 'listening'
   if (state.thinking) return 'thinking'
   if (state.speaking) return 'speaking'
   return 'idle'
@@ -1030,7 +1068,18 @@ function clearImages() {
   renderThumbs()
 }
 
-// ---------- Voice output ----------
+// ---------- Voice output / barge-in ----------
+let activeRequestController = null
+function abortActiveRequest() {
+  try { activeRequestController?.abort?.() } catch { /* ignore */ }
+  activeRequestController = null
+}
+function bargeIn() {
+  if (!state.interruptOnSpeech) return
+  try { window.speechSynthesis?.cancel?.() } catch { /* ignore */ }
+  abortActiveRequest()
+}
+
 function speak(text) {
   // Always log Cal's text response in chat; speaking is optional
   addMsg('cal', text)
@@ -1080,9 +1129,42 @@ function clearConversation({ confirmIfNotEmpty = false } = {}) {
 
   if (chatlog) chatlog.innerHTML = ''
   state.history = []
+  state.summary = ''
+  saveSettings()
   clearImages()
   setDraftText('')
   setStatus('Idle')
+}
+
+function queueVoiceSend(text) {
+  const t = String(text || '').trim()
+  if (!t) return
+  if (!state.voiceAutoSend) return
+
+  // Prevent rapid-fire sends (SpeechRecognition can finalize in tiny chunks).
+  const now = Date.now()
+  const since = now - (state.lastVoiceSendAt || 0)
+
+  // Combine quick successive finals into one message.
+  if (since < state.voiceSendCooldownMs) {
+    state.pendingVoiceChunk = (state.pendingVoiceChunk ? (state.pendingVoiceChunk + ' ') : '') + t
+    if (state.pendingVoiceTimer) clearTimeout(state.pendingVoiceTimer)
+    state.pendingVoiceTimer = setTimeout(() => {
+      const chunk = String(state.pendingVoiceChunk || '').trim()
+      state.pendingVoiceChunk = ''
+      state.pendingVoiceTimer = null
+      if (chunk) {
+        state.lastVoiceSendAt = Date.now()
+        setDraftText('')
+        sendUserMessage(chunk)
+      }
+    }, state.voiceSendCooldownMs)
+    return
+  }
+
+  state.lastVoiceSendAt = now
+  setDraftText('')
+  sendUserMessage(t)
 }
 
 // ---------- SpeechRecognition (mic) ----------
@@ -1109,18 +1191,19 @@ if (SpeechRecognition) {
 
     if (finalText.trim()) state.lastFinalTranscript = finalText.trim()
 
-    // Conversation mode: auto-send finalized chunks
-    if (state.conversationMode && finalText.trim()) {
+    // Mic-on auto-send (voice-first): send finalized chunks by default.
+    if (state.listening && !state.pttActive && finalText.trim()) {
       const sendText = finalText.trim()
       state.lastFinalTranscript = ''
-      setDraftText('')
-      sendUserMessage(sendText)
+      queueVoiceSend(sendText)
     }
   }
 
   rec.onstart = () => {
+    // Barge-in: if Josh starts talking, stop TTS + cancel any in-flight request.
+    bargeIn()
     state.listening = true
-    setMic('Mic: on')
+    setMic('Mic: on (auto-send)')
     btnMic.textContent = 'Stop mic'
   }
   rec.onend = () => {
@@ -1128,8 +1211,8 @@ if (SpeechRecognition) {
     setMic('Mic: off')
     btnMic.textContent = 'Start mic'
 
-    // In conversation mode, keep listening (some browsers stop unexpectedly)
-    if (state.conversationMode) {
+    // Some browsers stop unexpectedly. If the user wanted the mic on, restart.
+    if (state.micWanted) {
       try { rec.start() } catch { /* ignore */ }
     }
   }
@@ -1144,10 +1227,12 @@ if (SpeechRecognition) {
 
 function startMic() {
   if (!rec) return
+  state.micWanted = true
   try { rec.start() } catch { /* ignore */ }
 }
 function stopMic() {
   if (!rec) return
+  state.micWanted = false
   try { rec.stop() } catch { /* ignore */ }
 }
 
@@ -1161,6 +1246,8 @@ function loadSettings() {
   const v = localStorage.getItem('cal.voiceEnabled')
   const a = localStorage.getItem('cal.autoSpeak')
   const n = localStorage.getItem('cal.studioNotes')
+  const sum = localStorage.getItem('cal.summary')
+  const barge = localStorage.getItem('cal.interruptOnSpeech')
   const sd = localStorage.getItem('cal.showDoneTasks')
   if (m === 'talk' || m === 'ops') state.mode = m
   if (room === 'velvet' || room === 'chrome') state.room = room
@@ -1169,7 +1256,9 @@ function loadSettings() {
   if (aId) state.agentId = String(aId || 'main').trim() || 'main'
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
+  if (barge != null) state.interruptOnSpeech = barge === 'true'
   if (n != null) state.notes = n
+  if (sum != null) state.summary = String(sum || '')
   if (sd != null) state.showDoneTasks = sd === 'true'
 
   // Auto-config via URL query params (Option 1)
@@ -1195,6 +1284,7 @@ function loadSettings() {
   if (agentIdEl) agentIdEl.value = state.agentId
   toggleVoice.checked = state.voiceEnabled
   toggleAutoSpeak.checked = state.autoSpeak
+  if (toggleBargeIn) toggleBargeIn.checked = !!state.interruptOnSpeech
   if (toggleShowDoneTasksEl) toggleShowDoneTasksEl.checked = !!state.showDoneTasks
 
   if (refFilterEl) refFilterEl.value = state.refFilter || ''
@@ -1203,6 +1293,13 @@ function loadSettings() {
 
   if (notesEl) notesEl.value = state.notes
   if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
+
+  // Chrome hint button (SpeechRecognition is best there)
+  if (btnOpenChrome) {
+    const ua = navigator.userAgent || ''
+    const isChrome = /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua)
+    btnOpenChrome.style.display = isChrome ? 'none' : ''
+  }
 
   // local hub data
   loadLocalHub()
@@ -1237,7 +1334,9 @@ function saveSettings() {
   localStorage.setItem('cal.agentId', String(state.agentId || 'main'))
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
   localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
+  localStorage.setItem('cal.interruptOnSpeech', String(state.interruptOnSpeech))
   localStorage.setItem('cal.studioNotes', String(state.notes || ''))
+  localStorage.setItem('cal.summary', String(state.summary || ''))
 }
 
 async function connectGateway() {
@@ -1246,7 +1345,9 @@ async function connectGateway() {
   state.agentId = String(agentIdEl?.value || state.agentId || 'main').trim() || 'main'
   state.voiceEnabled = !!toggleVoice.checked
   state.autoSpeak = !!toggleAutoSpeak.checked
+  state.interruptOnSpeech = toggleBargeIn ? !!toggleBargeIn.checked : true
   saveSettings()
+  clearReconnect()
 
   if (!state.gatewayToken) {
     state.connected = false
@@ -1257,6 +1358,7 @@ async function connectGateway() {
   }
 
   setLink('Agent: connecting…')
+  state.gatewayChecking = true
   state.lastGatewayErr = ''
   renderStatusBar()
   try {
@@ -1282,6 +1384,8 @@ async function connectGateway() {
     const j = await r.json()
     const txt = j?.choices?.[0]?.message?.content || ''
     state.connected = true
+    clearReconnect()
+    state.gatewayChecking = false
     state.lastGatewayOkAt = Date.now()
     state.lastGatewayErr = ''
     setLink('Agent: connected')
@@ -1292,11 +1396,43 @@ async function connectGateway() {
   } catch (e) {
     console.warn('connectGateway failed', e)
     state.connected = false
+    state.gatewayChecking = false
     const msg = String(e.message || e)
     state.lastGatewayErr = msg.slice(0, 80)
     setLink(`Agent: error (${msg.slice(0, 80)})`)
     renderStatusBar()
+    // Auto-reconnect (quietly) so voice UX stays smooth.
+    scheduleReconnect(msg)
   }
+}
+
+function clearReconnect() {
+  if (state.reconnectTimer) {
+    clearTimeout(state.reconnectTimer)
+    state.reconnectTimer = null
+  }
+}
+
+function scheduleReconnect(reason = '') {
+  if (!state.gatewayToken) return
+  if (state.reconnectTimer) return
+  const delay = Math.max(500, Math.min(state.reconnectBackoffMs || 1000, 30000))
+  state.reconnectTimer = setTimeout(async () => {
+    state.reconnectTimer = null
+    try {
+      await connectGateway()
+      if (!state.connected) throw new Error('still disconnected')
+      // success: reset backoff
+      state.reconnectBackoffMs = 1000
+    } catch {
+      // connectGateway handles UI state; continue backing off
+      state.reconnectBackoffMs = Math.min((state.reconnectBackoffMs || 1000) * 1.7, 30000)
+      scheduleReconnect('retry')
+    }
+  }, delay)
+  state.reconnectBackoffMs = Math.min(Math.max(state.reconnectBackoffMs || 1000, 1000) * 1.7, 30000)
+  state.lastGatewayErr = reason ? String(reason).slice(0, 80) : state.lastGatewayErr
+  renderStatusBar()
 }
 
 async function checkGatewayHeartbeat() {
@@ -1308,10 +1444,21 @@ async function checkGatewayHeartbeat() {
     return
   }
 
+  const now = Date.now()
+  if (state.heartbeatInFlight) return
+  if (now - (state.lastHeartbeatAt || 0) < (state.heartbeatMinIntervalMs || 60000)) return
+  // Avoid background noise while actively talking/thinking.
+  if (state.thinking || state.speaking || state.listening || state.pttActive) return
+
+  state.lastHeartbeatAt = now
+  state.heartbeatInFlight = true
+
   const url = state.gatewayUrl || '/v1/chat/completions'
   const controller = new AbortController()
   const to = setTimeout(() => controller.abort(), 2500)
   try {
+    state.gatewayChecking = true
+    renderStatusBar()
     const r = await fetch(url, {
       method: 'POST',
       headers: {
@@ -1333,7 +1480,10 @@ async function checkGatewayHeartbeat() {
   } catch (e) {
     state.connected = false
     state.lastGatewayErr = (e?.name === 'AbortError') ? 'timeout' : String(e.message || e).slice(0, 80)
+    scheduleReconnect(state.lastGatewayErr)
   } finally {
+    state.gatewayChecking = false
+    state.heartbeatInFlight = false
     clearTimeout(to)
     renderStatusBar()
   }
@@ -1356,9 +1506,34 @@ async function sendToAgent(userText) {
   // Maintain conversation context in this UI
   state.history.push({ role: 'user', content: userContent })
 
+  // Token thrift: clamp message sizes + keep a short rolling window.
+  const clampContent = (c) => {
+    if (typeof c === 'string') return c.slice(0, state.maxHistoryCharsPerMsg || 1400)
+    // multimodal (text + image_url). Keep as-is; images are already expensive but intentional.
+    return c
+  }
+  state.history = (state.history || []).map(m => ({ ...m, content: clampContent(m.content) }))
+
+  if ((state.history || []).length > (state.maxHistoryMessages || 12)) {
+    const keepN = state.maxHistoryMessages || 12
+    const overflow = state.history.slice(0, Math.max(0, state.history.length - keepN))
+    state.history = state.history.slice(-keepN)
+
+    const summarizeLine = (m) => {
+      const role = m?.role === 'assistant' ? 'Cal' : 'You'
+      const raw = (typeof m?.content === 'string') ? m.content : '[image/message]'
+      const one = String(raw || '').replace(/\s+/g, ' ').trim()
+      return `${role}: ${one.slice(0, 180)}`
+    }
+    const chunk = overflow.map(summarizeLine).filter(Boolean).join('\n')
+    const next = [String(state.summary || '').trim(), chunk].filter(Boolean).join('\n')
+    state.summary = next.slice(-4000)
+  }
+
   const systemParts = [
-    "You are Cal: Josh's creative partner. Speak like a real buddy in a studio—warm, witty, and direct. In conversation mode: 1–3 short sentences max, no boilerplate. Default to asking 1 good follow-up question. If the user seems frustrated, be calm and solution-focused.",
-    state.notes ? `Studio notes (persistent user prefs):\n${state.notes}` : null,
+    "You are Cal, Josh's studio copilot. Be warm, witty, and direct. For voice: keep replies to 1–3 short sentences; no boilerplate.",
+    state.summary ? `Context summary (compressed):\n${state.summary}` : null,
+    state.notes ? `Studio notes (persistent):\n${state.notes}` : null,
   ].filter(Boolean)
 
   const body = {
@@ -1371,6 +1546,9 @@ async function sendToAgent(userText) {
   }
 
   const url = state.gatewayUrl || '/v1/chat/completions'
+  // Barge-in / cancel: one active request at a time
+  abortActiveRequest()
+  activeRequestController = new AbortController()
   const r = await fetch(url, {
     method: 'POST',
     headers: {
@@ -1379,12 +1557,14 @@ async function sendToAgent(userText) {
       'x-clawdbot-agent-id': state.agentId || 'main',
     },
     body: JSON.stringify(body),
+    signal: activeRequestController.signal,
   })
   if (!r.ok) {
     const t = await r.text().catch(() => '')
     throw new Error(`Gateway error HTTP ${r.status}: ${t.slice(0, 200)}`)
   }
   const j = await r.json()
+  activeRequestController = null
   const txt = j?.choices?.[0]?.message?.content || ''
   state.history.push({ role: 'assistant', content: txt })
 
@@ -1564,6 +1744,9 @@ async function sendUserMessage(text) {
     return
   }
 
+  // Barge-in: if Josh starts interacting, stop TTS and cancel any in-flight request.
+  bargeIn()
+
   state.thinking = true
   setStatus('Thinking')
   try {
@@ -1680,24 +1863,29 @@ btnMic?.addEventListener('click', () => {
   else startMic()
 })
 
-btnConvo?.addEventListener('click', () => {
-  state.conversationMode = !state.conversationMode
-  btnConvo.textContent = state.conversationMode ? 'Conversation: on' : 'Conversation: off'
-  btnConvo.classList.toggle('primary', state.conversationMode)
-
-  if (state.conversationMode) {
-    startMic()
+btnOpenChrome?.addEventListener('click', async () => {
+  // Best-effort: try to open this same URL in Chrome.
+  const href = window.location.href
+  // iOS supports googlechrome://; on desktop this may no-op, so we also copy the URL.
+  const chromeUrl = 'googlechrome://' + href.replace(/^https?:\/\//, '')
+  try {
+    window.location.href = chromeUrl
+  } catch {
+    // ignore
+  }
+  try {
+    await navigator.clipboard.writeText(href)
+    addMsg('cal', 'Copied this page URL. Paste it into Chrome.')
+  } catch {
+    window.prompt('Copy this URL into Chrome:', href)
   }
 })
 
 btnCall?.addEventListener('click', async () => {
-  // One click: connect (if token present) + turn on conversation + start mic
+  // One click: connect (if token present) + start mic (auto-send voice is on by default)
   if (!state.connected && state.gatewayToken) {
     await connectGateway()
   }
-  state.conversationMode = true
-  btnConvo.textContent = 'Conversation: on'
-  btnConvo.classList.add('primary')
   startMic()
 })
 
@@ -1770,6 +1958,7 @@ btnTestVoice?.addEventListener('click', () => {
 
 toggleVoice?.addEventListener('change', () => { state.voiceEnabled = !!toggleVoice.checked; if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'; saveSettings() })
 toggleAutoSpeak?.addEventListener('change', () => { state.autoSpeak = !!toggleAutoSpeak.checked; saveSettings() })
+toggleBargeIn?.addEventListener('change', () => { state.interruptOnSpeech = !!toggleBargeIn.checked; saveSettings() })
 
 dropzone?.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'rgba(34,211,238,.55)' })
 dropzone?.addEventListener('dragleave', () => { dropzone.style.borderColor = 'rgba(148,163,184,.35)' })
@@ -2069,14 +2258,11 @@ window.addEventListener('keyup', (e) => {
   stopMic()
 
   // If we captured a final transcript chunk, fire it on release.
-  // (Conversation mode already auto-sends, so skip.)
-  if (!state.conversationMode) {
-    const sendText = (state.lastFinalTranscript || state.transcript || '').trim()
-    state.lastFinalTranscript = ''
-    if (sendText) {
-      setDraftText('')
-      sendUserMessage(sendText)
-    }
+  const sendText = (state.lastFinalTranscript || state.transcript || '').trim()
+  state.lastFinalTranscript = ''
+  if (sendText) {
+    setDraftText('')
+    sendUserMessage(sendText)
   }
 })
 

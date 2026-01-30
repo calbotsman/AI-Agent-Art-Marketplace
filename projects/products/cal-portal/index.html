@@ -18,12 +18,13 @@
             </span>
             <span class="badge" id="micStatus">Mic: off</span>
             <span class="badge" id="linkStatus">Agent: disconnected</span>
+            <span class="badge mini" id="buildInfo" title="Build + heartbeat"></span>
           </div>
           <div class="right">
             <button id="btnMic" title="Hold Space for push‑to‑talk">Start mic</button>
             <button id="btnVoiceHud">Voice: on</button>
-            <button class="primary" id="btnConvo" title="Hands‑free: auto-send finalized speech">Conversation: off</button>
-            <button class="primary" id="btnCall" title="Connect + start conversation">Call Cal</button>
+            <button id="btnOpenChrome" title="SpeechRecognition works best in Chrome">Open in Chrome</button>
+            <button class="primary" id="btnCall" title="Connect + start mic">Call Cal</button>
           </div>
         </div>
 
@@ -65,11 +66,12 @@
             <div class="row">
               <label class="pill"><input id="toggleVoice" type="checkbox" checked /> Voice output</label>
               <label class="pill"><input id="toggleAutoSpeak" type="checkbox" checked /> Auto-speak replies</label>
+              <label class="pill"><input id="toggleBargeIn" type="checkbox" checked /> Interrupt on speech</label>
             </div>
 
             <div>
               <div class="small" style="margin-bottom:6px;">Gateway URL</div>
-              <input id="gatewayUrl" type="text" placeholder="http://127.0.0.1:18789/v1/chat/completions" />
+              <input id="gatewayUrl" type="text" placeholder="/v1/chat/completions (recommended)" />
             </div>
 
             <div>
