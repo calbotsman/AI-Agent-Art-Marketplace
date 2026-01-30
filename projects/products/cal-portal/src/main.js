@@ -333,15 +333,44 @@ function exportHub() {
 function importHubFromObject(j) {
   if (!j || typeof j !== 'object') throw new Error('Invalid JSON')
 
-  const refs = Array.isArray(j.refs) ? j.refs : []
-  const tasks = Array.isArray(j.tasks) ? j.tasks : []
-  const runs = Array.isArray(j.runs) ? j.runs : []
-  const notes = typeof j.notes === 'string' ? j.notes : ''
+  // basic sanity check (still allow importing older payloads that omit kind/version)
+  if (j.kind && j.kind !== 'cal-portal-hub') throw new Error('Not a Cal Portal hub export (kind mismatch)')
+  if (j.version && j.version !== 1) throw new Error('Unsupported hub export version')
 
-  state.refs = refs
-  state.tasks = tasks
-  state.runs = runs
-  state.notes = notes
+  const incoming = {
+    refs: Array.isArray(j.refs) ? j.refs : [],
+    tasks: Array.isArray(j.tasks) ? j.tasks : [],
+    runs: Array.isArray(j.runs) ? j.runs : [],
+    notes: typeof j.notes === 'string' ? j.notes : '',
+  }
+
+  const hasExisting = (state.refs?.length || 0) + (state.tasks?.length || 0) + (state.runs?.length || 0) > 0
+  const hasIncoming = (incoming.refs.length + incoming.tasks.length + incoming.runs.length) > 0
+
+  let mode = 'replace'
+  if (hasExisting && hasIncoming) {
+    const replace = window.confirm('Import hub data?\n\nOK = Replace current hub data (refs/tasks/runs/notes)\nCancel = Merge (keep existing; incoming overwrites by id when equal)')
+    mode = replace ? 'replace' : 'merge'
+  }
+
+  if (mode == 'replace') {
+    state.refs = incoming.refs
+    state.tasks = incoming.tasks
+    state.runs = incoming.runs
+    state.notes = incoming.notes
+  } else {
+    const mergeById = (existing, inc) => {
+      const m = new Map()
+      for (const it of (existing || [])) m.set(String(it?.id || ''), it)
+      for (const it of (inc || [])) m.set(String(it?.id || ''), it)
+      return Array.from(m.values()).filter(Boolean)
+    }
+    state.refs = mergeById(state.refs, incoming.refs)
+    state.tasks = mergeById(state.tasks, incoming.tasks)
+    state.runs = mergeById(state.runs, incoming.runs)
+    // notes: keep existing if incoming is empty
+    if (incoming.notes) state.notes = incoming.notes
+  }
   if (notesEl) notesEl.value = state.notes
 
   saveLocalHub()
@@ -384,6 +413,31 @@ async function copyText(text) {
     window.prompt('Copy to clipboard:', t)
   }
 }
+
+async function fileToDataUrl(file) {
+  const f = file
+  if (!f) return ''
+  return await new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onerror = () => reject(new Error('Failed to read file'))
+    r.onload = () => resolve(String(r.result || ''))
+    r.readAsDataURL(f)
+  })
+}
+
+async function buildVisionUserContent(text, files) {
+  const list = Array.from(files || []).filter(f => (f?.type || '').startsWith('image/'))
+  if (!list.length) return String(text || '')
+
+  // OpenAI-compatible multimodal message format.
+  const parts = [{ type: 'text', text: String(text || '') }]
+  for (const f of list) {
+    const url = await fileToDataUrl(f)
+    if (url) parts.push({ type: 'image_url', image_url: { url } })
+  }
+  return parts
+}
+
 
 function matchesFilter(itemText, filterText) {
   const q = String(filterText || '').trim().toLowerCase()
@@ -1115,15 +1169,13 @@ async function sendToAgent(userText) {
     return `I’m not connected to the gateway yet. Open Settings → paste the gateway token, then hit Connect.`
   }
 
-  // Attach image names to the text until we add vision
-  let augmented = userText
-  if (state.pendingImages.length) {
-    const names = state.pendingImages.map(f => f.name).join(', ')
-    augmented += `\n\n[Attached images (not yet vision-enabled): ${names}]`
-  }
+  // Vision: attach images as a multimodal message (when supported by the gateway).
+  const userContent = state.pendingImages.length
+    ? await buildVisionUserContent(userText, state.pendingImages)
+    : userText
 
   // Maintain conversation context in this UI
-  state.history.push({ role: 'user', content: augmented })
+  state.history.push({ role: 'user', content: userContent })
 
   const systemParts = [
     "You are Cal: Josh's creative partner. Speak like a real buddy in a studio—warm, witty, and direct. In conversation mode: 1–3 short sentences max, no boilerplate. Default to asking 1 good follow-up question. If the user seems frustrated, be calm and solution-focused.",

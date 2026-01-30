@@ -36,6 +36,6 @@ Notes:
 - The bottom status bar is always visible and shows **gateway connectivity** and **token status**.
 
 ## Next steps
-- Add **image/vision** to the gateway call (right now we only attach image *names*).
-- Polish the **hub import/export** UX (merge/preview vs replace; better error messages).
+- Polish the **hub import/export** UX (preview + conflict handling; better error messages).
 - Avatar: add **expressions / visemes** + blink and subtle idle motion.
+- Better **tasks/runs** workflows: edit, reorder, and quick “copy run summary”.
