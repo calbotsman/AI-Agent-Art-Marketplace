@@ -129,6 +129,30 @@ function maskToken(t) {
   return `${s.slice(0, 4)}…${s.slice(-4)}`
 }
 
+function normalizeGatewayUrl(raw) {
+  let s = String(raw || '').trim()
+  if (!s) return '/v1/chat/completions'
+
+  // Accept same-origin proxy paths.
+  if (s.startsWith('/v1/')) return s
+
+  // If a user pastes host:port without scheme, assume http.
+  if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+/.test(s) || /^localhost:\d+/.test(s)) {
+    s = `http://${s}`
+  }
+
+  // If it already targets a /v1 endpoint, keep it.
+  if (/\/v1\//.test(s)) return s
+
+  // If it's an http(s) base, append the default OpenAI-compatible path.
+  if (/^https?:\/\//.test(s)) {
+    return s.replace(/\/+$/, '') + '/v1/chat/completions'
+  }
+
+  // Otherwise, leave it as-is (might be a custom relative path).
+  return s
+}
+
 function renderMode() {
   document.body.classList.toggle('mode-talk', state.mode === 'talk')
   document.body.classList.toggle('mode-ops', state.mode === 'ops')
@@ -811,7 +835,7 @@ function loadSettings() {
   const n = localStorage.getItem('cal.studioNotes')
   const sd = localStorage.getItem('cal.showDoneTasks')
   if (m === 'talk' || m === 'ops') state.mode = m
-  if (u) state.gatewayUrl = u
+  if (u) state.gatewayUrl = normalizeGatewayUrl(u)
   if (t) state.gatewayToken = t
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
@@ -819,11 +843,11 @@ function loadSettings() {
   if (sd != null) state.showDoneTasks = sd === 'true'
 
   // Auto-config via URL query params (Option 1)
-  // Example: http://127.0.0.1:5173/?token=...&gateway=http://127.0.0.1:18789/v1/chat/completions
+  // Example: http://127.0.0.1:5174/?token=...&gateway=http://127.0.0.1:18789/v1/chat/completions
   const params = new URLSearchParams(window.location.search)
   const tokenParam = params.get('token')
   const gatewayParam = params.get('gateway')
-  if (gatewayParam) state.gatewayUrl = gatewayParam
+  if (gatewayParam) state.gatewayUrl = normalizeGatewayUrl(gatewayParam)
   if (tokenParam) {
     state.gatewayToken = tokenParam
     // persist immediately so a refresh doesn't lose it
@@ -872,7 +896,7 @@ function saveSettings() {
 }
 
 async function connectGateway() {
-  state.gatewayUrl = gatewayUrlEl.value.trim() || state.gatewayUrl
+  state.gatewayUrl = normalizeGatewayUrl(gatewayUrlEl.value.trim() || state.gatewayUrl)
   state.gatewayToken = gatewayTokenEl.value.trim()
   state.voiceEnabled = !!toggleVoice.checked
   state.autoSpeak = !!toggleAutoSpeak.checked
@@ -1035,6 +1059,9 @@ function showCommandHelp() {
     '  /ref <url> | <title> | <notes> → add a library ref (title/notes optional)',
     '  /note <text>               → append to Studio notes',
     '  /export                    → export hub JSON',
+    '  /ops                       → switch to Ops mode',
+    '  /talk                      → switch to Talk mode',
+    '  /clear                     → clear chat + draft',
     '  /help                      → show this list',
   ].join('\n'))
 }
@@ -1127,6 +1154,31 @@ function handleLocalCommand(rawText) {
 
     if (cmd === '/export') {
       exportHub()
+      return true
+    }
+
+    if (cmd === '/ops') {
+      state.mode = 'ops'
+      saveSettings()
+      renderMode()
+      addMsg('cal', 'Switched to Ops mode.')
+      return true
+    }
+
+    if (cmd === '/talk') {
+      state.mode = 'talk'
+      saveSettings()
+      renderMode()
+      addMsg('cal', 'Switched to Talk mode.')
+      return true
+    }
+
+    if (cmd === '/clear') {
+      chatlog.innerHTML = ''
+      state.history = []
+      clearImages()
+      setDraftText('')
+      addMsg('cal', 'Cleared chat + draft.')
       return true
     }
 
@@ -1302,7 +1354,8 @@ gatewayTokenEl?.addEventListener('input', () => {
   renderStatusBar()
 })
 gatewayUrlEl?.addEventListener('input', () => {
-  state.gatewayUrl = gatewayUrlEl.value.trim() || state.gatewayUrl
+  state.gatewayUrl = normalizeGatewayUrl(gatewayUrlEl.value.trim() || state.gatewayUrl)
+  // Avoid rewriting the field while typing; just keep state normalized.
   renderStatusBar()
 })
 

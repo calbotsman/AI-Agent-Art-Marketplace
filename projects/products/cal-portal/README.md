@@ -23,6 +23,9 @@ In the chat box you can run commands without the gateway:
 - `/ref <url> | <title> | <notes>` — add a library ref
 - `/note <text>` — append to Studio notes
 - `/export` — export hub JSON
+- `/ops` — switch to Ops mode
+- `/talk` — switch to Talk mode
+- `/clear` — clear chat + draft
 
 Notes:
 - Port is fixed to **5174** and Vite is set to **fail if the port is occupied** (no auto-fallback).
