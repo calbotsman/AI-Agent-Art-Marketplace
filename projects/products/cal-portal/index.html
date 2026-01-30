@@ -139,6 +139,18 @@
               <div class="small" style="margin-bottom:6px;">Gateway URL</div>
               <input id="gatewayUrl" type="text" placeholder="http://127.0.0.1:18789/v1/chat/completions" />
             </div>
+
+            <div>
+              <div class="small" style="margin-bottom:6px;">Gateway agent id (x-clawdbot-agent-id)</div>
+              <input id="agentId" type="text" placeholder="main" list="agentIdPresets" />
+              <datalist id="agentIdPresets">
+                <option value="main"></option>
+                <option value="pm"></option>
+                <option value="builder"></option>
+                <option value="ops"></option>
+              </datalist>
+              <div class="small" style="margin-top:6px; opacity:.75;">Tip: keep this in sync with your Clawdbot dashboard / installed agents.</div>
+            </div>
             <div>
               <div class="small" style="margin-bottom:6px;">Gateway token (stored locally in this browser)</div>
               <input id="gatewayToken" type="password" placeholder="Paste token…" />
@@ -290,6 +302,10 @@
         <span class="pill" style="gap:8px;">
           <span class="mini" id="tokenStatus">Token: missing</span>
         </span>
+        <span class="pill" style="gap:8px;">
+          <span class="mini" id="agentStatus">Agent: main</span>
+        </span>
+        <button id="btnNewThread" title="Clear chat + start a fresh gateway thread">New thread</button>
         <button id="btnOpenSettings">Settings</button>
       </div>
     </div>

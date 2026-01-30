@@ -25,7 +25,8 @@ In the chat box you can run commands without the gateway:
 - `/export` — export hub JSON
 - `/ops` — switch to Ops mode
 - `/talk` — switch to Talk mode
-- `/clear` — clear chat + draft
+- `/clear` — clear chat + draft (new thread)
+- `/agent <id>` — set gateway agent id (x-clawdbot-agent-id)
 
 Notes:
 - Port is fixed to **5174** and Vite is set to **fail if the port is occupied** (no auto-fallback).
@@ -36,6 +37,5 @@ Notes:
 
 ## Next steps
 - Add **image/vision** to the gateway call (right now we only attach image *names*).
-- Add a lightweight **agent selector** (x-clawdbot-agent-id) + “clear conversation” UX.
 - Polish the **hub import/export** UX (merge/preview vs replace; better error messages).
 - Avatar: add **expressions / visemes** + blink and subtle idle motion.

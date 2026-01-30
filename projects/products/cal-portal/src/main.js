@@ -13,9 +13,11 @@ const elAgentDock = document.getElementById('agentDock')
 const elGatewayDot = document.getElementById('gatewayDot')
 const elGatewayStatus = document.getElementById('gatewayStatus')
 const elTokenStatus = document.getElementById('tokenStatus')
+const elAgentStatus = document.getElementById('agentStatus')
 const btnModeTalk = document.getElementById('btnModeTalk')
 const btnModeOps = document.getElementById('btnModeOps')
 const btnOpenSettings = document.getElementById('btnOpenSettings')
+const btnNewThread = document.getElementById('btnNewThread')
 
 const btnMic = document.getElementById('btnMic')
 const btnVoiceHud = document.getElementById('btnVoiceHud')
@@ -37,6 +39,7 @@ const toggleAutoSpeak = document.getElementById('toggleAutoSpeak')
 const settingsDetails = document.getElementById('settings')
 const gatewayUrlEl = document.getElementById('gatewayUrl')
 const gatewayTokenEl = document.getElementById('gatewayToken')
+const agentIdEl = document.getElementById('agentId')
 const btnConnect = document.getElementById('btnConnect')
 const btnTestVoice = document.getElementById('btnTestVoice')
 
@@ -104,6 +107,7 @@ const state = {
   // Use same-origin path; Vite proxies /v1 -> Gateway to avoid CORS.
   gatewayUrl: '/v1/chat/completions',
   gatewayToken: '',
+  agentId: 'main',
   history: [], // {role, content}
   pendingImages: [], // File[]
   notes: '',
@@ -178,6 +182,12 @@ function renderStatusBar() {
     elTokenStatus.textContent = state.gatewayToken
       ? `Token: set (${maskToken(state.gatewayToken)})`
       : 'Token: missing'
+  }
+
+  // agent id
+  if (elAgentStatus) {
+    const a = String(state.agentId || 'main').trim() || 'main'
+    elAgentStatus.textContent = `Agent: ${a}`
   }
 
   // gateway / connectivity
@@ -836,6 +846,27 @@ function setDraftText(text) {
   if (talkInput) talkInput.value = t
 }
 
+function clearConversation({ confirmIfNotEmpty = false } = {}) {
+  const hasHistory = (state.history || []).length > 0
+  const hasChat = (chatlog?.childElementCount || 0) > 0
+  const hasDraft = String(state.transcript || '').trim().length > 0
+  const hasImages = (state.pendingImages || []).length > 0
+  const isNotEmpty = hasHistory || hasChat || hasDraft || hasImages
+
+  if (confirmIfNotEmpty && isNotEmpty) {
+    const ok = window.confirm('Start a new thread? This will clear chat + gateway history + draft + attached images (local hub data stays).')
+    if (!ok) return
+  }
+
+  try { window.speechSynthesis?.cancel?.() } catch { /* ignore */ }
+
+  if (chatlog) chatlog.innerHTML = ''
+  state.history = []
+  clearImages()
+  setDraftText('')
+  setStatus('Idle')
+}
+
 // ---------- SpeechRecognition (mic) ----------
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
 let rec = null
@@ -907,6 +938,7 @@ function loadSettings() {
   const m = localStorage.getItem('cal.mode')
   const u = localStorage.getItem('cal.gatewayUrl')
   const t = localStorage.getItem('cal.gatewayToken')
+  const aId = localStorage.getItem('cal.agentId')
   const v = localStorage.getItem('cal.voiceEnabled')
   const a = localStorage.getItem('cal.autoSpeak')
   const n = localStorage.getItem('cal.studioNotes')
@@ -914,6 +946,7 @@ function loadSettings() {
   if (m === 'talk' || m === 'ops') state.mode = m
   if (u) state.gatewayUrl = normalizeGatewayUrl(u)
   if (t) state.gatewayToken = t
+  if (aId) state.agentId = String(aId || 'main').trim() || 'main'
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
   if (n != null) state.notes = n
@@ -939,6 +972,7 @@ function loadSettings() {
 
   gatewayUrlEl.value = state.gatewayUrl
   gatewayTokenEl.value = state.gatewayToken
+  if (agentIdEl) agentIdEl.value = state.agentId
   toggleVoice.checked = state.voiceEnabled
   toggleAutoSpeak.checked = state.autoSpeak
   if (toggleShowDoneTasksEl) toggleShowDoneTasksEl.checked = !!state.showDoneTasks
@@ -967,6 +1001,7 @@ function saveSettings() {
   localStorage.setItem('cal.mode', state.mode)
   localStorage.setItem('cal.gatewayUrl', state.gatewayUrl)
   localStorage.setItem('cal.gatewayToken', state.gatewayToken)
+  localStorage.setItem('cal.agentId', String(state.agentId || 'main'))
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
   localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
   localStorage.setItem('cal.studioNotes', String(state.notes || ''))
@@ -975,6 +1010,7 @@ function saveSettings() {
 async function connectGateway() {
   state.gatewayUrl = normalizeGatewayUrl(gatewayUrlEl.value.trim() || state.gatewayUrl)
   state.gatewayToken = gatewayTokenEl.value.trim()
+  state.agentId = String(agentIdEl?.value || state.agentId || 'main').trim() || 'main'
   state.voiceEnabled = !!toggleVoice.checked
   state.autoSpeak = !!toggleAutoSpeak.checked
   saveSettings()
@@ -998,7 +1034,7 @@ async function connectGateway() {
       headers: {
         'Authorization': `Bearer ${state.gatewayToken}`,
         'Content-Type': 'application/json',
-        'x-clawdbot-agent-id': 'main',
+        'x-clawdbot-agent-id': state.agentId || 'main',
       },
       body: JSON.stringify({
         model: 'clawdbot',
@@ -1048,7 +1084,7 @@ async function checkGatewayHeartbeat() {
       headers: {
         'Authorization': `Bearer ${state.gatewayToken}`,
         'Content-Type': 'application/json',
-        'x-clawdbot-agent-id': 'main',
+        'x-clawdbot-agent-id': state.agentId || 'main',
       },
       body: JSON.stringify({
         model: 'clawdbot',
@@ -1109,7 +1145,7 @@ async function sendToAgent(userText) {
     headers: {
       'Authorization': `Bearer ${state.gatewayToken}`,
       'Content-Type': 'application/json',
-      'x-clawdbot-agent-id': 'main',
+      'x-clawdbot-agent-id': state.agentId || 'main',
     },
     body: JSON.stringify(body),
   })
@@ -1138,7 +1174,8 @@ function showCommandHelp() {
     '  /export                    → export hub JSON',
     '  /ops                       → switch to Ops mode',
     '  /talk                      → switch to Talk mode',
-    '  /clear                     → clear chat + draft',
+    '  /clear                     → clear chat + draft (new thread)',
+    '  /agent <id>                → set gateway agent id (e.g., main/pm/builder)',
     '  /help                      → show this list',
     '',
     'Shortcuts:',
@@ -1258,11 +1295,19 @@ function handleLocalCommand(rawText) {
     }
 
     if (cmd === '/clear') {
-      chatlog.innerHTML = ''
-      state.history = []
-      clearImages()
-      setDraftText('')
-      addMsg('cal', 'Cleared chat + draft.')
+      clearConversation()
+      addMsg('cal', 'Cleared chat + draft (new thread).')
+      return true
+    }
+
+    if (cmd === '/agent') {
+      const id = String(arg || '').trim()
+      if (!id) { addMsg('cal', 'Usage: /agent <id>'); return true }
+      state.agentId = id
+      if (agentIdEl) agentIdEl.value = state.agentId
+      saveSettings()
+      renderStatusBar()
+      addMsg('cal', `Gateway agent set to: ${state.agentId}`)
       return true
     }
 
@@ -1368,6 +1413,10 @@ btnModeOps?.addEventListener('click', () => {
   renderMode()
 })
 
+btnNewThread?.addEventListener('click', () => {
+  clearConversation({ confirmIfNotEmpty: true })
+})
+
 btnOpenSettings?.addEventListener('click', () => {
   state.mode = 'ops'
   saveSettings()
@@ -1384,11 +1433,7 @@ btnTalkSend?.addEventListener('click', () => {
   sendUserMessage(t)
 })
 btnTalkClear?.addEventListener('click', () => {
-  chatlog.innerHTML = ''
-  state.history = []
-  clearImages()
-  if (talkInput) talkInput.value = ''
-  if (input) input.value = ''
+  clearConversation({ confirmIfNotEmpty: true })
 })
 
 talkInput?.addEventListener('keydown', (e) => {
@@ -1457,9 +1502,7 @@ talkInput?.addEventListener('input', () => {
 })
 
 btnClear?.addEventListener('click', () => {
-  chatlog.innerHTML = ''
-  state.history = []
-  clearImages()
+  clearConversation({ confirmIfNotEmpty: true })
 })
 
 btnConnect?.addEventListener('click', () => connectGateway())
@@ -1472,6 +1515,12 @@ gatewayTokenEl?.addEventListener('input', () => {
 gatewayUrlEl?.addEventListener('input', () => {
   state.gatewayUrl = normalizeGatewayUrl(gatewayUrlEl.value.trim() || state.gatewayUrl)
   // Avoid rewriting the field while typing; just keep state normalized.
+  renderStatusBar()
+})
+
+agentIdEl?.addEventListener('input', () => {
+  state.agentId = String(agentIdEl.value || 'main').trim() || 'main'
+  saveSettings()
   renderStatusBar()
 })
 
