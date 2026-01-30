@@ -337,20 +337,47 @@ function importHubFromObject(j) {
   if (j.kind && j.kind !== 'cal-portal-hub') throw new Error('Not a Cal Portal hub export (kind mismatch)')
   if (j.version && j.version !== 1) throw new Error('Unsupported hub export version')
 
+  const ensureIds = (list, prefix) => {
+    return (Array.isArray(list) ? list : [])
+      .map(it => (it && typeof it === 'object') ? it : null)
+      .filter(Boolean)
+      .map(it => ({
+        ...it,
+        id: String(it.id || '') || uid(prefix),
+        ts: typeof it.ts === 'number' ? it.ts : (it.ts ? Number(it.ts) : it.ts),
+      }))
+  }
+
   const incoming = {
-    refs: Array.isArray(j.refs) ? j.refs : [],
-    tasks: Array.isArray(j.tasks) ? j.tasks : [],
-    runs: Array.isArray(j.runs) ? j.runs : [],
+    refs: ensureIds(j.refs, 'ref'),
+    tasks: ensureIds(j.tasks, 'task'),
+    runs: ensureIds(j.runs, 'run'),
     notes: typeof j.notes === 'string' ? j.notes : '',
   }
 
   const hasExisting = (state.refs?.length || 0) + (state.tasks?.length || 0) + (state.runs?.length || 0) > 0
   const hasIncoming = (incoming.refs.length + incoming.tasks.length + incoming.runs.length) > 0
 
+  if (!hasIncoming && !incoming.notes) {
+    throw new Error('Hub import is empty (no refs/tasks/runs/notes found)')
+  }
+
+  // Always show a preview + allow cancel.
   let mode = 'replace'
-  if (hasExisting && hasIncoming) {
-    const replace = window.confirm('Import hub data?\n\nOK = Replace current hub data (refs/tasks/runs/notes)\nCancel = Merge (keep existing; incoming overwrites by id when equal)')
-    mode = replace ? 'replace' : 'merge'
+  if (hasIncoming) {
+    const incomingSummary = `Incoming: ${incoming.refs.length} refs, ${incoming.tasks.length} tasks, ${incoming.runs.length} runs${incoming.notes ? ', notes' : ''}`
+    const existingSummary = hasExisting
+      ? `\nExisting: ${(state.refs || []).length} refs, ${(state.tasks || []).length} tasks, ${(state.runs || []).length} runs${state.notes ? ', notes' : ''}`
+      : ''
+
+    const hint = hasExisting
+      ? '\n\nType r = replace, m = merge, c = cancel'
+      : '\n\nType r = import (replace), c = cancel'
+
+    const choice = window.prompt(`Import hub data?\n${incomingSummary}${existingSummary}${hint}`, hasExisting ? 'm' : 'r')
+    const c = String(choice || '').trim().toLowerCase()
+    if (!c || c === 'c' || c === 'cancel') return
+    mode = (c === 'm' || c === 'merge') ? 'merge' : 'replace'
   }
 
   if (mode == 'replace') {
@@ -379,7 +406,7 @@ function importHubFromObject(j) {
   renderTasks()
   renderRuns()
 
-  addMsg('cal', `Imported hub data. (${refs.length} refs, ${tasks.length} tasks, ${runs.length} runs)`)
+  addMsg('cal', `Imported hub data. (${(state.refs || []).length} refs, ${(state.tasks || []).length} tasks, ${(state.runs || []).length} runs)`)
 }
 
 async function importHubFromFile(file) {
@@ -791,8 +818,6 @@ function bindHubUI() {
   btnPasteHub?.addEventListener('click', () => {
     const raw = window.prompt('Paste hub JSON here:')
     if (!raw) return
-    const ok = window.confirm('Import hub data from pasted JSON? This will REPLACE current refs/tasks/runs/notes in this browser.')
-    if (!ok) return
     try {
       importHubFromText(raw)
     } catch (e) {
@@ -804,8 +829,6 @@ function bindHubUI() {
   hubFileEl?.addEventListener('change', async () => {
     const f = hubFileEl.files?.[0]
     if (!f) return
-    const ok = window.confirm('Import hub data from JSON? This will REPLACE current refs/tasks/runs/notes in this browser.')
-    if (!ok) return
     try {
       await importHubFromFile(f)
     } catch (e) {
