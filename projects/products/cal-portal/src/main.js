@@ -56,6 +56,11 @@ const btnClearRefs = document.getElementById('btnClearRefs')
 const refListEl = document.getElementById('refList')
 
 const refsCountEl = document.getElementById('refsCount')
+const refFilterEl = document.getElementById('refFilter')
+const btnClearRefFilter = document.getElementById('btnClearRefFilter')
+
+const taskFilterEl = document.getElementById('taskFilter')
+const btnClearTaskFilter = document.getElementById('btnClearTaskFilter')
 
 const taskTitleEl = document.getElementById('taskTitle')
 const btnAddTask = document.getElementById('btnAddTask')
@@ -66,6 +71,9 @@ const toggleShowDoneTasksEl = document.getElementById('toggleShowDoneTasks')
 const btnClearDoneTasks = document.getElementById('btnClearDoneTasks')
 
 // Runs (tiny)
+const runFilterEl = document.getElementById('runFilter')
+const btnClearRunFilter = document.getElementById('btnClearRunFilter')
+
 const runTitleEl = document.getElementById('runTitle')
 const runNotesEl = document.getElementById('runNotes')
 const btnAddRun = document.getElementById('btnAddRun')
@@ -99,6 +107,9 @@ const state = {
   runs: [], // {id,title,status,ts,notes}
 
   showDoneTasks: false,
+  refFilter: '',
+  taskFilter: '',
+  runFilter: '',
 
   // speech helpers
   lastFinalTranscript: '',
@@ -239,14 +250,39 @@ function esc(s) {
     .replaceAll("'", '&#039;')
 }
 
+async function copyText(text) {
+  const t = String(text ?? '').trim()
+  if (!t) return
+  try {
+    await navigator.clipboard.writeText(t)
+    addMsg('cal', 'Copied to clipboard.')
+  } catch {
+    // Fallback that works even when clipboard API is blocked.
+    window.prompt('Copy to clipboard:', t)
+  }
+}
+
+function matchesFilter(itemText, filterText) {
+  const q = String(filterText || '').trim().toLowerCase()
+  if (!q) return true
+  return String(itemText || '').toLowerCase().includes(q)
+}
+
 function renderRefs() {
   if (!refListEl) return
-  const refs = state.refs || []
-  if (refsCountEl) refsCountEl.textContent = refs.length ? `( ${refs.length} )` : ''
-  if (!refs.length) {
+  const refsAll = state.refs || []
+  if (refsCountEl) refsCountEl.textContent = refsAll.length ? `( ${refsAll.length} )` : ''
+  if (!refsAll.length) {
     refListEl.innerHTML = '<div class="small" style="opacity:.7;">No references yet.</div>'
     return
   }
+
+  const refs = refsAll.filter(r => matchesFilter(`${r.title || ''} ${r.url || ''} ${r.body || ''}`, state.refFilter))
+  if (!refs.length) {
+    refListEl.innerHTML = '<div class="small" style="opacity:.7;">No refs match the current filter.</div>'
+    return
+  }
+
   refListEl.innerHTML = refs
     .slice()
     .sort((a, b) => (b.ts || 0) - (a.ts || 0))
@@ -260,7 +296,9 @@ function renderRefs() {
           <div class="meta"><div>Ref</div><div>${new Date(r.ts || Date.now()).toLocaleString()}</div></div>
           <div><strong>${title}</strong> ${link ? `<span style="margin-left:8px;">${link}</span>` : ''}</div>
           ${body ? `<div style="margin-top:6px; opacity:.9; white-space:pre-wrap;">${body}</div>` : ''}
-          <div style="margin-top:8px; display:flex; gap:8px;">
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            ${url ? `<button data-ref-copy-url="${esc(r.id)}">Copy URL</button>` : ''}
+            <button data-ref-copy="${esc(r.id)}">Copy</button>
             <button data-ref-del="${esc(r.id)}">Delete</button>
           </div>
         </div>
@@ -268,7 +306,24 @@ function renderRefs() {
     })
     .join('\n')
 
-  // bind delete
+  // bind copy + delete
+  refListEl.querySelectorAll('[data-ref-copy-url]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-ref-copy-url')
+      const hit = (state.refs || []).find(x => x.id === id)
+      if (!hit?.url) return
+      copyText(hit.url)
+    })
+  })
+  refListEl.querySelectorAll('[data-ref-copy]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-ref-copy')
+      const hit = (state.refs || []).find(x => x.id === id)
+      if (!hit) return
+      const parts = [hit.title, hit.url, hit.body].map(x => String(x || '').trim()).filter(Boolean)
+      copyText(parts.join('\n'))
+    })
+  })
   refListEl.querySelectorAll('[data-ref-del]')?.forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-ref-del')
@@ -285,11 +340,18 @@ function renderTasks() {
   const todoCount = tasksAll.filter(t => (t.status || 'todo') !== 'done').length
   if (tasksCountEl) tasksCountEl.textContent = tasksAll.length ? `( ${todoCount} todo / ${tasksAll.length} )` : ''
 
-  const tasks = state.showDoneTasks ? tasksAll : tasksAll.filter(t => (t.status || 'todo') !== 'done')
-  if (!tasks.length) {
+  const visibleByStatus = state.showDoneTasks ? tasksAll : tasksAll.filter(t => (t.status || 'todo') !== 'done')
+  if (!visibleByStatus.length) {
     taskListEl.innerHTML = '<div class="small" style="opacity:.7;">No tasks yet.</div>'
     return
   }
+
+  const tasks = visibleByStatus.filter(t => matchesFilter(`${t.title || ''} ${t.id || ''} ${t.status || ''}`, state.taskFilter))
+  if (!tasks.length) {
+    taskListEl.innerHTML = '<div class="small" style="opacity:.7;">No tasks match the current filter.</div>'
+    return
+  }
+
   taskListEl.innerHTML = tasks
     .slice()
     .sort((a, b) => (b.ts || 0) - (a.ts || 0))
@@ -307,7 +369,8 @@ function renderTasks() {
               <div>${title}</div>
               <div style="margin-top:6px;">${pill}</div>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button data-task-copy="${esc(t.id)}">Copy</button>
               <button data-task-toggle="${esc(t.id)}">Toggle</button>
               <button data-task-del="${esc(t.id)}">Delete</button>
             </div>
@@ -316,6 +379,15 @@ function renderTasks() {
       `.trim()
     })
     .join('\n')
+
+  taskListEl.querySelectorAll('[data-task-copy]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-task-copy')
+      const hit = (state.tasks || []).find(x => x.id === id)
+      if (!hit) return
+      copyText(`[${hit.status || 'todo'}] ${hit.title} (${hit.id})`)
+    })
+  })
 
   taskListEl.querySelectorAll('[data-task-toggle]')?.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -337,11 +409,17 @@ function renderTasks() {
 
 function renderRuns() {
   if (!runListEl) return
-  const runs = state.runs || []
-  const runningCount = runs.filter(r => (r.status || 'running') !== 'done').length
-  if (runsCountEl) runsCountEl.textContent = runs.length ? `( ${runningCount} running / ${runs.length} )` : ''
-  if (!runs.length) {
+  const runsAll = state.runs || []
+  const runningCount = runsAll.filter(r => (r.status || 'running') !== 'done').length
+  if (runsCountEl) runsCountEl.textContent = runsAll.length ? `( ${runningCount} running / ${runsAll.length} )` : ''
+  if (!runsAll.length) {
     runListEl.innerHTML = '<div class="small" style="opacity:.7;">No runs yet.</div>'
+    return
+  }
+
+  const runs = runsAll.filter(r => matchesFilter(`${r.title || ''} ${r.notes || ''} ${r.id || ''} ${r.status || ''}`, state.runFilter))
+  if (!runs.length) {
+    runListEl.innerHTML = '<div class="small" style="opacity:.7;">No runs match the current filter.</div>'
     return
   }
 
@@ -364,7 +442,8 @@ function renderRuns() {
               <div style="margin-top:6px;">${pill}</div>
               ${notes ? `<div style="margin-top:8px; opacity:.9; white-space:pre-wrap;">${notes}</div>` : ''}
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button data-run-copy="${esc(r.id)}">Copy</button>
               <button data-run-toggle="${esc(r.id)}">Toggle</button>
               <button data-run-del="${esc(r.id)}">Delete</button>
             </div>
@@ -373,6 +452,19 @@ function renderRuns() {
       `.trim()
     })
     .join('\n')
+
+  runListEl.querySelectorAll('[data-run-copy]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-run-copy')
+      const hit = (state.runs || []).find(x => x.id === id)
+      if (!hit) return
+      const parts = [
+        `[${hit.status || 'running'}] ${hit.title || 'Run'} (${hit.id})`,
+        hit.notes || '',
+      ].map(x => String(x || '').trim()).filter(Boolean)
+      copyText(parts.join('\n\n'))
+    })
+  })
 
   runListEl.querySelectorAll('[data-run-toggle]')?.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -430,8 +522,43 @@ function addTaskFromUI() {
 }
 
 function bindHubUI() {
+  // Filters
+  refFilterEl?.addEventListener('input', () => {
+    state.refFilter = refFilterEl.value || ''
+    renderRefs()
+  })
+  btnClearRefFilter?.addEventListener('click', () => {
+    state.refFilter = ''
+    if (refFilterEl) refFilterEl.value = ''
+    renderRefs()
+  })
+
+  taskFilterEl?.addEventListener('input', () => {
+    state.taskFilter = taskFilterEl.value || ''
+    renderTasks()
+  })
+  btnClearTaskFilter?.addEventListener('click', () => {
+    state.taskFilter = ''
+    if (taskFilterEl) taskFilterEl.value = ''
+    renderTasks()
+  })
+
+  runFilterEl?.addEventListener('input', () => {
+    state.runFilter = runFilterEl.value || ''
+    renderRuns()
+  })
+  btnClearRunFilter?.addEventListener('click', () => {
+    state.runFilter = ''
+    if (runFilterEl) runFilterEl.value = ''
+    renderRuns()
+  })
+
   btnAddRef?.addEventListener('click', addRefFromUI)
   btnClearRefs?.addEventListener('click', () => {
+    if ((state.refs || []).length) {
+      const ok = window.confirm('Clear ALL library refs in this browser?')
+      if (!ok) return
+    }
     state.refs = []
     saveLocalHub()
     renderRefs()
@@ -446,6 +573,11 @@ function bindHubUI() {
   })
 
   btnClearDoneTasks?.addEventListener('click', () => {
+    const doneCount = (state.tasks || []).filter(t => (t.status || 'todo') === 'done').length
+    if (doneCount) {
+      const ok = window.confirm(`Clear ${doneCount} done task(s) from this browser?`)
+      if (!ok) return
+    }
     const before = (state.tasks || []).length
     state.tasks = (state.tasks || []).filter(t => (t.status || 'todo') !== 'done')
     if ((state.tasks || []).length !== before) saveLocalHub()
@@ -679,6 +811,10 @@ function loadSettings() {
   toggleVoice.checked = state.voiceEnabled
   toggleAutoSpeak.checked = state.autoSpeak
   if (toggleShowDoneTasksEl) toggleShowDoneTasksEl.checked = !!state.showDoneTasks
+
+  if (refFilterEl) refFilterEl.value = state.refFilter || ''
+  if (taskFilterEl) taskFilterEl.value = state.taskFilter || ''
+  if (runFilterEl) runFilterEl.value = state.runFilter || ''
 
   if (notesEl) notesEl.value = state.notes
   if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'

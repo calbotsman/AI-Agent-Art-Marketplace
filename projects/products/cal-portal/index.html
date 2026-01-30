@@ -127,6 +127,11 @@
           <summary>Library (references) <span class="mini" id="refsCount"></span></summary>
           <div class="small" style="margin:8px 0;">Drop links, quotes, and small notes. (We’ll add real media collections next.)</div>
           <div style="display:grid; gap:10px;">
+            <div class="row">
+              <input id="refFilter" type="text" placeholder="Filter refs… (title/url/notes)" />
+              <button id="btnClearRefFilter">Clear</button>
+            </div>
+
             <div>
               <div class="small" style="margin-bottom:6px;">Title</div>
               <input id="refTitle" type="text" placeholder="e.g., ‘Nike edit pacing’" />
@@ -152,6 +157,11 @@
           <div class="small" style="margin:8px 0;">Lightweight task list for now. We’ll upgrade to Kanban + agent runs next.</div>
           <div style="display:grid; gap:10px;">
             <div class="row">
+              <input id="taskFilter" type="text" placeholder="Filter tasks…" />
+              <button id="btnClearTaskFilter">Clear</button>
+            </div>
+
+            <div class="row">
               <input id="taskTitle" type="text" placeholder="New task…" />
               <button id="btnAddTask" class="primary">Add</button>
             </div>
@@ -169,6 +179,11 @@
           <div class="small" style="margin:0 0 8px 0;">Runs (tiny) <span class="mini" id="runsCount"></span></div>
           <div class="small" style="margin:-4px 0 8px 0; opacity:.75;">Log quick “agent runs” / work bursts with notes. ⌘/Ctrl+Enter in notes to add.</div>
           <div style="display:grid; gap:10px;">
+            <div class="row">
+              <input id="runFilter" type="text" placeholder="Filter runs…" />
+              <button id="btnClearRunFilter">Clear</button>
+            </div>
+
             <div>
               <div class="small" style="margin-bottom:6px;">Title</div>
               <input id="runTitle" type="text" placeholder="e.g., ‘Night sprint: tasks + UI polish’" />
