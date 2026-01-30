@@ -124,7 +124,7 @@
         </details>
 
         <details id="library" style="margin-top:12px;">
-          <summary>Library (references)</summary>
+          <summary>Library (references) <span class="mini" id="refsCount"></span></summary>
           <div class="small" style="margin:8px 0;">Drop links, quotes, and small notes. (We’ll add real media collections next.)</div>
           <div style="display:grid; gap:10px;">
             <div>
@@ -148,19 +148,25 @@
         </details>
 
         <details id="tasks" style="margin-top:12px;">
-          <summary>Tasks (tiny)</summary>
+          <summary>Tasks (tiny) <span class="mini" id="tasksCount"></span></summary>
           <div class="small" style="margin:8px 0;">Lightweight task list for now. We’ll upgrade to Kanban + agent runs next.</div>
           <div style="display:grid; gap:10px;">
             <div class="row">
               <input id="taskTitle" type="text" placeholder="New task…" />
               <button id="btnAddTask" class="primary">Add</button>
             </div>
+
+            <div class="row">
+              <label class="pill" style="justify-content:center;"><input id="toggleShowDoneTasks" type="checkbox" /> Show done</label>
+              <button id="btnClearDoneTasks">Clear done</button>
+            </div>
+
             <div id="taskList" class="small"></div>
           </div>
 
           <hr class="divider" style="margin:12px 0;" />
 
-          <div class="small" style="margin:0 0 8px 0;">Runs (tiny)</div>
+          <div class="small" style="margin:0 0 8px 0;">Runs (tiny) <span class="mini" id="runsCount"></span></div>
           <div class="small" style="margin:-4px 0 8px 0; opacity:.75;">Log quick “agent runs” / work bursts with notes. ⌘/Ctrl+Enter in notes to add.</div>
           <div style="display:grid; gap:10px;">
             <div>

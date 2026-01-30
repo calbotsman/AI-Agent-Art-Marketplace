@@ -55,15 +55,23 @@ const btnAddRef = document.getElementById('btnAddRef')
 const btnClearRefs = document.getElementById('btnClearRefs')
 const refListEl = document.getElementById('refList')
 
+const refsCountEl = document.getElementById('refsCount')
+
 const taskTitleEl = document.getElementById('taskTitle')
 const btnAddTask = document.getElementById('btnAddTask')
 const taskListEl = document.getElementById('taskList')
+
+const tasksCountEl = document.getElementById('tasksCount')
+const toggleShowDoneTasksEl = document.getElementById('toggleShowDoneTasks')
+const btnClearDoneTasks = document.getElementById('btnClearDoneTasks')
 
 // Runs (tiny)
 const runTitleEl = document.getElementById('runTitle')
 const runNotesEl = document.getElementById('runNotes')
 const btnAddRun = document.getElementById('btnAddRun')
 const runListEl = document.getElementById('runList')
+
+const runsCountEl = document.getElementById('runsCount')
 
 const btnExportHub = document.getElementById('btnExportHub')
 const btnImportHub = document.getElementById('btnImportHub')
@@ -89,6 +97,8 @@ const state = {
   refs: [], // {id,title,url,body,ts}
   tasks: [], // {id,title,status,ts}
   runs: [], // {id,title,status,ts,notes}
+
+  showDoneTasks: false,
 
   // speech helpers
   lastFinalTranscript: '',
@@ -232,6 +242,7 @@ function esc(s) {
 function renderRefs() {
   if (!refListEl) return
   const refs = state.refs || []
+  if (refsCountEl) refsCountEl.textContent = refs.length ? `( ${refs.length} )` : ''
   if (!refs.length) {
     refListEl.innerHTML = '<div class="small" style="opacity:.7;">No references yet.</div>'
     return
@@ -270,7 +281,11 @@ function renderRefs() {
 
 function renderTasks() {
   if (!taskListEl) return
-  const tasks = state.tasks || []
+  const tasksAll = state.tasks || []
+  const todoCount = tasksAll.filter(t => (t.status || 'todo') !== 'done').length
+  if (tasksCountEl) tasksCountEl.textContent = tasksAll.length ? `( ${todoCount} todo / ${tasksAll.length} )` : ''
+
+  const tasks = state.showDoneTasks ? tasksAll : tasksAll.filter(t => (t.status || 'todo') !== 'done')
   if (!tasks.length) {
     taskListEl.innerHTML = '<div class="small" style="opacity:.7;">No tasks yet.</div>'
     return
@@ -323,6 +338,8 @@ function renderTasks() {
 function renderRuns() {
   if (!runListEl) return
   const runs = state.runs || []
+  const runningCount = runs.filter(r => (r.status || 'running') !== 'done').length
+  if (runsCountEl) runsCountEl.textContent = runs.length ? `( ${runningCount} running / ${runs.length} )` : ''
   if (!runs.length) {
     runListEl.innerHTML = '<div class="small" style="opacity:.7;">No runs yet.</div>'
     return
@@ -421,6 +438,19 @@ function bindHubUI() {
   })
 
   btnAddTask?.addEventListener('click', addTaskFromUI)
+
+  toggleShowDoneTasksEl?.addEventListener('change', () => {
+    state.showDoneTasks = !!toggleShowDoneTasksEl.checked
+    saveSettings()
+    renderTasks()
+  })
+
+  btnClearDoneTasks?.addEventListener('click', () => {
+    const before = (state.tasks || []).length
+    state.tasks = (state.tasks || []).filter(t => (t.status || 'todo') !== 'done')
+    if ((state.tasks || []).length !== before) saveLocalHub()
+    renderTasks()
+  })
   taskTitleEl?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -617,12 +647,14 @@ function loadSettings() {
   const v = localStorage.getItem('cal.voiceEnabled')
   const a = localStorage.getItem('cal.autoSpeak')
   const n = localStorage.getItem('cal.studioNotes')
+  const sd = localStorage.getItem('cal.showDoneTasks')
   if (m === 'talk' || m === 'ops') state.mode = m
   if (u) state.gatewayUrl = u
   if (t) state.gatewayToken = t
   if (v != null) state.voiceEnabled = v === 'true'
   if (a != null) state.autoSpeak = a === 'true'
   if (n != null) state.notes = n
+  if (sd != null) state.showDoneTasks = sd === 'true'
 
   // Auto-config via URL query params (Option 1)
   // Example: http://127.0.0.1:5173/?token=...&gateway=http://127.0.0.1:18789/v1/chat/completions
@@ -646,6 +678,7 @@ function loadSettings() {
   gatewayTokenEl.value = state.gatewayToken
   toggleVoice.checked = state.voiceEnabled
   toggleAutoSpeak.checked = state.autoSpeak
+  if (toggleShowDoneTasksEl) toggleShowDoneTasksEl.checked = !!state.showDoneTasks
 
   if (notesEl) notesEl.value = state.notes
   if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
