@@ -639,7 +639,7 @@ function bindHubUI() {
   hubFileEl?.addEventListener('change', async () => {
     const f = hubFileEl.files?.[0]
     if (!f) return
-    const ok = window.confirm('Import hub data from JSON? This will REPLACE current refs/tasks/notes in this browser.')
+    const ok = window.confirm('Import hub data from JSON? This will REPLACE current refs/tasks/runs/notes in this browser.')
     if (!ok) return
     try {
       await importHubFromFile(f)
@@ -1342,6 +1342,17 @@ btnSaveNotes?.addEventListener('click', () => {
   state.notes = (notesEl?.value || '').trim()
   saveSettings()
   addMsg('cal', 'Saved studio notes.')
+})
+
+// Auto-save studio notes while typing (debounced)
+let notesAutosaveTimer = null
+notesEl?.addEventListener('input', () => {
+  state.notes = String(notesEl?.value || '')
+  clearTimeout(notesAutosaveTimer)
+  notesAutosaveTimer = setTimeout(() => {
+    // keep it lightweight; no chat spam
+    saveSettings()
+  }, 600)
 })
 
 btnClearNotes?.addEventListener('click', () => {

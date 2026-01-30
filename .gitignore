@@ -1,2 +1,5 @@
 .DS_Store
 inbox/
+
+# Local-only scratch (shows up as ../../hardware from nested worktrees)
+projects/hardware/
