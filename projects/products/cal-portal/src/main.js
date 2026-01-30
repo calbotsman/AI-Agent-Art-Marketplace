@@ -1852,9 +1852,9 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const scene = new THREE.Scene()
 scene.background = new THREE.Color('#0b1220')
 
-const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100)
-// default framing: face/upper-body
-camera.position.set(0, 2.05, 2.35)
+const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 160)
+// Default framing: show Cal's full body + some room (avoid 'chest cam').
+camera.position.set(0, 2.35, 3.85)
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.55)
 scene.add(ambient)
@@ -2163,7 +2163,8 @@ function animate(now) {
 
     const desired = new THREE.Vector3(avatarRoot.position.x, 2.05, avatarRoot.position.z + 2.2)
     camera.position.lerp(desired, 0.05)
-    camera.lookAt(avatarRoot.position.x, 1.95, avatarRoot.position.z)
+    // Look a bit lower to keep framing full-body in view.
+    camera.lookAt(avatarRoot.position.x, 1.6, avatarRoot.position.z)
 
     if (mixer) mixer.update(dt)
   }
