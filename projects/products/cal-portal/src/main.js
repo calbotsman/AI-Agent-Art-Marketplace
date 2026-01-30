@@ -7,6 +7,14 @@ const elStatus = document.getElementById('status')
 const elMicStatus = document.getElementById('micStatus')
 const elLinkStatus = document.getElementById('linkStatus')
 
+// always-visible status bar
+const elGatewayDot = document.getElementById('gatewayDot')
+const elGatewayStatus = document.getElementById('gatewayStatus')
+const elTokenStatus = document.getElementById('tokenStatus')
+const btnModeTalk = document.getElementById('btnModeTalk')
+const btnModeOps = document.getElementById('btnModeOps')
+const btnOpenSettings = document.getElementById('btnOpenSettings')
+
 const btnMic = document.getElementById('btnMic')
 const btnVoiceHud = document.getElementById('btnVoiceHud')
 const btnConvo = document.getElementById('btnConvo')
@@ -17,8 +25,14 @@ const btnClear = document.getElementById('btnClear')
 const input = document.getElementById('input')
 const chatlog = document.getElementById('chatlog')
 
+// talk-mode tray
+const talkInput = document.getElementById('talkInput')
+const btnTalkSend = document.getElementById('btnTalkSend')
+const btnTalkClear = document.getElementById('btnTalkClear')
+
 const toggleVoice = document.getElementById('toggleVoice')
 const toggleAutoSpeak = document.getElementById('toggleAutoSpeak')
+const settingsDetails = document.getElementById('settings')
 const gatewayUrlEl = document.getElementById('gatewayUrl')
 const gatewayTokenEl = document.getElementById('gatewayToken')
 const btnConnect = document.getElementById('btnConnect')
@@ -33,7 +47,20 @@ const notesEl = document.getElementById('notes')
 const btnSaveNotes = document.getElementById('btnSaveNotes')
 const btnClearNotes = document.getElementById('btnClearNotes')
 
+// Library + Tasks
+const refTitleEl = document.getElementById('refTitle')
+const refUrlEl = document.getElementById('refUrl')
+const refBodyEl = document.getElementById('refBody')
+const btnAddRef = document.getElementById('btnAddRef')
+const btnClearRefs = document.getElementById('btnClearRefs')
+const refListEl = document.getElementById('refList')
+
+const taskTitleEl = document.getElementById('taskTitle')
+const btnAddTask = document.getElementById('btnAddTask')
+const taskListEl = document.getElementById('taskList')
+
 const state = {
+  mode: 'talk', // 'talk' | 'ops'
   listening: false,
   speaking: false,
   transcript: '',
@@ -41,17 +68,225 @@ const state = {
   voiceEnabled: true,
   autoSpeak: true,
   connected: false,
+  lastGatewayOkAt: 0,
+  lastGatewayErr: '',
   // Use same-origin path; Vite proxies /v1 -> Gateway to avoid CORS.
   gatewayUrl: '/v1/chat/completions',
   gatewayToken: '',
   history: [], // {role, content}
   pendingImages: [], // File[]
   notes: '',
+  refs: [], // {id,title,url,body,ts}
+  tasks: [], // {id,title,status,ts}
 }
 
 function setStatus(text) { elStatus.textContent = text }
 function setMic(text) { elMicStatus.textContent = text }
 function setLink(text) { elLinkStatus.textContent = text }
+
+function maskToken(t) {
+  const s = String(t || '')
+  if (!s) return ''
+  if (s.length <= 8) return '••••'
+  return `${s.slice(0, 4)}…${s.slice(-4)}`
+}
+
+function renderMode() {
+  document.body.classList.toggle('mode-talk', state.mode === 'talk')
+  document.body.classList.toggle('mode-ops', state.mode === 'ops')
+  btnModeTalk?.classList.toggle('primary', state.mode === 'talk')
+  btnModeOps?.classList.toggle('primary', state.mode === 'ops')
+}
+
+function renderStatusBar() {
+  // token
+  if (elTokenStatus) {
+    elTokenStatus.textContent = state.gatewayToken
+      ? `Token: set (${maskToken(state.gatewayToken)})`
+      : 'Token: missing'
+  }
+
+  // gateway / connectivity
+  if (elGatewayStatus) {
+    const base = state.connected ? 'Gateway: connected' : 'Gateway: disconnected'
+    const age = state.lastGatewayOkAt ? Math.round((Date.now() - state.lastGatewayOkAt) / 1000) : null
+    const suffix = state.connected && age != null ? ` (ok ${age}s ago)` : (state.lastGatewayErr ? ` (${state.lastGatewayErr})` : '')
+    elGatewayStatus.textContent = `${base}${suffix}`
+  }
+
+  if (elGatewayDot) {
+    elGatewayDot.classList.remove('ok', 'warn', 'bad')
+    if (!state.gatewayToken) elGatewayDot.classList.add('warn')
+    else if (state.connected) elGatewayDot.classList.add('ok')
+    else elGatewayDot.classList.add('bad')
+  }
+}
+
+// ---------- Library + Tasks (local-first) ----------
+function uid(prefix = 'id') {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+function saveLocalHub() {
+  try {
+    localStorage.setItem('cal.refs', JSON.stringify(state.refs || []))
+    localStorage.setItem('cal.tasks', JSON.stringify(state.tasks || []))
+  } catch {
+    // ignore
+  }
+}
+
+function loadLocalHub() {
+  try {
+    const r = localStorage.getItem('cal.refs')
+    const t = localStorage.getItem('cal.tasks')
+    if (r) state.refs = JSON.parse(r) || []
+    if (t) state.tasks = JSON.parse(t) || []
+  } catch {
+    // ignore
+  }
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function renderRefs() {
+  if (!refListEl) return
+  const refs = state.refs || []
+  if (!refs.length) {
+    refListEl.innerHTML = '<div class="small" style="opacity:.7;">No references yet.</div>'
+    return
+  }
+  refListEl.innerHTML = refs
+    .slice()
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .map(r => {
+      const title = esc(r.title || '(untitled)')
+      const body = esc(r.body || '')
+      const url = (r.url || '').trim()
+      const link = url ? `<a href="${esc(url)}" target="_blank" rel="noreferrer">open</a>` : ''
+      return `
+        <div class="msg" style="margin-top:10px;">
+          <div class="meta"><div>Ref</div><div>${new Date(r.ts || Date.now()).toLocaleString()}</div></div>
+          <div><strong>${title}</strong> ${link ? `<span style="margin-left:8px;">${link}</span>` : ''}</div>
+          ${body ? `<div style="margin-top:6px; opacity:.9; white-space:pre-wrap;">${body}</div>` : ''}
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button data-ref-del="${esc(r.id)}">Delete</button>
+          </div>
+        </div>
+      `.trim()
+    })
+    .join('\n')
+
+  // bind delete
+  refListEl.querySelectorAll('[data-ref-del]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-ref-del')
+      state.refs = (state.refs || []).filter(x => x.id !== id)
+      saveLocalHub()
+      renderRefs()
+    })
+  })
+}
+
+function renderTasks() {
+  if (!taskListEl) return
+  const tasks = state.tasks || []
+  if (!tasks.length) {
+    taskListEl.innerHTML = '<div class="small" style="opacity:.7;">No tasks yet.</div>'
+    return
+  }
+  taskListEl.innerHTML = tasks
+    .slice()
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .map(t => {
+      const title = esc(t.title || '(untitled)')
+      const status = t.status || 'todo'
+      const pill = status === 'done'
+        ? '<span class="pill" style="border-color: rgba(34,197,94,.35);">done</span>'
+        : '<span class="pill">todo</span>'
+      return `
+        <div class="msg" style="margin-top:10px;">
+          <div class="meta"><div>Task</div><div>${new Date(t.ts || Date.now()).toLocaleString()}</div></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div style="flex:1;">
+              <div>${title}</div>
+              <div style="margin-top:6px;">${pill}</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button data-task-toggle="${esc(t.id)}">Toggle</button>
+              <button data-task-del="${esc(t.id)}">Delete</button>
+            </div>
+          </div>
+        </div>
+      `.trim()
+    })
+    .join('\n')
+
+  taskListEl.querySelectorAll('[data-task-toggle]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-task-toggle')
+      state.tasks = (state.tasks || []).map(x => x.id === id ? { ...x, status: x.status === 'done' ? 'todo' : 'done' } : x)
+      saveLocalHub()
+      renderTasks()
+    })
+  })
+  taskListEl.querySelectorAll('[data-task-del]')?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-task-del')
+      state.tasks = (state.tasks || []).filter(x => x.id !== id)
+      saveLocalHub()
+      renderTasks()
+    })
+  })
+}
+
+function addRefFromUI() {
+  const title = refTitleEl?.value?.trim() || ''
+  const url = refUrlEl?.value?.trim() || ''
+  const body = refBodyEl?.value?.trim() || ''
+  if (!title && !url && !body) return
+  state.refs = state.refs || []
+  state.refs.push({ id: uid('ref'), title: title || url || body.slice(0, 60), url, body, ts: Date.now() })
+  if (refTitleEl) refTitleEl.value = ''
+  if (refUrlEl) refUrlEl.value = ''
+  if (refBodyEl) refBodyEl.value = ''
+  saveLocalHub()
+  renderRefs()
+}
+
+function addTaskFromUI() {
+  const title = taskTitleEl?.value?.trim() || ''
+  if (!title) return
+  state.tasks = state.tasks || []
+  state.tasks.push({ id: uid('task'), title, status: 'todo', ts: Date.now() })
+  if (taskTitleEl) taskTitleEl.value = ''
+  saveLocalHub()
+  renderTasks()
+}
+
+function bindHubUI() {
+  btnAddRef?.addEventListener('click', addRefFromUI)
+  btnClearRefs?.addEventListener('click', () => {
+    state.refs = []
+    saveLocalHub()
+    renderRefs()
+  })
+
+  btnAddTask?.addEventListener('click', addTaskFromUI)
+  taskTitleEl?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addTaskFromUI()
+    }
+  })
+}
 
 function addMsg(role, content, opts = {}) {
   const d = document.createElement('div')
@@ -198,11 +433,13 @@ function stopMic() {
 
 // ---------- Gateway bridge (Clawdbot OpenAI-compatible endpoint) ----------
 function loadSettings() {
+  const m = localStorage.getItem('cal.mode')
   const u = localStorage.getItem('cal.gatewayUrl')
   const t = localStorage.getItem('cal.gatewayToken')
   const v = localStorage.getItem('cal.voiceEnabled')
   const a = localStorage.getItem('cal.autoSpeak')
   const n = localStorage.getItem('cal.studioNotes')
+  if (m === 'talk' || m === 'ops') state.mode = m
   if (u) state.gatewayUrl = u
   if (t) state.gatewayToken = t
   if (v != null) state.voiceEnabled = v === 'true'
@@ -234,9 +471,21 @@ function loadSettings() {
 
   if (notesEl) notesEl.value = state.notes
   if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
+
+  // local hub data
+  loadLocalHub()
+  renderRefs()
+  renderTasks()
+
+  // keep talk tray in sync
+  if (talkInput && input) talkInput.value = input.value
+
+  renderMode()
+  renderStatusBar()
 }
 
 function saveSettings() {
+  localStorage.setItem('cal.mode', state.mode)
   localStorage.setItem('cal.gatewayUrl', state.gatewayUrl)
   localStorage.setItem('cal.gatewayToken', state.gatewayToken)
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
@@ -253,11 +502,15 @@ async function connectGateway() {
 
   if (!state.gatewayToken) {
     state.connected = false
+    state.lastGatewayErr = 'token missing'
     setLink('Agent: token missing')
+    renderStatusBar()
     return
   }
 
   setLink('Agent: connecting…')
+  state.lastGatewayErr = ''
+  renderStatusBar()
   try {
     // Ensure we hit same-origin /v1... by default (proxied by Vite)
     const url = state.gatewayUrl || '/v1/chat/completions'
@@ -281,7 +534,10 @@ async function connectGateway() {
     const j = await r.json()
     const txt = j?.choices?.[0]?.message?.content || ''
     state.connected = true
+    state.lastGatewayOkAt = Date.now()
+    state.lastGatewayErr = ''
     setLink('Agent: connected')
+    renderStatusBar()
     if (txt && txt.toLowerCase().includes('pong')) {
       // ok
     }
@@ -289,7 +545,49 @@ async function connectGateway() {
     console.warn('connectGateway failed', e)
     state.connected = false
     const msg = String(e.message || e)
+    state.lastGatewayErr = msg.slice(0, 80)
     setLink(`Agent: error (${msg.slice(0, 80)})`)
+    renderStatusBar()
+  }
+}
+
+async function checkGatewayHeartbeat() {
+  // Keep the status bar honest without being spammy.
+  if (!state.gatewayToken) {
+    state.connected = false
+    state.lastGatewayErr = 'token missing'
+    renderStatusBar()
+    return
+  }
+
+  const url = state.gatewayUrl || '/v1/chat/completions'
+  const controller = new AbortController()
+  const to = setTimeout(() => controller.abort(), 2500)
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.gatewayToken}`,
+        'Content-Type': 'application/json',
+        'x-clawdbot-agent-id': 'main',
+      },
+      body: JSON.stringify({
+        model: 'clawdbot',
+        user: 'cal-portal',
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+      signal: controller.signal,
+    })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    state.connected = true
+    state.lastGatewayOkAt = Date.now()
+    state.lastGatewayErr = ''
+  } catch (e) {
+    state.connected = false
+    state.lastGatewayErr = (e?.name === 'AbortError') ? 'timeout' : String(e.message || e).slice(0, 80)
+  } finally {
+    clearTimeout(to)
+    renderStatusBar()
   }
 }
 
@@ -369,6 +667,47 @@ async function sendUserMessage(text) {
 }
 
 // ---------- Event wiring ----------
+btnModeTalk?.addEventListener('click', () => {
+  state.mode = 'talk'
+  saveSettings()
+  renderMode()
+})
+btnModeOps?.addEventListener('click', () => {
+  state.mode = 'ops'
+  saveSettings()
+  renderMode()
+})
+
+btnOpenSettings?.addEventListener('click', () => {
+  state.mode = 'ops'
+  saveSettings()
+  renderMode()
+  if (settingsDetails) settingsDetails.open = true
+  settingsDetails?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+})
+
+btnTalkSend?.addEventListener('click', () => {
+  const t = (talkInput?.value || '').trim()
+  if (!t) return
+  talkInput.value = ''
+  if (input) input.value = ''
+  sendUserMessage(t)
+})
+btnTalkClear?.addEventListener('click', () => {
+  chatlog.innerHTML = ''
+  state.history = []
+  clearImages()
+  if (talkInput) talkInput.value = ''
+  if (input) input.value = ''
+})
+
+talkInput?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    btnTalkSend?.click()
+  }
+})
+
 btnMic?.addEventListener('click', () => {
   if (!rec) return
   if (state.listening) stopMic()
@@ -410,7 +749,16 @@ input?.addEventListener('keydown', (e) => {
     e.preventDefault()
     sendUserMessage(input.value)
     input.value = ''
+    if (talkInput) talkInput.value = ''
   }
+})
+
+input?.addEventListener('input', () => {
+  if (talkInput) talkInput.value = input.value
+})
+
+talkInput?.addEventListener('input', () => {
+  if (input) input.value = talkInput.value
 })
 
 btnClear?.addEventListener('click', () => {
@@ -420,6 +768,17 @@ btnClear?.addEventListener('click', () => {
 })
 
 btnConnect?.addEventListener('click', () => connectGateway())
+
+// reflect token/url changes instantly in the status bar (without auto-connecting)
+gatewayTokenEl?.addEventListener('input', () => {
+  state.gatewayToken = gatewayTokenEl.value.trim()
+  renderStatusBar()
+})
+gatewayUrlEl?.addEventListener('input', () => {
+  state.gatewayUrl = gatewayUrlEl.value.trim() || state.gatewayUrl
+  renderStatusBar()
+})
+
 btnTestVoice?.addEventListener('click', () => {
   state.voiceEnabled = !!toggleVoice.checked
   state.autoSpeak = !!toggleAutoSpeak.checked
@@ -465,13 +824,25 @@ btnClearNotes?.addEventListener('click', () => {
 })
 
 setStatus('Idle')
+bindHubUI()
 loadSettings()
 setLink(state.gatewayToken ? 'Agent: disconnected' : 'Agent: token missing')
+renderStatusBar()
 
 // Auto-connect if a token is present (e.g., passed via ?token=...)
 if (state.gatewayToken) {
   connectGateway()
 }
+
+// lightweight connectivity heartbeat (keeps the bottom status bar accurate)
+setInterval(() => {
+  // only check when tab is visible to avoid useless background traffic
+  if (document.visibilityState === 'visible') checkGatewayHeartbeat()
+}, 15000)
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkGatewayHeartbeat()
+})
 
 // ensure voices list is populated on some platforms
 window.speechSynthesis?.getVoices?.()

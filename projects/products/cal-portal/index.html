@@ -8,11 +8,30 @@
       :root { color-scheme: dark; }
       body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; background:#0b1220; color:#e5e7eb; }
       #app { display:grid; grid-template-columns: 1.4fr 1fr; height: 100vh; }
-      .panel { padding: 16px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
-      .stage { position:relative; }
+      body.mode-talk #app { grid-template-columns: 1fr; }
+      body.mode-talk .panel { display:none; }
+
+      .panel { padding: 16px; padding-bottom: 96px; border-left: 1px solid rgba(148,163,184,.15); overflow:auto; }
+      .stage { position:relative; padding-bottom: 64px; }
       canvas { display:block; width:100%; height:100%; }
       .hud { position:absolute; left:12px; top:12px; right:12px; display:flex; gap:8px; align-items:center; justify-content:space-between; pointer-events:none; }
       .hud .left, .hud .right { display:flex; gap:8px; align-items:center; pointer-events:auto; }
+
+      /* Always-visible bottom status bar (mode + gateway + token) */
+      .statusbar { position:fixed; left:0; right:0; bottom:0; z-index:50; display:flex; gap:10px; align-items:center; justify-content:space-between;
+        padding:10px 12px; border-top:1px solid rgba(148,163,184,.18); background:rgba(11,18,32,.86); backdrop-filter: blur(10px);
+      }
+      .statusbar .left, .statusbar .right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+      .statusdot { width:10px; height:10px; border-radius:999px; background:#64748b; box-shadow: 0 0 0 2px rgba(148,163,184,.18) inset; }
+      .statusdot.ok { background:#22c55e; }
+      .statusdot.warn { background:#f59e0b; }
+      .statusdot.bad { background:#ef4444; }
+      .mini { font-size:12px; opacity:.9; }
+
+      /* Talk-mode tray */
+      .talkTray { position:absolute; left:12px; right:12px; bottom:58px; z-index:40; display:none; gap:10px; align-items:flex-end; }
+      body.mode-talk .talkTray { display:flex; }
+      .talkTray textarea { min-height: 60px; max-height: 180px; }
       button { background:#111827; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); padding:10px 12px; border-radius:10px; cursor:pointer; }
       button.primary { background:linear-gradient(135deg,#7c3aed,#22d3ee); border:none; color:#0b1220; font-weight:700; }
       button:disabled{ opacity:.5; cursor:not-allowed; }
@@ -55,7 +74,17 @@
             <button class="primary" id="btnCall">Call Cal</button>
           </div>
         </div>
+
         <canvas id="c"></canvas>
+
+        <!-- Talk mode: keep chat controls reachable even when the Ops panel is hidden -->
+        <div class="talkTray" id="talkTray">
+          <textarea id="talkInput" placeholder="Talk mode: type here (⌘/Ctrl+Enter to send)…"></textarea>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="primary" id="btnTalkSend">Send</button>
+            <button id="btnTalkClear">Clear</button>
+          </div>
+        </div>
       </div>
 
       <div class="panel">
@@ -94,6 +123,42 @@
           </div>
         </details>
 
+        <details id="library" style="margin-top:12px;">
+          <summary>Library (references)</summary>
+          <div class="small" style="margin:8px 0;">Drop links, quotes, and small notes. (We’ll add real media collections next.)</div>
+          <div style="display:grid; gap:10px;">
+            <div>
+              <div class="small" style="margin-bottom:6px;">Title</div>
+              <input id="refTitle" type="text" placeholder="e.g., ‘Nike edit pacing’" />
+            </div>
+            <div>
+              <div class="small" style="margin-bottom:6px;">URL (optional)</div>
+              <input id="refUrl" type="text" placeholder="https://…" />
+            </div>
+            <div>
+              <div class="small" style="margin-bottom:6px;">Quote / notes</div>
+              <textarea id="refBody" placeholder="Paste quote, describe the vibe, what to steal, why it matters…"></textarea>
+            </div>
+            <div class="row">
+              <button id="btnAddRef" class="primary">Add to library</button>
+              <button id="btnClearRefs">Clear library</button>
+            </div>
+            <div id="refList" class="small"></div>
+          </div>
+        </details>
+
+        <details id="tasks" style="margin-top:12px;">
+          <summary>Tasks (tiny)</summary>
+          <div class="small" style="margin:8px 0;">Lightweight task list for now. We’ll upgrade to Kanban + agent runs next.</div>
+          <div style="display:grid; gap:10px;">
+            <div class="row">
+              <input id="taskTitle" type="text" placeholder="New task…" />
+              <button id="btnAddTask" class="primary">Add</button>
+            </div>
+            <div id="taskList" class="small"></div>
+          </div>
+        </details>
+
         <hr class="divider"/>
 
         <label class="small">You</label>
@@ -125,6 +190,28 @@
             <button id="btnClearNotes">Clear notes</button>
           </div>
         </details>
+      </div>
+    </div>
+
+    <div class="statusbar" id="statusBar">
+      <div class="left">
+        <span class="pill" style="gap:6px;">
+          <span class="mini" style="opacity:.8;">Mode</span>
+          <button id="btnModeTalk">Talk</button>
+          <button id="btnModeOps">Ops</button>
+        </span>
+
+        <span class="pill" style="gap:8px;">
+          <span class="statusdot" id="gatewayDot"></span>
+          <span class="mini" id="gatewayStatus">Gateway: unknown</span>
+        </span>
+      </div>
+
+      <div class="right">
+        <span class="pill" style="gap:8px;">
+          <span class="mini" id="tokenStatus">Token: missing</span>
+        </span>
+        <button id="btnOpenSettings">Settings</button>
       </div>
     </div>
 

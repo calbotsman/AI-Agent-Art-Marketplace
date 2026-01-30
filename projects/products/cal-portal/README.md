@@ -12,7 +12,14 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually http://localhost:5173).
+Open: http://127.0.0.1:5174
+
+Notes:
+- Port is fixed to **5174** and Vite is set to **fail if the port is occupied** (no auto-fallback).
+- The UI has two modes:
+  - **Talk mode**: hides the Ops panel and keeps a small chat tray on the stage.
+  - **Ops mode**: shows Settings + full chat + notes.
+- The bottom status bar is always visible and shows **gateway connectivity** and **token status**.
 
 ## Next steps
 - Wire chat to Clawdbot gateway/session.
