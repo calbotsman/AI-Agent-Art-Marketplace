@@ -1,0 +1,36 @@
+{
+  "name": "endless-molt-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:migrate": "tsx database/migrate.ts"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "next-auth": "^5.0.0-beta.25",
+    "better-sqlite3": "^12.6.2",
+    "sharp": "^0.33.5",
+    "stripe": "^17.5.0",
+    "bcrypt": "^5.1.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/bcrypt": "^5.0.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "tsx": "^4.19.2"
+  }
+}
