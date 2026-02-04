@@ -25,20 +25,24 @@ export default async function ListingDetailPage({
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
+      <div className="content-container py-12">
         {/* Header with Wallet */}
-        <div className="flex justify-between items-center mb-8">
-          <Link href="/" className="text-purple-400 hover:text-purple-300">
+        <div className="flex justify-between items-center" style={{ marginBottom: 'var(--spacing-lg)' }}>
+          <Link 
+            href="/" 
+            className="text-secondary hover:text-primary transition-colors"
+            style={{ color: 'var(--accent-blue)' }}
+          >
             ← Back to Marketplace
           </Link>
           <WalletConnect />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 'var(--spacing-lg)' }}>
           {/* Image */}
-          <div className="bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
-            <div className="relative aspect-square bg-gray-900">
+          <div className="card overflow-hidden">
+            <div className="relative aspect-square" style={{ backgroundColor: 'var(--surface)' }}>
               {listing.image_url ? (
                 <img
                   src={listing.image_url}
@@ -46,7 +50,7 @@ export default async function ListingDetailPage({
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-secondary">
                   No Image
                 </div>
               )}
@@ -55,46 +59,72 @@ export default async function ListingDetailPage({
 
           {/* Details */}
           <div>
-            <div className="bg-gray-800 rounded-lg shadow-2xl p-8">
+            <div className="card" style={{ padding: 'var(--spacing-lg)' }}>
               {listing.featured === 1 && (
-                <div className="inline-block bg-yellow-400 text-black text-sm font-bold px-3 py-1 rounded mb-4">
+                <div 
+                  className="inline-block text-sm px-3 py-1 rounded mb-4"
+                  style={{ 
+                    backgroundColor: 'var(--accent-blue)',
+                    color: 'white'
+                  }}
+                >
                   Featured
                 </div>
               )}
 
-              <h1 className="text-4xl font-bold mb-4">{listing.title}</h1>
+              <h1 style={{ marginBottom: 'var(--spacing-md)' }}>{listing.title}</h1>
 
               {agent && (
-                <div className="mb-6">
+                <div style={{ marginBottom: 'var(--spacing-md)' }}>
                   <Link
                     href={`/agents/${agent.id}`}
-                    className="flex items-center gap-3 hover:opacity-80 transition"
+                    className="flex items-center hover:opacity-80 transition"
+                    style={{ gap: 'var(--spacing-sm)' }}
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white font-bold">
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white"
+                      style={{ 
+                        backgroundColor: 'var(--accent-blue)',
+                        fontWeight: '500'
+                      }}
+                    >
                       {agent.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400">
+                      <p 
+                        className="text-sm"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
                         Created by
                       </p>
-                      <p className="font-semibold text-white">{agent.name}</p>
+                      <p style={{ fontWeight: '500' }}>{agent.name}</p>
                     </div>
                   </Link>
                 </div>
               )}
 
               {listing.description && (
-                <p className="text-gray-300 mb-6 whitespace-pre-line">
+                <p 
+                  className="whitespace-pre-line"
+                  style={{ 
+                    marginBottom: 'var(--spacing-md)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
                   {listing.description}
                 </p>
               )}
 
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap" style={{ gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
                   {tags.map((tag: string) => (
                     <span
                       key={tag}
-                      className="bg-gray-700 px-3 py-1 rounded-full text-sm text-gray-300"
+                      className="px-3 py-1 rounded-full text-sm"
+                      style={{ 
+                        backgroundColor: 'var(--surface)',
+                        color: 'var(--text-secondary)'
+                      }}
                     >
                       {tag}
                     </span>
@@ -102,14 +132,27 @@ export default async function ListingDetailPage({
                 </div>
               )}
 
-              <div className="border-t border-gray-700 pt-6 mb-6">
+              <div 
+                className="divider"
+                style={{ 
+                  paddingTop: 'var(--spacing-md)',
+                  marginBottom: 'var(--spacing-md)'
+                }}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Price</span>
-                  <span className="text-3xl font-bold">${price}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Price</span>
+                  <span style={{ fontSize: '2rem', fontWeight: '400' }}>${price}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Status</span>
-                  <span className="capitalize text-green-400">{listing.status}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
+                  <span 
+                    className="capitalize"
+                    style={{ 
+                      color: listing.status === 'active' ? '#10b981' : 'var(--text-secondary)'
+                    }}
+                  >
+                    {listing.status}
+                  </span>
                 </div>
               </div>
 
@@ -122,12 +165,21 @@ export default async function ListingDetailPage({
               )}
 
               {listing.status !== 'active' && (
-                <div className="text-center py-4 text-gray-400">
+                <div 
+                  className="text-center py-4"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   This artwork is no longer available
                 </div>
               )}
 
-              <div className="mt-6 text-sm text-gray-500 text-center">
+              <div 
+                className="text-sm text-center"
+                style={{ 
+                  marginTop: 'var(--spacing-md)',
+                  color: 'var(--text-secondary)' 
+                }}
+              >
                 {listing.views} views
               </div>
             </div>
