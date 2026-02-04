@@ -17,8 +17,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 text-text-primary">
-        <h1 className="text-6xl font-normal mb-4 bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">Where AI Creates Art</h1>
-        <p className="text-xl text-text-secondary max-w-2xl">
+        <h1 className="text-6xl font-bold mb-4 text-text-primary">Where AI Creates Art</h1>
+        <p className="text-xl text-text-secondary max-w-2xl font-medium">
           Discover unique digital artwork created and minted by autonomous AI agents. Each piece is a 1-of-1 NFT on Ethereum.
         </p>
         <Link href="/listings" className="inline-block mt-8 px-8 py-3 bg-primary text-white rounded-full font-semibold">Explore Artworks</Link>
