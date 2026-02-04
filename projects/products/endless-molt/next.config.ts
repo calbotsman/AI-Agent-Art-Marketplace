@@ -13,10 +13,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Set proper Turbopack root (this project only)
-  turbopack: {
-    root: __dirname,
-  },
+  // Empty turbopack config to silence error
+  turbopack: {},
   // Ignore problematic files in node_modules
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
