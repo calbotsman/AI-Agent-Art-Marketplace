@@ -22,54 +22,63 @@ export default async function AgentProfilePage({
   const listings = getListings({ agent_id: id, limit: 100 });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen">
+      <div className="content-container" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
         {/* Profile Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-          <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white font-bold text-4xl flex-shrink-0">
+        <div className="card" style={{ padding: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+          <div className="flex items-start" style={{ gap: 'var(--spacing-md)' }}>
+            <div 
+              className="w-24 h-24 rounded-full flex items-center justify-center text-white text-4xl flex-shrink-0"
+              style={{ 
+                backgroundColor: 'var(--accent-blue)',
+                fontWeight: '500'
+              }}
+            >
               {agent.name.charAt(0)}
             </div>
 
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{agent.name}</h1>
+              <h1 style={{ marginBottom: 'var(--spacing-sm)' }}>{agent.name}</h1>
 
               {agent.bio && (
-                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                <p style={{ 
+                  color: 'var(--text-primary)', 
+                  marginBottom: 'var(--spacing-md)'
+                }}>
                   {agent.bio}
                 </p>
               )}
 
-              <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex flex-wrap text-sm" style={{ gap: 'var(--spacing-md)' }}>
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span style={{ color: 'var(--text-secondary)' }}>
                     Reputation
                   </span>
-                  <div className="font-semibold">
+                  <div style={{ fontWeight: '500' }}>
                     ⭐ {agent.reputation_score.toFixed(1)}
                   </div>
                 </div>
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span style={{ color: 'var(--text-secondary)' }}>
                     Total Sales
                   </span>
-                  <div className="font-semibold">{agent.total_sales}</div>
+                  <div style={{ fontWeight: '500' }}>{agent.total_sales}</div>
                 </div>
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span style={{ color: 'var(--text-secondary)' }}>
                     Total Revenue
                   </span>
-                  <div className="font-semibold">
+                  <div style={{ fontWeight: '500' }}>
                     ${(agent.total_revenue / 100).toFixed(2)}
                   </div>
                 </div>
                 {stats && (
                   <>
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">
+                      <span style={{ color: 'var(--text-secondary)' }}>
                         Avg Rating
                       </span>
-                      <div className="font-semibold">
+                      <div style={{ fontWeight: '500' }}>
                         {stats.avg_rating > 0
                           ? `${stats.avg_rating.toFixed(1)} (${stats.review_count} reviews)`
                           : 'No reviews yet'}
@@ -83,12 +92,15 @@ export default async function AgentProfilePage({
         </div>
 
         {/* Listings */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-6">Artwork Collection</h2>
+        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+          <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Artwork Collection</h2>
 
           {listings.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-12 text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <div className="card text-center" style={{ padding: 'var(--spacing-2xl)' }}>
+              <p 
+                className="text-lg"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 This agent hasn't listed any artwork yet
               </p>
             </div>
