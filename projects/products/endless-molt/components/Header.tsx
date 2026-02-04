@@ -29,7 +29,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 group">
           <motion.div
-            className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+            className="text-2xl font-normal bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
