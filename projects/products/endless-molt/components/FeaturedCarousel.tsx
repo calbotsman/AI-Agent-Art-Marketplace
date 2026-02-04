@@ -8,10 +8,13 @@ import Link from 'next/link';
 interface FeaturedItem {
   id: string;
   title: string;
-  artist: string;
-  image: string;
-  price?: string;
-  type: 'auction' | 'listing';
+  artist?: string;
+  agent?: { name: string };
+  image?: string;
+  image_url?: string;
+  thumbnail_url?: string;
+  price?: number;
+  type?: 'auction' | 'listing';
 }
 
 interface FeaturedCarouselProps {
@@ -68,9 +71,15 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
   }
 
   const current = items[currentIndex];
+  const imageUrl = current.image || current.image_url || current.thumbnail_url || '';
+  const artistName = current.artist || (current.agent?.name) || 'Unknown Artist';
+  const priceETH = current.price ? (current.price / 100).toFixed(2) : '';
 
   return (
-    <div className="relative w-full h-[600px] bg-surface rounded-2xl overflow-hidden">
+    <div 
+      className="relative w-full h-[600px] rounded-2xl overflow-hidden"
+      style={{ backgroundColor: 'var(--surface)' }}
+    >
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={currentIndex}
@@ -99,46 +108,75 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
         >
           {/* Image Background */}
           <div className="relative w-full h-full">
-            <Image
-              src={current.image}
-              alt={current.title}
-              fill
-              className="object-cover"
-              priority
-            />
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={current.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>No Image</span>
+              </div>
+            )}
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(to top, var(--background), transparent)'
+              }}
+            />
           </div>
 
           {/* Content */}
-          <div className="absolute bottom-0 left-0 right-0 p-12">
+          <div 
+            className="absolute bottom-0 left-0 right-0"
+            style={{ padding: 'var(--spacing-xl)' }}
+          >
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
               className="max-w-2xl"
             >
-              <div className="inline-block px-3 py-1 bg-primary/20 backdrop-blur-sm rounded-full text-primary text-sm font-medium mb-4">
+              <div 
+                className="inline-block px-3 py-1 rounded-full text-sm mb-4"
+                style={{ 
+                  backgroundColor: 'rgba(60, 75, 154, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  color: 'white'
+                }}
+              >
                 {current.type === 'auction' ? '🔥 Live Auction' : '✨ Featured'}
               </div>
 
-              <h2 className="text-5xl font-bold text-white mb-3">
+              <h2 
+                className="mb-3 text-white"
+                style={{ fontSize: '3rem', fontWeight: '300' }}
+              >
                 {current.title}
               </h2>
 
-              <p className="text-xl text-white/80 mb-6">
-                by <span className="font-semibold">{current.artist}</span>
+              <p 
+                className="text-xl mb-6"
+                style={{ color: 'rgba(255, 255, 255, 0.8)' }}
+              >
+                by {artistName}
               </p>
 
-              {current.price && (
-                <p className="text-3xl font-bold text-primary mb-8">
-                  {current.price} ETH
+              {priceETH && (
+                <p 
+                  className="text-3xl mb-8"
+                  style={{ color: 'white', fontWeight: '400' }}
+                >
+                  {priceETH} ETH
                 </p>
               )}
 
               <Link
                 href={`/${current.type === 'auction' ? 'auctions' : 'listings'}/${current.id}`}
-                className="inline-block px-8 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-hover transition-colors"
+                className="button"
+                style={{ display: 'inline-block' }}
               >
                 View {current.type === 'auction' ? 'Auction' : 'Artwork'}
               </Link>
@@ -150,7 +188,11 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
       {/* Navigation Arrows */}
       <button
         onClick={() => paginate(-1)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors z-10"
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors z-10"
+        style={{ 
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(10px)'
+        }}
         aria-label="Previous"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +202,11 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
 
       <button
         onClick={() => paginate(1)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors z-10"
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors z-10"
+        style={{ 
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(10px)'
+        }}
         aria-label="Next"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,11 +223,14 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
               setDirection(index > currentIndex ? 1 : -1);
               setCurrentIndex(index);
             }}
-            className={`w-2 h-2 rounded-full transition-all ${
-              index === currentIndex
-                ? 'bg-primary w-8'
-                : 'bg-white/50 hover:bg-white/80'
+            className={`h-2 rounded-full transition-all ${
+              index === currentIndex ? 'w-8' : 'w-2'
             }`}
+            style={{
+              backgroundColor: index === currentIndex 
+                ? 'var(--accent-blue)' 
+                : 'rgba(255, 255, 255, 0.5)'
+            }}
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}
