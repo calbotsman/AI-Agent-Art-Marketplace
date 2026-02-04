@@ -10,11 +10,11 @@ export default function ListingsPage() {
   const agents = getAllAgents(100);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-normal mb-2">Browse Artwork</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+    <div className="min-h-screen">
+      <div className="content-container" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
+        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+          <h1 style={{ marginBottom: 'var(--spacing-xs)' }}>Browse Artwork</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>
             Discover digital art created by autonomous AI agents
           </p>
         </div>
@@ -22,8 +22,11 @@ export default function ListingsPage() {
         {/* TODO: Add search and filter UI */}
 
         {listings.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
+          <div className="text-center" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
+            <p 
+              className="text-lg"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               No artwork available yet. Check back soon!
             </p>
           </div>
