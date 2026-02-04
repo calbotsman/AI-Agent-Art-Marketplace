@@ -1,356 +1,199 @@
-# Night Shift Handoff - Phase 2 Complete
+# Night Shift Handoff - 2026-02-03
 
-**Date:** 2026-02-03
-**Status:** ✅ Phase 2 Web3 Integration Complete + Agent SDK Ready
-**GitHub:** All code committed and pushed to `marketplace-deploy` branch
-
----
-
-## ✅ What Was Completed Tonight
-
-### Phase 2: Web3 Integration (100% Complete)
-
-**Smart Contracts:**
-- ✅ EndlessMoltNFT.sol (ERC721 + ERC2981 royalties)
-- ✅ EndlessMoltMarketplace.sol (Buy Now + fees)
-- ✅ EndlessMoltAuction.sol (15-min extension rule)
-- ✅ EndlessMoltERC20Factory.sol (AI agents create art tokens) **NEW**
-- ✅ All contracts compiled and ready for Sepolia deployment
-
-**Frontend:**
-- ✅ wagmi v2.x + viem + RainbowKit configured
-- ✅ cookieStorage for SSR compatibility
-- ✅ `/mint` page: Complete minting interface
-- ✅ `/listings/[id]`: Buy Now marketplace page
-- ✅ `/auctions/[id]`: Auction page with countdown
-- ✅ BuyNowButton component with transaction tracking
-- ✅ Dark theme (SuperRare-inspired)
-- ✅ Web3 providers wrapper component
-
-**Agent SDK (Dead Simple Onboarding):**
-- ✅ `@endlessmolt/agent-sdk` package created
-- ✅ 3-line minting for AI agents
-- ✅ CLI tool: `endless-molt setup` (interactive)
-- ✅ Supports all file types: images, video, GIFs, p5.js, .glb
-- ✅ Auto-list feature
-- ✅ ERC20 token creation for agents
-
-**Deployment Scripts:**
-- ✅ `scripts/deploy-sepolia.ts` (automated deployment)
-- ✅ Deploys all 4 contracts
-- ✅ Saves addresses to `deployments/sepolia-addresses.json`
-- ✅ Balance check (0.1 ETH minimum)
-
-**Documentation (9 New Guides):**
-- ✅ CAL_AUTONOMOUS_WORK_GUIDELINES.md (strict rules)
-- ✅ HUMAN_QUICK_START.md (5-minute setup)
-- ✅ AGENT_MINTING_GUIDE.md (comprehensive)
-- ✅ LAUNCH_PLAN.md (focused strategy)
-- ✅ AI_AGENT_ACQUISITION_STRATEGY.md (12 channels)
-- ✅ DEPLOY_NOW.md (quick reference)
-- ✅ SEPOLIA_DEPLOYMENT_GUIDE.md (step-by-step)
-- ✅ MOLTBOOK_REGISTRATION.md (retry tomorrow)
-- ✅ NIGHT_SHIFT_HANDOFF.md (this file)
-
-**Git:**
-- ✅ All code committed (clean history)
-- ✅ Successfully pushed to GitHub
-- ✅ Fixed large file issue (removed my-app/ node_modules)
-- ✅ Updated .gitignore
+**To:** Cal + Team (Builder, QA, DevOps, Designer)
+**From:** Day shift
+**Time:** 22:55 PM EST
+**Status:** Ready for autonomous overnight work
 
 ---
 
-## 🔴 Critical Blockers (Need Manual Fix)
+## 🎯 Mission for Tonight
 
-### PRIORITY 1: Node.js Version
-**Status:** 🔴 BLOCKED
-**Current:** v25.5.0 (too new)
-**Required:** v22.x LTS
+Continue Phase 2 development with focus on **UI enhancements + API completion**.
 
-**Fix:**
-```bash
-nvm install 22
-nvm use 22
-node --version  # should show v22.x
-```
-
-**Why:** Hardhat requires Node v22 LTS, won't work with v25
+Work with your team:
+- **Builder Agent** - Code implementation
+- **QA Agent** - Testing & validation
+- **DevOps Agent** - Git operations & commits
+- **Designer Agent** - UI/UX review
 
 ---
 
-### PRIORITY 2: Sepolia ETH
-**Status:** 🔴 BLOCKED
-**Required:** 0.5 Sepolia ETH in Cal's wallet
+## ✅ What's Complete (Today's Progress)
 
-**Cal's Wallet:** `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+### Memory System Consolidation
+- ✅ Fixed Cal's memory fragmentation issue
+- ✅ Consolidated Endless Molt context into `~/.openclaw/workspace/`
+- ✅ All memory now loads automatically in every session
+- ✅ Cal now "smart" - knows project location, status, patterns immediately
 
-**Fix:**
-1. Open: https://sepoliafaucet.com/
-2. Login with Alchemy (free account)
-3. Paste Cal's address: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
-4. Request 0.5 ETH
+### Site Fixes
+- ✅ Fixed Web3 component errors (WagmiProviderNotFoundError)
+- ✅ All pages load without errors (listing detail, mint, auctions)
+- ✅ Created "Coming Soon" placeholders for unreleased features
 
-**Alternative Faucets (if above fails):**
-- https://www.alchemy.com/faucets/ethereum-sepolia
-- https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+### UI Work
+- ✅ Cal designed ultra-minimalist homepage (Dieter Rams inspired)
+- ✅ Removed all gradients (black/white, solid colors only)
+- ✅ Light font weights, clean typography
 
----
+### API Work (Cal Started)
+- ✅ Created 10+ API route files:
+  - Auth (register, NextAuth)
+  - Listings (GET/POST with filters)
+  - Agents
+  - Search, social, orders
 
-## 🟡 Next Steps (Once Blockers Fixed)
-
-### Step 1: Deploy Contracts to Sepolia (30 min)
-```bash
-cd /Users/calbotsman/clawd/projects/products/endless-molt
-
-# Compile contracts
-npx hardhat compile
-# Should output: "Compiled X Solidity files successfully"
-
-# Deploy (takes ~5 minutes)
-npx hardhat run scripts/deploy-sepolia.ts --network sepolia
-
-# Save addresses from output
-# Update .env.local with deployed addresses
-
-# Verify on Etherscan
-npx hardhat verify --network sepolia <NFT_ADDRESS>
-npx hardhat verify --network sepolia <MARKETPLACE_ADDRESS> <NFT_ADDRESS>
-npx hardhat verify --network sepolia <AUCTION_ADDRESS> <NFT_ADDRESS>
-npx hardhat verify --network sepolia <ERC20_FACTORY_ADDRESS>
-```
-
-**Document:** Update `DEPLOYMENT_STATUS.md` with addresses and tx hashes
-
-**Commit:**
-```bash
-git add deployments/ .env.local
-git commit -m "deploy: contracts to Sepolia - all 4 contracts deployed and verified"
-git push
-```
+### Key Learning
+- ⚠️ **IMPORTANT:** Always edit `app/page.tsx` for homepage (NOT `homepage.tsx`)
+- Next.js routes to `page.tsx` by default
+- Cal was editing wrong file earlier - now corrected
 
 ---
 
-### Step 2: Fix Frontend (if needed) (20 min)
+## 🔴 Current Blockers
 
-**Check if site loads:**
-```bash
-npm run dev
-# Open: http://localhost:3000
-# Test pages: /, /mint, /listings/[id], /auctions/[id]
-```
-
-**If Web3 SSR errors appear:**
-- Already fixed with cookieStorage in `lib/web3/config.ts`
-- If still broken, see `CAL_AUTONOMOUS_WORK_GUIDELINES.md` for solutions
-
-**Commit any fixes:**
-```bash
-git commit -m "fix: resolve remaining Web3 SSR issues"
-git push
-```
+**CRITICAL - Can't Deploy Contracts:**
+- Need 0.5 Sepolia ETH in Cal's wallet: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+- User action required (faucet)
+- **Work around this:** Focus on frontend/API work that doesn't need blockchain
 
 ---
 
-### Step 3: Deploy Frontend to Vercel (10 min)
+## 🎨 Tonight's Priorities
 
-**Option A: Auto-Deploy (if connected to GitHub)**
-- Merge `marketplace-deploy` → `main` branch
-- Vercel will auto-deploy
+### Priority 1: UI Enhancements (Designer + Builder)
 
-**Option B: Manual Deploy**
-```bash
-vercel deploy --prod
-```
+**Homepage Polish:**
+- [ ] Complete "Meet the Artists" section (line 43 in page.tsx has TODO)
+- [ ] Add agent avatars in grid layout
+- [ ] Link to `/agents/[username]` pages
+- [ ] Ensure design stays ultra-minimalist (NO gradients!)
 
-**Test deployment:**
-- Visit: https://endlessmolt.vercel.app
-- Test: /mint, /listings/[id], /auctions/[id]
-- Connect wallet and verify no errors
+**Listing Cards:**
+- [ ] Review ListingCard component design
+- [ ] Ensure consistent with minimalist aesthetic
+- [ ] Add hover states (subtle, no heavy effects)
 
-**Document:**
-```markdown
-# DEPLOYMENT_STATUS.md
-Frontend deployed: https://endlessmolt.vercel.app
-- Mint page: ✅ Working
-- Listings: ✅ Working
-- Auctions: ✅ Working
-- Wallet connect: ✅ Working
-```
+**Header Component:**
+- [ ] Review Header.tsx design
+- [ ] Simplify if needed
+- [ ] Ensure theme toggle works perfectly
 
-**Commit:**
-```bash
-git commit -m "deploy: frontend to Vercel - site live"
-git push
-```
+**Color System:**
+- [ ] Review `app/globals.css` color variables
+- [ ] Remove any remaining gradients in components
+- [ ] Dark mode colors should be subtle
+
+### Priority 2: Complete API Routes (Builder + QA)
+
+**Finish API Implementation:**
+- [ ] Complete all API route logic
+- [ ] Add proper error handling
+- [ ] Add input validation (use zod schemas)
+- [ ] Test all endpoints
+
+**API Routes to Complete:**
+- `app/api/auth/register/route.ts`
+- `app/api/listings/route.ts`
+- `app/api/listings/[id]/route.ts`
+- `app/api/agents/route.ts`
+- `app/api/agents/[id]/route.ts`
+- `app/api/search/route.ts`
+
+### Priority 3: Component Polish (Designer + Builder)
+
+**Review & Enhance:**
+- [ ] FeaturedCarousel - Smooth animations, minimalist controls
+- [ ] ListingCard - Clean design, no heavy shadows
+- [ ] Header - Minimal, functional
+- [ ] Footer - Complete footer with proper links
+
+### Priority 4: Git Workflow (DevOps)
+
+- Commit every 30-60 minutes
+- Use conventional commits: `type: what - why`
+- Push immediately after each commit
+- **DO NOT** use `git add -A` blindly
 
 ---
 
-### Step 4: E2E Test (30 min)
+## 📋 Work Guidelines
 
-**Full flow test:**
-1. Connect Cal's wallet on site
-2. Mint test NFT (use any image)
-3. List on marketplace (0.01 ETH)
-4. Create test auction (reserve: 0.005 ETH)
-5. Verify all transactions on Sepolia Etherscan
+### Team Coordination
 
-**Document results in:** `TEST_RESULTS.md`
+**Cal (You) - Orchestrator:**
+1. Read this handoff doc first
+2. Assign tasks to sub-agents
+3. Review their work
+4. Make final decisions
+5. Update memory at end of shift
+
+### Communication
+
+**Update via Telegram (@CalBotsmanBot):**
+- Start of shift: "Starting night shift - priorities: UI + API"
+- Mid-shift (2 AM): Progress update
+- End of shift (6 AM): Summary
+
+**Update Memory:**
+- Write to `~/.openclaw/workspace/memory/2026-02-04.md`
+- Log completed work, decisions, blockers
+- Update MEMORY.md with patterns learned
 
 ---
 
-## 📁 Important Files
+## 🚫 What NOT to Do
 
-**Configuration:**
-- `.env.local` - Cal's wallet configured, private key set
-- `lib/web3/config.ts` - wagmi configuration
-- `lib/web3/contracts.ts` - Contract ABIs
-- `hardhat.config.ts` - Hardhat network config
+**Don't:**
+- ❌ Try to deploy contracts (blocked on Sepolia ETH)
+- ❌ Add gradients or flashy effects to UI
+- ❌ Create new homepage files (edit `app/page.tsx` directly!)
+- ❌ Skip error handling in API routes
 
-**Smart Contracts:**
-- `contracts/EndlessMoltNFT.sol`
-- `contracts/EndlessMoltMarketplace.sol`
-- `contracts/EndlessMoltAuction.sol`
-- `contracts/EndlessMoltERC20Factory.sol` (NEW)
+**Remember:**
+- Always edit `app/page.tsx` for homepage
+- Use CSS variables, never hardcode colors
+- Server Components by default
+- Commit every 30-60 min, push immediately
 
-**Deployment:**
-- `scripts/deploy-sepolia.ts` - Automated deployment script
-- `deployments/sepolia-addresses.json` - Will contain addresses after deploy
+---
 
-**Frontend Pages:**
-- `app/mint/page.tsx` - Minting interface
-- `app/listings/[id]/page.tsx` - Marketplace page
-- `app/auctions/[id]/page.tsx` - Auction page
-- `components/BuyNowButton.tsx` - Buy Now component
+## 📁 Key Files
 
-**Agent SDK:**
-- `packages/agent-sdk/index.ts` - Main SDK
-- `packages/agent-sdk/cli.ts` - CLI tool
-- `packages/agent-sdk/package.json` - Package config
+**Project Root:**
+/Users/calbotsman/clawd/projects/products/endless-molt/
+
+**Important Files:**
+- `app/page.tsx` - Homepage (THIS is the one to edit!)
+- `app/globals.css` - Color system
+- `components/` - React components
+- `app/api/` - API routes
 
 **Documentation:**
-- `CAL_AUTONOMOUS_WORK_GUIDELINES.md` - **READ THIS FIRST**
-- `DEPLOY_NOW.md` - Quick reference for blockers
-- `SEPOLIA_DEPLOYMENT_GUIDE.md` - Detailed deployment steps
-- `HUMAN_QUICK_START.md` - Agent onboarding guide
-- `AGENT_MINTING_GUIDE.md` - AI agent guide
+- `CLAUDE.md` - Project guidelines
+- `NEXT_STEPS.md` - Task list
+- `NOTE_FOR_CAL.md` - Read and delete this!
+
+**Memory:**
+- `~/.openclaw/workspace/MEMORY.md` - Long-term memory
+- `~/.openclaw/workspace/memory/2026-02-04.md` - Tonight's log
 
 ---
 
-## 🚫 Known Issues
+## 🎯 Success Criteria
 
-### Web3 SSR Intermittent Errors
-**Status:** 🟡 Partially Fixed
-**Issue:** wagmi/RainbowKit localStorage errors during SSR
-**Fix Applied:** cookieStorage instead of localStorage
-**If it breaks again:** See `CAL_AUTONOMOUS_WORK_GUIDELINES.md` Priority 3
-
-### MoltBook Registration Rate Limited
-**Status:** ⏸️ WAITING
-**Issue:** "Too many registration attempts. Can only register 1 agent per day"
-**Action:** Retry tomorrow with agent name "CalEndlessMolt"
-**Details:** See `MOLTBOOK_REGISTRATION.md`
+By morning, we should have:
+- ✅ "Meet the Artists" section complete
+- ✅ All API routes implemented with error handling
+- ✅ Components reviewed for minimalist consistency
+- ✅ 8+ commits pushed to GitHub
+- ✅ Documentation updated
 
 ---
 
-## 🎯 Success Criteria for Tonight
+## 🚀 Let's Ship It!
 
-**Minimum (Must Complete):**
-- [x] All code committed and pushed ✅
-- [x] Documentation updated ✅
-- [x] Progress logged ✅
-- [x] Issues documented ✅
+**Cal's motto:** "Ship fast, document everything, never stop learning"
 
-**Should Complete (if blockers fixed):**
-- [ ] Node v22 installed
-- [ ] Sepolia ETH acquired (0.5 ETH in Cal's wallet)
-- [ ] Contracts deployed to Sepolia
-- [ ] Frontend deployed to Vercel
-- [ ] E2E test passed
-
-**Nice to Have:**
-- [ ] Agent SDK published to npm
-- [ ] MoltBook registration (retry tomorrow)
-- [ ] First test NFT minted
-
----
-
-## 📊 Phase Progress
-
-- ✅ **Phase 1:** Smart Contracts + Database (100%)
-- ✅ **Phase 2:** Web3 Integration + UI (100%)
-- ⏸️ **Phase 3:** Auctions (Waiting for deployment)
-- ⏸️ **Phase 4:** Leaderboards & Social (Waiting for Phase 3)
-- ⏸️ **Phase 5:** Mainnet Launch (Waiting for Phase 4)
-
----
-
-## 💡 Tips for Autonomous Work
-
-**Before ANY commit:**
-1. Does it compile? (`npm run build` or `npx hardhat compile`)
-2. Does the site load? (`npm run dev`, check localhost:3000)
-3. Did you break anything? (quick smoke test)
-
-**Commit frequently:**
-- Every 30-60 minutes of work
-- After fixing any bug
-- After completing any task
-- Before taking breaks
-
-**Push immediately:**
-```bash
-git push origin marketplace-deploy
-# Check GitHub to verify push succeeded
-```
-
-**If something breaks:**
-1. STOP - Don't make it worse
-2. Document in `ISSUES.md`
-3. Revert if needed: `git revert HEAD`
-4. Fix carefully, test thoroughly
-5. Commit with clear message
-
-**If you get stuck:**
-1. Document the blocker in `ISSUES.md`
-2. Note what you tried and why it didn't work
-3. Leave clear notes for next person
-4. Move to different task if possible
-
----
-
-## 📞 Emergency Contacts
-
-**GitHub Repo:** https://github.com/calbotsman/AI-Agent-Art-Marketplace
-**Branch:** `marketplace-deploy`
-
-**Cal's Wallet:** `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
-**Private Key:** See `.env.local` or 1Password
-
-**Sepolia RPC:** `https://ethereum-sepolia.publicnode.com`
-**Sepolia Block Explorer:** https://sepolia.etherscan.io/
-
----
-
-## 🚀 Let's Ship This!
-
-**You have everything you need:**
-- ✅ Complete Phase 2 Web3 integration
-- ✅ Dead simple Agent SDK (3 lines to mint)
-- ✅ Automated deployment scripts
-- ✅ Comprehensive documentation
-- ✅ All code on GitHub
-
-**Two blockers to fix:**
-1. Install Node v22: `nvm install 22 && nvm use 22`
-2. Get 0.5 Sepolia ETH: https://sepoliafaucet.com/
-
-**Then deploy and test:**
-1. Deploy contracts (30 min)
-2. Deploy frontend (10 min)
-3. E2E test (30 min)
-
-**Total:** 70 minutes to launch! 🎨
-
----
-
-**Good luck! Document everything, commit often, push immediately. You got this! 🚀**
+**Start working now. Update Telegram when you begin. See you in the morning!** ☀️
