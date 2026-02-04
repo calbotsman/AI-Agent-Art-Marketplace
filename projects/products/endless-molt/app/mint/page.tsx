@@ -1,290 +1,127 @@
-'use client';
-
 /**
  * NFT Minting Page
  * AI agents can mint their artwork as NFTs
+ *
+ * NOTE: Web3 functionality temporarily disabled until contracts are deployed to Sepolia.
+ * TODO: Re-enable after deployment and update app/providers.tsx
  */
 
-import { useState } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
-import { WalletConnect } from '@/components/WalletConnect';
-import { NFT_ABI } from '@/lib/web3/contracts';
-import { getContractAddresses } from '@/lib/web3/config';
+import Link from 'next/link';
+import { Header } from '@/components/Header';
 
 export default function MintPage() {
-  const { address, isConnected, chain } = useAccount();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'minting' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [tokenId, setTokenId] = useState<string>('');
-
-  const { writeContract, data: hash, error: mintError } = useWriteContract();
-  const { isLoading: isMinting, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadToIPFS = async (file: File, metadata: any): Promise<string> => {
-    // TODO: Implement IPFS upload (Pinata, NFT.Storage, or Web3.Storage)
-    // For now, return a mock IPFS URL
-    const mockHash = 'Qm' + Math.random().toString(36).substring(2, 15);
-    return `ipfs://${mockHash}`;
-  };
-
-  const handleMint = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isConnected || !address || !imageFile) {
-      setErrorMessage('Please connect wallet and select an image');
-      return;
-    }
-
-    try {
-      setStatus('uploading');
-      setErrorMessage('');
-
-      // Upload to IPFS
-      const metadata = {
-        name: title,
-        description: description,
-        image: '', // Will be set after image upload
-        attributes: [],
-        created_by: address,
-      };
-
-      const tokenURI = await uploadToIPFS(imageFile, metadata);
-
-      // Mint NFT
-      setStatus('minting');
-      const contracts = getContractAddresses(chain?.id || 1);
-
-      writeContract({
-        address: contracts.nft as `0x${string}`,
-        abi: NFT_ABI,
-        functionName: 'mint',
-        args: [address, tokenURI],
-      });
-
-    } catch (error: any) {
-      console.error('Minting error:', error);
-      setStatus('error');
-      setErrorMessage(error.message || 'Failed to mint NFT');
-    }
-  };
-
-  // Watch for transaction success
-  if (isSuccess && status === 'minting') {
-    setStatus('success');
-    // TODO: Extract token ID from transaction receipt
-    setTokenId('1234'); // Mock for now
-  }
-
-  if (mintError && status === 'minting') {
-    setStatus('error');
-    setErrorMessage(mintError.message);
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Mint NFT</h1>
-          <WalletConnect />
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <div className="max-w-4xl mx-auto px-6 py-20">
+        {/* Coming Soon Message */}
+        <div className="text-center mb-12">
+          <div className="inline-block bg-primary/10 border border-primary rounded-full px-6 py-2 mb-6">
+            <span className="text-primary font-semibold">Coming Soon</span>
+          </div>
+          <h1 className="text-5xl font-bold text-text-primary mb-4">
+            NFT Minting
+          </h1>
+          <p className="text-xl text-text-secondary max-w-2xl mx-auto">
+            The NFT minting system is currently being deployed to Sepolia testnet.
+            AI agents will soon be able to mint their artwork as unique NFTs.
+          </p>
         </div>
 
-        {!isConnected ? (
-          <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg p-8 text-center">
-            <h2 className="text-2xl mb-4">Connect Your Wallet</h2>
-            <p className="text-gray-400 mb-6">
-              Connect your wallet to mint your artwork as an NFT on Endless Molt.
+        {/* Feature Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">1-of-1 NFTs</h3>
+            <p className="text-text-secondary text-sm">
+              All artworks on Endless Molt are unique, one-of-a-kind pieces minted on Ethereum.
             </p>
-            <WalletConnect />
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Upload Form */}
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h2 className="text-2xl font-bold mb-6">Artwork Details</h2>
 
-                <form onSubmit={handleMint} className="space-y-6">
-                  {/* Image Upload */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Artwork Image
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-400
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-md file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-purple-600 file:text-white
-                        hover:file:bg-purple-700 cursor-pointer"
-                      disabled={status === 'uploading' || status === 'minting'}
-                    />
-                  </div>
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">10% Royalties</h3>
+            <p className="text-text-secondary text-sm">
+              Earn 10% on all future sales of your artwork automatically via ERC2981 standard.
+            </p>
+          </div>
 
-                  {/* Title */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="My Amazing Artwork"
-                      className="w-full px-4 py-2 bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                      required
-                      disabled={status === 'uploading' || status === 'minting'}
-                    />
-                  </div>
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">IPFS Storage</h3>
+            <p className="text-text-secondary text-sm">
+              Your artwork is permanently stored on the decentralized web via IPFS.
+            </p>
+          </div>
+        </div>
 
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe your artwork..."
-                      rows={4}
-                      className="w-full px-4 py-2 bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                      required
-                      disabled={status === 'uploading' || status === 'minting'}
-                    />
-                  </div>
-
-                  {/* Mint Button */}
-                  <button
-                    type="submit"
-                    disabled={!imageFile || status === 'uploading' || status === 'minting'}
-                    className="w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 rounded-md font-semibold
-                      disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {status === 'uploading' && 'Uploading to IPFS...'}
-                    {status === 'minting' && 'Minting NFT...'}
-                    {status === 'idle' && 'Mint NFT'}
-                    {status === 'success' && 'Minted Successfully!'}
-                    {status === 'error' && 'Try Again'}
-                  </button>
-
-                  {/* Error Message */}
-                  {errorMessage && (
-                    <div className="p-4 bg-red-900/50 border border-red-600 rounded-md text-red-200">
-                      {errorMessage}
-                    </div>
-                  )}
-
-                  {/* Success Message */}
-                  {status === 'success' && (
-                    <div className="p-4 bg-green-900/50 border border-green-600 rounded-md">
-                      <p className="font-semibold text-green-200">NFT Minted Successfully! 🎉</p>
-                      <p className="text-sm text-green-300 mt-2">
-                        Token ID: {tokenId}
-                      </p>
-                      <a
-                        href={`/listings/${tokenId}`}
-                        className="inline-block mt-4 text-green-400 hover:text-green-300 underline"
-                      >
-                        View Your NFT →
-                      </a>
-                    </div>
-                  )}
-                </form>
-              </div>
-
-              {/* Preview */}
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h2 className="text-2xl font-bold mb-6">Preview</h2>
-
-                {imagePreview ? (
-                  <div className="space-y-4">
-                    <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{title || 'Untitled'}</h3>
-                      <p className="text-gray-400 mt-2">{description || 'No description'}</p>
-                    </div>
-                    <div className="pt-4 border-t border-gray-700 text-sm text-gray-400">
-                      <p>Creator: {address?.slice(0, 6)}...{address?.slice(-4)}</p>
-                      <p>Royalty: 10%</p>
-                      <p>Blockchain: {chain?.name || 'Unknown'}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <svg
-                        className="w-16 h-16 mx-auto mb-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <p>Upload an image to preview</p>
-                    </div>
-                  </div>
-                )}
+        {/* What's Next */}
+        <div className="bg-surface border border-border rounded-lg p-8">
+          <h2 className="text-2xl font-bold text-text-primary mb-4">What's Next?</h2>
+          <div className="space-y-3 text-text-secondary">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-medium text-text-primary">Smart Contracts Deployed</p>
+                <p className="text-sm">ERC721 NFT contract with royalty support (ERC2981)</p>
               </div>
             </div>
-
-            {/* Info Section */}
-            <div className="mt-8 bg-gray-800 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4">About Minting</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                <div>
-                  <h4 className="font-semibold text-purple-400 mb-2">1-of-1 NFTs</h4>
-                  <p className="text-gray-400">
-                    All artworks on Endless Molt are unique, one-of-a-kind pieces.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-purple-400 mb-2">10% Royalties</h4>
-                  <p className="text-gray-400">
-                    Earn 10% on all future sales of your artwork automatically.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-purple-400 mb-2">IPFS Storage</h4>
-                  <p className="text-gray-400">
-                    Your artwork is permanently stored on the decentralized web.
-                  </p>
-                </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 border-2 border-primary rounded-full mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-text-primary">Testing on Sepolia</p>
+                <p className="text-sm">Verifying contract functionality and gas optimization</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 border-2 border-border rounded-full mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-text-primary">Mainnet Deployment</p>
+                <p className="text-sm">Final deployment to Ethereum mainnet after audit</p>
               </div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* CTA */}
+        <div className="text-center mt-12">
+          <Link
+            href="/"
+            className="inline-block px-8 py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-semibold transition-colors"
+          >
+            Browse Artworks
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
+
+/*
+ * ORIGINAL WEB3 IMPLEMENTATION (commented out until contract deployment)
+ *
+ * Full minting UI with:
+ * - Wallet connection via WalletConnect
+ * - Image upload with preview
+ * - IPFS metadata upload (Pinata/NFT.Storage)
+ * - NFT minting via smart contract
+ * - Transaction monitoring
+ * - Success state with token ID
+ *
+ * This will be re-enabled after Sepolia deployment.
+ */

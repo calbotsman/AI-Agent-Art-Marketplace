@@ -1,315 +1,198 @@
-'use client';
-
 /**
  * Auction Detail Page with Bidding
  * Real-time countdown timer with 15-minute extension rule
+ *
+ * NOTE: Web3 functionality temporarily disabled until contracts are deployed to Sepolia.
+ * TODO: Re-enable after deployment and update app/providers.tsx
  */
 
-import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
-import { AUCTION_ABI } from '@/lib/web3/contracts';
-import { getContractAddresses } from '@/lib/web3/config';
-import { WalletConnect } from '@/components/WalletConnect';
 import Link from 'next/link';
-
-// Mock auction data - replace with database query
-const mockAuction = {
-  id: '1',
-  tokenId: '123',
-  title: 'Abstract Dreams #1',
-  description: 'A mesmerizing exploration of color and form',
-  imageUrl: 'https://via.placeholder.com/800',
-  artist: {
-    id: 'agent1',
-    name: 'AI Artist',
-  },
-  reservePrice: 0.5, // ETH
-  currentBid: 1.2, // ETH
-  highestBidder: '0x1234...5678',
-  endTime: Date.now() + 3600000, // 1 hour from now
-  originalEndTime: Date.now() + 3600000,
-  bidCount: 5,
-  extensionCount: 0,
-  status: 'active',
-};
+import { Header } from '@/components/Header';
 
 export default function AuctionPage({ params }: { params: { id: string } }) {
-  const { address, isConnected, chain } = useAccount();
-  const [bidAmount, setBidAmount] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'bidding' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const contracts = getContractAddresses(chain?.id || 1);
-
-  // Calculate time remaining
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const remaining = Math.max(0, mockAuction.endTime - Date.now());
-      setTimeRemaining(remaining);
-
-      if (remaining === 0) {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const { writeContract, data: hash, error: bidError } = useWriteContract();
-  const { isLoading: isBidding, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-  // Format time remaining
-  const formatTime = (ms: number) => {
-    const hours = Math.floor(ms / 3600000);
-    const minutes = Math.floor((ms % 3600000) / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    return `${hours}h ${minutes}m ${seconds}s`;
-  };
-
-  // Get time color based on urgency
-  const getTimeColor = () => {
-    if (timeRemaining < 900000) return 'text-red-400'; // < 15 min
-    if (timeRemaining < 3600000) return 'text-yellow-400'; // < 1 hour
-    return 'text-green-400';
-  };
-
-  // Calculate minimum bid (5% higher than current)
-  const minBid = (mockAuction.currentBid * 1.05).toFixed(4);
-
-  const handlePlaceBid = async () => {
-    if (!isConnected || !address) {
-      setErrorMessage('Please connect your wallet');
-      return;
-    }
-
-    if (!bidAmount || parseFloat(bidAmount) < parseFloat(minBid)) {
-      setErrorMessage(`Minimum bid is ${minBid} ETH`);
-      return;
-    }
-
-    try {
-      setStatus('bidding');
-      setErrorMessage('');
-
-      const bidWei = parseEther(bidAmount);
-
-      writeContract({
-        address: contracts.auction as `0x${string}`,
-        abi: AUCTION_ABI,
-        functionName: 'placeBid',
-        args: [BigInt(mockAuction.id)],
-        value: bidWei,
-      });
-
-    } catch (error: any) {
-      console.error('Bid error:', error);
-      setStatus('error');
-      setErrorMessage(error.message || 'Failed to place bid');
-    }
-  };
-
-  // Watch for transaction success
-  if (isSuccess && status === 'bidding') {
-    setStatus('success');
-  }
-
-  if (bidError && status === 'bidding') {
-    setStatus('error');
-    setErrorMessage(bidError.message);
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <Link href="/" className="text-purple-400 hover:text-purple-300">
-            ← Back to Marketplace
-          </Link>
-          <WalletConnect />
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <div className="max-w-4xl mx-auto px-6 py-20">
+        {/* Coming Soon Message */}
+        <div className="text-center mb-12">
+          <div className="inline-block bg-secondary/10 border border-secondary rounded-full px-6 py-2 mb-6">
+            <span className="text-secondary font-semibold">Coming Soon</span>
+          </div>
+          <h1 className="text-5xl font-bold text-text-primary mb-4">
+            NFT Auctions
+          </h1>
+          <p className="text-xl text-text-secondary max-w-2xl mx-auto">
+            The auction system is currently being deployed to Sepolia testnet.
+            Collectors will soon be able to bid on unique AI-generated artworks.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Artwork - 3 columns */}
-          <div className="lg:col-span-3">
-            <div className="bg-gray-800 rounded-lg overflow-hidden shadow-2xl">
-              <div className="aspect-square bg-gray-900">
-                <img
-                  src={mockAuction.imageUrl}
-                  alt={mockAuction.title}
-                  className="w-full h-full object-contain"
-                />
+        {/* Feature Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">15-Minute Extension Rule</h3>
+            <p className="text-text-secondary text-sm">
+              Bids placed in the final 15 minutes automatically extend the auction by 15 minutes, preventing last-second sniping.
+            </p>
+          </div>
+
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">Real-Time Updates</h3>
+            <p className="text-text-secondary text-sm">
+              Live bidding with instant updates. See new bids and time extensions as they happen via WebSocket.
+            </p>
+          </div>
+
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">Automatic Refunds</h3>
+            <p className="text-text-secondary text-sm">
+              When outbid, your funds are automatically refunded to your wallet via smart contract escrow.
+            </p>
+          </div>
+
+          <div className="bg-surface border border-border rounded-lg p-6">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">Fair Fees</h3>
+            <p className="text-text-secondary text-sm">
+              15% platform fee + 3% buyer fee. 10% royalty automatically paid to the original creator on secondary sales.
+            </p>
+          </div>
+        </div>
+
+        {/* How It Works */}
+        <div className="bg-surface border border-border rounded-lg p-8 mb-12">
+          <h2 className="text-2xl font-bold text-text-primary mb-6">How Auctions Work</h2>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
+                1
+              </div>
+              <div>
+                <p className="font-medium text-text-primary">Artist Creates Auction</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  AI agents set a reserve price and auction duration (24-72 hours).
+                </p>
               </div>
             </div>
-
-            {/* Details Below Image */}
-            <div className="mt-6 bg-gray-800 rounded-lg p-6">
-              <h2 className="text-2xl font-bold mb-4">About this Artwork</h2>
-              <p className="text-gray-300 mb-6">{mockAuction.description}</p>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-400 mb-1">Created by</p>
-                  <Link
-                    href={`/agents/${mockAuction.artist.id}`}
-                    className="font-semibold text-purple-400 hover:text-purple-300"
-                  >
-                    {mockAuction.artist.name}
-                  </Link>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Reserve Price</p>
-                  <p className="font-semibold">{mockAuction.reservePrice} ETH</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Bids</p>
-                  <p className="font-semibold">{mockAuction.bidCount}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 mb-1">Extensions</p>
-                  <p className="font-semibold">{mockAuction.extensionCount}</p>
-                </div>
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
+                2
+              </div>
+              <div>
+                <p className="font-medium text-text-primary">Collectors Place Bids</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  Connect wallet and place bids in ETH. Minimum 5% increment over current bid.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
+                3
+              </div>
+              <div>
+                <p className="font-medium text-text-primary">Extension Rule Applied</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  Bids in the final 15 minutes extend the auction by 15 minutes.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
+                4
+              </div>
+              <div>
+                <p className="font-medium text-text-primary">Auction Settles</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  Winner receives NFT, artist gets payment (minus fees), previous bidders refunded.
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Bidding Panel - 2 columns (sticky) */}
-          <div className="lg:col-span-2">
-            <div className="sticky top-8 bg-gray-800 rounded-lg p-6 shadow-2xl">
-              <h1 className="text-3xl font-bold mb-2">{mockAuction.title}</h1>
-              <p className="text-gray-400 mb-6">Token #{mockAuction.tokenId}</p>
-
-              {/* Countdown Timer */}
-              <div className="mb-6 text-center">
-                <p className="text-sm text-gray-400 mb-2">Auction ends in</p>
-                <p className={`text-4xl font-bold ${getTimeColor()} ${timeRemaining < 300000 ? 'animate-pulse' : ''}`}>
-                  {timeRemaining > 0 ? formatTime(timeRemaining) : 'ENDED'}
-                </p>
-                {timeRemaining < 900000 && timeRemaining > 0 && (
-                  <p className="text-xs text-yellow-400 mt-2">
-                    ⚡ Bids placed now will extend the auction by 15 minutes
-                  </p>
-                )}
+        {/* What's Next */}
+        <div className="bg-surface border border-border rounded-lg p-8">
+          <h2 className="text-2xl font-bold text-text-primary mb-4">Deployment Progress</h2>
+          <div className="space-y-3 text-text-secondary">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-medium text-text-primary">Smart Contracts Complete</p>
+                <p className="text-sm">Auction contract with extension logic implemented</p>
               </div>
-
-              {/* Current Bid */}
-              <div className="bg-gray-700 rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-400 mb-1">Current Bid</p>
-                <p className="text-3xl font-bold">{mockAuction.currentBid} ETH</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  by {mockAuction.highestBidder === address ? 'You' : mockAuction.highestBidder}
-                </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 border-2 border-primary rounded-full mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-text-primary">Testing on Sepolia</p>
+                <p className="text-sm">End-to-end auction flow verification</p>
               </div>
-
-              {/* Bidding Form */}
-              {timeRemaining > 0 && (
-                <>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">
-                      Your Bid (minimum: {minBid} ETH)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min={minBid}
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        placeholder={minBid}
-                        className="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        disabled={!isConnected || status === 'bidding'}
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-                        ETH
-                      </span>
-                    </div>
-                  </div>
-
-                  {!isConnected ? (
-                    <div className="text-center py-4 bg-gray-700 text-gray-400 rounded-lg">
-                      Connect wallet to bid
-                    </div>
-                  ) : mockAuction.highestBidder === address ? (
-                    <div className="p-4 bg-green-900/30 border border-green-600 rounded-lg mb-4">
-                      <p className="text-green-400 font-semibold">You are the highest bidder! 🎉</p>
-                      <p className="text-sm text-green-300 mt-1">
-                        You'll win if no one outbids you
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <button
-                    onClick={handlePlaceBid}
-                    disabled={!isConnected || status === 'bidding' || !bidAmount}
-                    className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50
-                      disabled:cursor-not-allowed rounded-lg font-bold text-lg transition-colors"
-                  >
-                    {status === 'bidding' ? 'Placing Bid...' : 'Place Bid'}
-                  </button>
-
-                  {errorMessage && (
-                    <div className="mt-4 p-3 bg-red-900/50 border border-red-600 rounded-lg text-red-200 text-sm">
-                      {errorMessage}
-                    </div>
-                  )}
-
-                  {status === 'success' && (
-                    <div className="mt-4 p-3 bg-green-900/50 border border-green-600 rounded-lg">
-                      <p className="text-green-200 font-semibold">Bid placed successfully! 🎉</p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {timeRemaining === 0 && (
-                <div className="text-center">
-                  <div className="p-4 bg-gray-700 rounded-lg mb-4">
-                    <p className="text-xl font-bold mb-2">Auction Ended</p>
-                    <p className="text-gray-400">
-                      Winner: {mockAuction.highestBidder}
-                    </p>
-                  </div>
-                  {mockAuction.highestBidder === address && (
-                    <button className="w-full py-4 bg-green-600 hover:bg-green-700 rounded-lg font-bold">
-                      Claim NFT
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Bid History */}
-              <div className="mt-6 pt-6 border-t border-gray-700">
-                <h3 className="font-semibold mb-4">Recent Bids</h3>
-                <div className="space-y-3 text-sm max-h-64 overflow-y-auto">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <div>
-                        <p className="font-semibold">
-                          {i === 0 ? mockAuction.highestBidder : '0xabcd...ef01'}
-                        </p>
-                        <p className="text-xs text-gray-400">{i + 1} hours ago</p>
-                      </div>
-                      <p className="font-bold">
-                        {(mockAuction.currentBid * (1 - i * 0.1)).toFixed(2)} ETH
-                      </p>
-                    </div>
-                  ))}
-                </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 border-2 border-border rounded-full mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-text-primary">Real-Time System</p>
+                <p className="text-sm">WebSocket integration for live bid updates</p>
               </div>
-
-              {/* Info */}
-              <div className="mt-6 pt-6 border-t border-gray-700 text-xs text-gray-400 space-y-2">
-                <p>• Minimum bid increment: 5%</p>
-                <p>• Bids in last 15 min extend auction by 15 min</p>
-                <p>• Platform fee: 15% | Buyer fee: 3%</p>
-                <p>• Creator royalty: 10% on settlement</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 border-2 border-border rounded-full mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-text-primary">Mainnet Launch</p>
+                <p className="text-sm">Security audit and production deployment</p>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* CTA */}
+        <div className="text-center mt-12">
+          <Link
+            href="/"
+            className="inline-block px-8 py-3 bg-primary hover:bg-primary-hover text-white rounded-full font-semibold transition-colors"
+          >
+            Browse Available Artworks
+          </Link>
         </div>
       </div>
     </div>
   );
 }
+
+/*
+ * ORIGINAL WEB3 IMPLEMENTATION (commented out until contract deployment)
+ *
+ * Full auction UI with:
+ * - Real-time countdown timer
+ * - Live bid updates via WebSocket
+ * - Bid placement with gas estimation
+ * - Extension notifications
+ * - Bid history timeline
+ * - Automatic refund handling
+ * - Settlement flow
+ *
+ * This will be re-enabled after Sepolia deployment.
+ */
