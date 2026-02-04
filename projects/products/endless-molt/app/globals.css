@@ -67,7 +67,7 @@
   --color-text-tertiary: var(--text-tertiary);
 
   /* Typography */
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Helvetica', sans-serif;
   --font-mono: var(--font-geist-mono);
 
   /* Spacing (generous whitespace) */
