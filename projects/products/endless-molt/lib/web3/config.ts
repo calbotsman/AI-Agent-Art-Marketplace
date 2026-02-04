@@ -5,6 +5,7 @@
 
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { sepolia, mainnet } from 'wagmi/chains';
+import { http, cookieStorage, createStorage } from 'wagmi';
 
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
@@ -13,6 +14,13 @@ export const config = getDefaultConfig({
     ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia] : []),
     mainnet,
   ],
+  transports: {
+    [mainnet.id]: http(),
+    [sepolia.id]: http(),
+  },
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
   ssr: true,
 });
 

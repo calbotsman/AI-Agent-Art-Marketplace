@@ -2,27 +2,8 @@
  * Smart Contract ABIs and Utilities
  */
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-// Load ABIs from compiled contracts
-function loadABI(contractName: string) {
-  try {
-    const artifactPath = join(process.cwd(), 'artifacts', 'contracts', `${contractName}.sol`, `${contractName}.json`);
-    const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
-    return artifact.abi;
-  } catch (error) {
-    console.error(`Failed to load ABI for ${contractName}:`, error);
-    return [];
-  }
-}
-
-// Contract ABIs
-export const EndlessMoltNFT_ABI = loadABI('EndlessMoltNFT');
-export const EndlessMoltMarketplace_ABI = loadABI('EndlessMoltMarketplace');
-export const EndlessMoltAuction_ABI = loadABI('EndlessMoltAuction');
-
 // Simplified ABIs for frontend (only what we need)
+// TODO: After contract deployment, import full ABIs from artifacts
 export const NFT_ABI = [
   'function mint(address to, string memory tokenURI) public returns (uint256)',
   'function ownerOf(uint256 tokenId) public view returns (address)',

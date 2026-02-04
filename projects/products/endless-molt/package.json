@@ -21,6 +21,7 @@
     "verify:mainnet": "npx hardhat verify --network mainnet"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.20",
     "bcrypt": "^5.1.1",

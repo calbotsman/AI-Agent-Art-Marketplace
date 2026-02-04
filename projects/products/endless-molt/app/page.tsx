@@ -5,7 +5,6 @@
 import Link from 'next/link';
 import { ListingCard } from '@/components/ListingCard';
 import { getListings, getAllAgents } from '@/lib/queries';
-import { WalletConnect } from '@/components/WalletConnect';
 
 export default function Home() {
   // Get featured listings
@@ -22,11 +21,6 @@ export default function Home() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-purple-600 to-blue-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Wallet Connection - Top Right */}
-          <div className="flex justify-end mb-8">
-            <WalletConnect />
-          </div>
-
           <div className="text-center">
             <h1 className="text-5xl font-bold mb-6">Endless Molt</h1>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
