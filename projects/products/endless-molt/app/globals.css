@@ -1,89 +1,208 @@
 @import "tailwindcss";
 
-/* Verse.works inspired color system */
+/*
+ * EXACT Verse.Works CSS System
+ * Replicated from https://verse.works
+ */
+
 :root {
-  /* Light mode (default) */
-  --background: #ffffff;
+  /* === COLORS (Light Mode) === */
+  --background: #fff;
   --foreground: #060606;
   --surface: #f7f7f7;
-  --border: #e0e0e0;
+  --surface-200: #f2f2f2;
+  --surface-300: #ddd;
+  --surface-400: #9e9e9e;
+  --border: #ddd;
 
-  /* Verse accent colors */
-  --primary: #0288d1; /* Teal */
-  --primary-hover: #0277bd;
-  --secondary: #9c27b0; /* Purple */
-  --secondary-hover: #7b1fa2;
-
-  /* Semantic colors */
-  --success: #00c853;
-  --warning: #ff6f00;
-  --error: #d32f2f;
-
-  /* Text hierarchy */
+  /* Text Colors */
   --text-primary: #060606;
-  --text-secondary: #484848;
-  --text-tertiary: #757575;
+  --text-secondary: rgba(0, 0, 0, 0.6);
+
+  /* Accent Colors */
+  --accent-blue: #3c4b9a;
+  --success: #0e6027;
+  --warning: #ce7d33;
+  --error: #a2191f;
+
+  /* === TYPOGRAPHY === */
+  --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* Heading Styles (matching verse.works exactly) */
+  --font-h1: 300 6rem/1.167 var(--font-primary);
+  --font-h2: 300 3.75rem/1.2 var(--font-primary);
+  --font-h3: 400 3rem/1.167 var(--font-primary);
+  --font-h4: 400 2.125rem/1.235 var(--font-primary);
+  --font-h5: 400 1.5rem/1.334 var(--font-primary);
+  --font-h6: 500 1.25rem/1.6 var(--font-primary);
+
+  /* Body Styles */
+  --font-body1: 400 1rem/1.5 var(--font-primary);
+  --font-body2: 400 0.875rem/1.43 var(--font-primary);
+  --font-button: 500 0.875rem/1.75 var(--font-primary);
+  --font-caption: 400 0.75rem/1.66 var(--font-primary);
+  --font-overline: 400 0.75rem/2.66 var(--font-primary);
+
+  /* === SPACING === */
+  --spacing-unit: 8px;
+  --spacing-xs: calc(var(--spacing-unit) * 1); /* 8px */
+  --spacing-sm: calc(var(--spacing-unit) * 2); /* 16px */
+  --spacing-md: calc(var(--spacing-unit) * 3); /* 24px */
+  --spacing-lg: calc(var(--spacing-unit) * 4); /* 32px */
+  --spacing-xl: calc(var(--spacing-unit) * 6); /* 48px */
+  --spacing-2xl: calc(var(--spacing-unit) * 8); /* 64px */
+
+  /* === SHADOWS === */
+  --shadow: 0 5px 10px rgb(6 6 6 / 0.1);
+
+  /* === LAYOUT === */
+  --border-radius: 4px;
+  --opacity-placeholder: 0.42;
+  --z-modal: 1300;
+
+  /* === INTERACTIONS === */
+  --action-hover-opacity: 0.04;
 }
 
 [data-theme="dark"] {
-  /* Dark mode */
+  /* === COLORS (Dark Mode) === */
   --background: #121212;
   --foreground: #f6f6f6;
-  --surface: #1e1e1e;
-  --border: #2a2a2a;
+  --surface: #1c1c1c;
+  --surface-200: #262626;
+  --surface-300: #393939;
+  --border: #393939;
 
-  /* Accent colors (same) */
-  --primary: #0288d1;
-  --primary-hover: #039be5;
-  --secondary: #9c27b0;
-  --secondary-hover: #ab47bc;
+  /* Text Colors */
+  --text-primary: #fff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
 
-  /* Semantic colors */
-  --success: #00e676;
-  --warning: #ff9100;
-  --error: #ff5252;
+  /* Accent Colors (same as light) */
+  --accent-blue: #3c4b9a;
+  --success: #0e6027;
+  --warning: #ce7d33;
+  --error: #a2191f;
 
-  /* Text hierarchy */
-  --text-primary: #f6f6f6;
-  --text-secondary: #b0b0b0;
-  --text-tertiary: #757575;
+  /* === INTERACTIONS === */
+  --action-hover-opacity: 0.08;
 }
 
+/* === TAILWIND THEME === */
 @theme inline {
   /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-border: var(--border);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-secondary: var(--secondary);
-  --color-secondary-hover: var(--secondary-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent-blue);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
 
-  /* Typography */
-  --font-sans: 'Helvetica', sans-serif;
-  --font-mono: var(--font-geist-mono);
-
-  /* Spacing (generous whitespace) */
+  /* Spacing */
   --spacing-section: 5rem;
   --spacing-content: 2rem;
 }
 
+/* === BASE STYLES === */
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  line-height: 1.6;
+  color: var(--text-primary);
+  font: var(--font-body1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Smooth transitions for theme changes */
+/* === TYPOGRAPHY === */
+h1 {
+  font: var(--font-h1);
+  letter-spacing: -0.01562em;
+}
+
+h2 {
+  font: var(--font-h2);
+  letter-spacing: -0.00833em;
+}
+
+h3 {
+  font: var(--font-h3);
+  letter-spacing: 0em;
+}
+
+h4 {
+  font: var(--font-h4);
+  letter-spacing: 0.00735em;
+}
+
+h5 {
+  font: var(--font-h5);
+  letter-spacing: 0em;
+}
+
+h6 {
+  font: var(--font-h6);
+  letter-spacing: 0.0125em;
+}
+
+/* === THEME TRANSITIONS === */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* === UTILITY CLASSES (Verse.works style) === */
+.section {
+  padding: var(--spacing-2xl) 0;
+}
+
+.content-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.button {
+  font: var(--font-button);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.02857em;
+}
+
+.button:hover {
+  opacity: calc(1 - var(--action-hover-opacity) * 10);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: var(--spacing-md);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--spacing-md) 0;
+}
+
+/* === ANIMATIONS (Framer Motion compatible) === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
 }
