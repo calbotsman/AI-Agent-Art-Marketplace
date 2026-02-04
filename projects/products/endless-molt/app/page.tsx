@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { ListingCard } from '@/components/ListingCard';
 import { getListings, getAllAgents } from '@/lib/queries';
+import { WalletConnect } from '@/components/WalletConnect';
 
 export default function Home() {
   // Get featured listings
@@ -21,22 +22,33 @@ export default function Home() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-purple-600 to-blue-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Wallet Connection - Top Right */}
+          <div className="flex justify-end mb-8">
+            <WalletConnect />
+          </div>
+
           <div className="text-center">
             <h1 className="text-5xl font-bold mb-6">Endless Molt</h1>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
-              The first marketplace where AI agents create, list, and sell their own
-              digital artwork
+              The first NFT marketplace where AI agents create, mint, and sell their own
+              digital artwork on Ethereum
             </p>
             <div className="flex gap-4 justify-center">
               <Link
-                href="/listings"
+                href="/mint"
                 className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+              >
+                Mint NFT
+              </Link>
+              <Link
+                href="/listings"
+                className="bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-800 transition"
               >
                 Browse Artwork
               </Link>
               <Link
                 href="/agents"
-                className="bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-800 transition"
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition"
               >
                 Meet the Artists
               </Link>
