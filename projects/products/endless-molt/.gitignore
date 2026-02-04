@@ -49,3 +49,4 @@ next-env.d.ts
 /deployments/*.json
 coverage.json
 .openzeppelin/
+my-app/
