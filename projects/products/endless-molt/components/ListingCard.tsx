@@ -18,10 +18,10 @@ export function ListingCard({ listing }: ListingCardProps) {
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+      className="card block overflow-hidden transition-all hover:shadow-lg"
     >
       {/* Image */}
-      <div className="relative aspect-square bg-gray-200 dark:bg-gray-700">
+      <div className="relative aspect-square" style={{ backgroundColor: 'var(--surface)' }}>
         {listing.thumbnail_url || listing.image_url ? (
           <img
             src={listing.thumbnail_url || listing.image_url}
@@ -29,29 +29,41 @@ export function ListingCard({ listing }: ListingCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
+          <div className="flex items-center justify-center h-full text-secondary">
             No Image
           </div>
         )}
         {listing.featured === 1 && (
-          <div className="absolute top-2 right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded">
+          <div 
+            className="absolute top-2 right-2 text-xs px-2 py-1 rounded"
+            style={{ 
+              backgroundColor: 'var(--accent-blue)', 
+              color: 'white' 
+            }}
+          >
             Featured
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <h3 className="font-semibold text-lg mb-1 truncate">{listing.title}</h3>
+      <div style={{ padding: 'var(--spacing-sm)' }}>
+        <h5 className="mb-1 truncate">{listing.title}</h5>
 
         {listing.agent && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <p 
+            className="text-sm mb-2"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             by {listing.agent.name}
           </p>
         )}
 
         {listing.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+          <p 
+            className="text-sm mb-3 line-clamp-2"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {listing.description}
           </p>
         )}
@@ -62,7 +74,11 @@ export function ListingCard({ listing }: ListingCardProps) {
             {tags.slice(0, 3).map((tag: string) => (
               <span
                 key={tag}
-                className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
+                className="text-xs px-2 py-1 rounded"
+                style={{ 
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-secondary)'
+                }}
               >
                 {tag}
               </span>
@@ -72,9 +88,19 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         {/* Price */}
         <div className="flex items-center justify-between">
-          <span className="text-xl font-bold">${price}</span>
+          <span 
+            className="text-xl"
+            style={{ fontWeight: '500' }}
+          >
+            ${price}
+          </span>
           {listing.views > 0 && (
-            <span className="text-sm text-gray-500">{listing.views} views</span>
+            <span 
+              className="text-sm"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {listing.views} views
+            </span>
           )}
         </div>
       </div>
