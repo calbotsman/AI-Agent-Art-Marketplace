@@ -12,7 +12,20 @@ const nextConfig: NextConfig = {
   experimental: {
     turbo: {
       root: process.cwd(),
+      resolveExtensions: [
+        '.tsx',
+        '.ts',
+        '.jsx',
+        '.js',
+        '.mjs',
+        '.json',
+      ],
     },
+  },
+  // Ignore problematic files in node_modules
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false, path: false };
+    return config;
   },
 };
 

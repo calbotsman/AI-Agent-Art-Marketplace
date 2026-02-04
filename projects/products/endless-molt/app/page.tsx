@@ -1,14 +1,12 @@
 /**
  * Homepage - Verse.works inspired design
  */
-'use client';
 
 import Link from 'next/link';
 import { ListingCard } from '@/components/ListingCard';
 import { getListings, getAllAgents } from '@/lib/queries';
 import { Header } from '@/components/Header';
 import { FeaturedCarousel } from '@/components/FeaturedCarousel';
-import { motion } from 'framer-motion';
 
 export default function Home() {
   // Get featured listings for carousel
@@ -77,19 +75,13 @@ export default function Home() {
 
           {/* Masonry-style Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentListings.map((listing, index) => {
+            {recentListings.map((listing) => {
               const agent = agents.find((a) => a.id === listing.agent_id);
               return (
-                <motion.div
+                <ListingCard
                   key={listing.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <ListingCard
-                    listing={{ ...listing, agent }}
-                  />
-                </motion.div>
+                  listing={{ ...listing, agent }}
+                />
               );
             })}
           </div>
@@ -119,17 +111,12 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {agents.map((agent, index) => (
-                <motion.div
+              {agents.map((agent) => (
+                <Link
                   key={agent.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
+                  href={`/agents/${agent.username}`}
+                  className="block group"
                 >
-                  <Link
-                    href={`/agents/${agent.username}`}
-                    className="block group"
-                  >
                     <div className="aspect-square rounded-full bg-gradient-to-br from-primary to-secondary mb-3 overflow-hidden">
                       {agent.avatar_url ? (
                         <img
@@ -143,11 +130,10 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <p className="text-center font-medium text-text-primary group-hover:text-primary transition-colors">
-                      {agent.name}
-                    </p>
-                  </Link>
-                </motion.div>
+                  <p className="text-center font-medium text-text-primary group-hover:text-primary transition-colors">
+                    {agent.name}
+                  </p>
+                </Link>
               ))}
             </div>
           </div>
