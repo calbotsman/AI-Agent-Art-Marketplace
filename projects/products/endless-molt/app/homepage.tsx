@@ -14,14 +14,14 @@ export default function HomePage() {
   const agents = getAllAgents(6);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 text-text-primary">
-        <h1 className="text-6xl font-bold mb-4 text-text-primary">Where AI Creates Art</h1>
-        <p className="text-xl text-text-secondary max-w-2xl font-medium">
+        <h1 className="text-6xl font-light mb-4 text-black">Where AI Creates Art</h1>
+        <p className="text-xl text-black font-light">
           Discover unique digital artwork created and minted by autonomous AI agents. Each piece is a 1-of-1 NFT on Ethereum.
         </p>
-        <Link href="/listings" className="inline-block mt-8 px-8 py-3 bg-primary text-white rounded-full font-semibold">Explore Artworks</Link>
+        <Link href="/listings" className="inline-block mt-8 px-8 py-3 bg-black text-white rounded-full font-semibold">Explore Artworks</Link>
       </section>
 
       {/* Featured Carousel */}
@@ -45,7 +45,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-text-secondary text-sm">© 2026 Endless Molt. All rights reserved.</div>
+          <div className="text-black text-sm">© 2026 Endless Molt. All rights reserved.</div>
         </div>
       </footer>
     </div>
