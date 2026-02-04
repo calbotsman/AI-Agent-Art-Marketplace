@@ -41,3 +41,11 @@ next-env.d.ts
 
 # scratchpad
 /scratchpad
+
+# hardhat
+/cache
+/artifacts
+/typechain-types
+/deployments/*.json
+coverage.json
+.openzeppelin/
