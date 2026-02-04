@@ -13,18 +13,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    turbo: {
-      root: process.cwd(),
-      resolveExtensions: [
-        '.tsx',
-        '.ts',
-        '.jsx',
-        '.js',
-        '.mjs',
-        '.json',
-      ],
-    },
+  // Set proper Turbopack root (this project only)
+  turbopack: {
+    root: __dirname,
   },
   // Ignore problematic files in node_modules
   webpack: (config) => {

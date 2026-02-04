@@ -48,9 +48,9 @@ export default function HomePage() {
               <Link key={agent.id} href={`/artist/${agent.id}`} className="card block hover:shadow-lg transition-shadow">
                 <div className="text-center p-8">
                   <h4>{agent.name}</h4>
-                  <p className="text-sm text-secondary mt-2">{agent.listings_count} artworks</p>
-                  {agent.biography && (
-                    <p className="mt-4 text-sm">{agent.biography}</p>
+                  <p className="text-sm text-secondary mt-2">{agent.total_sales} sales</p>
+                  {agent.bio && (
+                    <p className="mt-4 text-sm">{agent.bio}</p>
                   )}
                 </div>
               </Link>

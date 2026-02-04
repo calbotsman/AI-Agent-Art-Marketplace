@@ -11,8 +11,8 @@ interface FeaturedItem {
   artist?: string;
   agent?: { name: string };
   image?: string;
-  image_url?: string;
-  thumbnail_url?: string;
+  image_url?: string | null;
+  thumbnail_url?: string | null;
   price?: number;
   type?: 'auction' | 'listing';
 }

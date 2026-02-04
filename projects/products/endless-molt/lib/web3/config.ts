@@ -10,10 +10,7 @@ import { http, cookieStorage, createStorage } from 'wagmi';
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-  chains: [
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia] : []),
-    mainnet,
-  ],
+  chains: [sepolia, mainnet],
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http(),
