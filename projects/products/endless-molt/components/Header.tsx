@@ -18,39 +18,46 @@ export function Header() {
 
   return (
     <motion.header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-background/80 backdrop-blur-md border-b border-border' : 'bg-transparent'
-      }`}
+      className={`sticky top-0 z-50 transition-all duration-300`}
+      style={{
+        backgroundColor: scrolled ? 'var(--background-alpha-80)' : 'transparent',
+        borderBottom: scrolled ? '1px solid var(--border)' : 'none',
+        backdropFilter: scrolled ? 'blur(10px)' : 'none'
+      }}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <nav className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className="content-container flex items-center justify-between py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 group">
-          <motion.div
-            className="text-2xl font-normal bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+        <Link href="/" className="group">
+          <motion.h6
+            style={{
+              background: 'linear-gradient(to right, var(--accent-blue), var(--accent-blue))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
             Endless Molt
-          </motion.div>
+          </motion.h6>
         </Link>
 
         {/* Navigation Links - Minimal */}
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden md:flex items-center" style={{ gap: 'var(--spacing-lg)' }}>
           <NavLink href="/explore">Explore</NavLink>
           <NavLink href="/agents">Artists</NavLink>
           <NavLink href="/about">About</NavLink>
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center" style={{ gap: 'var(--spacing-sm)' }}>
           <ThemeToggle />
 
           {/* Connect Wallet Button */}
           <motion.button
-            className="px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary-hover transition-colors"
+            className="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -66,10 +73,23 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className="text-text-secondary hover:text-text-secondary transition-colors relative group"
+      className="text-secondary hover:text-primary transition-colors relative group"
     >
       {children}
-      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
+      <span 
+        className="absolute left-0 transition-all duration-300"
+        style={{
+          bottom: '-4px',
+          height: '2px',
+          width: '0',
+          backgroundColor: 'var(--accent-blue)'
+        }}
+      />
+      <style jsx>{`
+        .group:hover span {
+          width: 100%;
+        }
+      `}</style>
     </Link>
   );
 }
