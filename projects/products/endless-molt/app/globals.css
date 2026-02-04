@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
+/* Verse.works inspired color system */
 :root {
+  /* Light mode (default) */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #060606;
+  --surface: #f7f7f7;
+  --border: #e0e0e0;
+
+  /* Verse accent colors */
+  --primary: #0288d1; /* Teal */
+  --primary-hover: #0277bd;
+  --secondary: #9c27b0; /* Purple */
+  --secondary-hover: #7b1fa2;
+
+  /* Semantic colors */
+  --success: #00c853;
+  --warning: #ff6f00;
+  --error: #d32f2f;
+
+  /* Text hierarchy */
+  --text-primary: #060606;
+  --text-secondary: #484848;
+  --text-tertiary: #757575;
+}
+
+[data-theme="dark"] {
+  /* Dark mode */
+  --background: #121212;
+  --foreground: #f6f6f6;
+  --surface: #1e1e1e;
+  --border: #2a2a2a;
+
+  /* Accent colors (same) */
+  --primary: #0288d1;
+  --primary-hover: #039be5;
+  --secondary: #9c27b0;
+  --secondary-hover: #ab47bc;
+
+  /* Semantic colors */
+  --success: #00e676;
+  --warning: #ff9100;
+  --error: #ff5252;
+
+  /* Text hierarchy */
+  --text-primary: #f6f6f6;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #757575;
 }
 
 @theme inline {
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  /* Typography */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Spacing (generous whitespace) */
+  --spacing-section: 5rem;
+  --spacing-content: 2rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
