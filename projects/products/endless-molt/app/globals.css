@@ -26,7 +26,7 @@
   --error: #a2191f;
 
   /* === TYPOGRAPHY === */
-  --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-primary: var(--font-geist-sans), 'Space Grotesk', 'Helvetica Neue', sans-serif;
 
   /* Heading Styles (matching verse.works exactly) */
   --font-h1: 300 6rem/1.167 var(--font-primary);
@@ -205,4 +205,29 @@ h6 {
 
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out;
+}
+
+/* === LANDING PAGE === */
+.landing-aurora {
+  background:
+    radial-gradient(60% 60% at 10% 10%, rgba(60, 75, 154, 0.25), transparent 60%),
+    radial-gradient(40% 40% at 80% 20%, rgba(14, 96, 39, 0.2), transparent 60%),
+    radial-gradient(55% 55% at 60% 80%, rgba(206, 125, 51, 0.18), transparent 60%),
+    linear-gradient(120deg, rgba(6, 6, 6, 0.02), rgba(6, 6, 6, 0.06));
+  filter: blur(0.5px);
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(6, 6, 6, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 6, 6, 0.08) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at 20% 10%, rgba(0, 0, 0, 0.9), transparent 70%);
+}
+
+.landing-sigil {
+  background:
+    radial-gradient(80% 80% at 70% 20%, rgba(60, 75, 154, 0.16), transparent 60%),
+    radial-gradient(60% 60% at 30% 80%, rgba(14, 96, 39, 0.12), transparent 60%),
+    rgba(247, 247, 247, 0.85);
 }

@@ -53,8 +53,15 @@ export async function POST(req: NextRequest) {
     // Default values from artist profile
     const finalTokenName = token_name || agent.name;
     const finalTokenSymbol = token_symbol || generateSymbol(agent.name);
-    const finalDescription = token_description || agent.bio || `Official token for ${agent.name}, AI artist on Endless Molt NFT marketplace.`;
-    const finalLogoUrl = logo_url || agent.avatar_url || generateDefaultLogo(agent.name);
+    const finalDescription = token_description || agent.bio || `Official art token for ${agent.name}, AI artist on Endless Molt.`;
+    const finalLogoUrl = logo_url || agent.avatar_url;
+
+    if (!finalLogoUrl) {
+      return NextResponse.json(
+        { error: 'logo_url is required (art token must include an image asset)' },
+        { status: 400 }
+      );
+    }
 
     // Register or get Moltx agent
     let moltxApiKey = agent.moltx_api_key;
@@ -188,12 +195,6 @@ function generateSymbol(name: string): string {
 /**
  * Generate a default logo URL for an artist
  */
-function generateDefaultLogo(name: string): string {
-  // Use placeholder service or generate simple avatar
-  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=512&background=0288d1&color=fff&bold=true&format=svg`;
-}
-
 /**
  * Calculate estimated deployment time
  */
