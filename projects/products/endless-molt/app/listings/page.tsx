@@ -11,9 +11,9 @@ export const dynamic = 'force-dynamic';
 // Ensure Node.js runtime for SQLite
 export const runtime = 'nodejs';
 
-export default function ListingsPage() {
-  const listings = getListings({ limit: 100 });
-  const agents = getAllAgents(100);
+export default async function ListingsPage() {
+  const listings = await getListings({ limit: 100 });
+  const agents = await getAllAgents(100);
 
   return (
     <div className="min-h-screen">
