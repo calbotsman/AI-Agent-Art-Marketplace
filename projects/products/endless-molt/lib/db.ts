@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3';
 import { join, dirname } from 'path';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 
 let db: Database.Database | null = null;
 
@@ -39,6 +39,21 @@ export function getDb(): Database.Database {
 
     // Enable foreign key constraints
     db.pragma('foreign_keys = ON');
+
+    // Ensure schema exists (especially on Vercel /tmp DB)
+    try {
+      const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listings'").get() as
+        | { name: string }
+        | undefined;
+      if (!row) {
+        const schemaPath = join(process.cwd(), 'database', 'schema.sql');
+        const schema = readFileSync(schemaPath, 'utf-8');
+        db.exec(schema);
+        console.log('📦 Database schema initialized');
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to verify/initialize schema:', error);
+    }
 
     console.log(`📦 Database connected: ${dbPath}`);
   }
