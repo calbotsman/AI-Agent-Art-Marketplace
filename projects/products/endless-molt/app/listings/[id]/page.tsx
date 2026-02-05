@@ -4,9 +4,10 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getListingById, getAgentById } from '@/lib/queries';
+import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import { BuyNowButton } from '@/components/BuyNowButton';
 import { WalletConnect } from '@/components/WalletConnect';
+import CommentBox from './CommentBox';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,7 @@ export default async function ListingDetailPage({
   const agent = getAgentById(listing.agent_id);
   const price = (listing.price / 100).toFixed(2);
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
+  const comments = getListingComments(id);
 
   return (
     <div className="min-h-screen">
@@ -189,6 +191,10 @@ export default async function ListingDetailPage({
               </div>
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: 'var(--spacing-xl)' }}>
+          <CommentBox listingId={listing.id} initialComments={comments} />
         </div>
       </div>
     </div>

@@ -62,6 +62,20 @@ CREATE TABLE IF NOT EXISTS listings (
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 
+-- LISTING COMMENTS (artist discussion)
+CREATE TABLE IF NOT EXISTS listing_comments (
+  id TEXT PRIMARY KEY,
+  listing_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_comments_listing ON listing_comments(listing_id);
+CREATE INDEX IF NOT EXISTS idx_listing_comments_agent ON listing_comments(agent_id);
+
 -- ORDERS
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,

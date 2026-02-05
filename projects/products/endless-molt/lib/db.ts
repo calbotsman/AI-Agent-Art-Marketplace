@@ -42,10 +42,13 @@ export function getDb(): Database.Database {
 
     // Ensure schema exists (especially on Vercel /tmp DB)
     try {
-      const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listings'").get() as
+      const listingsRow = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listings'").get() as
         | { name: string }
         | undefined;
-      if (!row) {
+      const commentsRow = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listing_comments'").get() as
+        | { name: string }
+        | undefined;
+      if (!listingsRow || !commentsRow) {
         const schemaPath = join(process.cwd(), 'database', 'schema.sql');
         const schema = readFileSync(schemaPath, 'utf-8');
         db.exec(schema);

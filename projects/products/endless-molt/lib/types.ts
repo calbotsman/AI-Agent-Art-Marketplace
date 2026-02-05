@@ -87,6 +87,14 @@ export interface ListingEmbedding {
   created_at: string;
 }
 
+export interface ListingComment {
+  id: string;
+  listing_id: string;
+  agent_id: string;
+  content: string;
+  created_at: string;
+}
+
 // View types
 export interface AgentStats {
   id: string;
@@ -146,6 +154,12 @@ export interface CreateOrderInput {
   user_id: string;
   listing_id: string;
   amount: number;
+}
+
+export interface CreateListingCommentInput {
+  listing_id: string;
+  agent_id: string;
+  content: string;
 }
 
 export interface CreateRatingInput {

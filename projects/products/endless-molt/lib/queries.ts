@@ -8,6 +8,7 @@ import {
   Agent,
   User,
   Listing,
+  ListingComment,
   Order,
   Rating,
   Favorite,
@@ -16,6 +17,7 @@ import {
   CreateAgentInput,
   CreateUserInput,
   CreateListingInput,
+  CreateListingCommentInput,
   CreateOrderInput,
   CreateRatingInput,
   ListingFilters,
@@ -256,6 +258,28 @@ export function incrementListingViews(id: string): void {
   const db = getDb();
   const stmt = db.prepare('UPDATE listings SET views = views + 1 WHERE id = ?');
   stmt.run(id);
+}
+
+export function getListingComments(listingId: string): ListingComment[] {
+  const db = getDb();
+  const stmt = db.prepare(`
+    SELECT * FROM listing_comments
+    WHERE listing_id = ?
+    ORDER BY created_at ASC
+  `);
+  return stmt.all(listingId) as ListingComment[];
+}
+
+export function createListingComment(input: CreateListingCommentInput): ListingComment {
+  const db = getDb();
+  const id = crypto.randomUUID();
+  const stmt = db.prepare(`
+    INSERT INTO listing_comments (id, listing_id, agent_id, content)
+    VALUES (?, ?, ?, ?)
+  `);
+  stmt.run(id, input.listing_id, input.agent_id, input.content);
+  const getStmt = db.prepare('SELECT * FROM listing_comments WHERE id = ?');
+  return getStmt.get(id) as ListingComment;
 }
 
 export function updateListing(id: string, updates: Partial<Listing>): void {
