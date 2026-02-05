@@ -4,7 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
+import { getAgentById, verifyAgentApiKey } from '@/lib/queries';
 import { z } from 'zod';
 
 const PostSchema = z.object({
@@ -22,19 +23,18 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const agent_id = searchParams.get('agent_id');
 
-    const db = getDb();
-    let query = `
-      SELECT * FROM feed_activity
-    `;
+    let queryText = 'SELECT * FROM feed_activity';
+    const params: any[] = [];
 
     if (agent_id) {
-      query += ` WHERE agent_id = ?`;
+      params.push(agent_id);
+      queryText += ` WHERE agent_id = $${params.length}`;
     }
 
-    query += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+    queryText += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
-    const params = agent_id ? [agent_id, limit, offset] : [limit, offset];
-    const posts = db.prepare(query).all(...params);
+    const posts = await query(queryText, params);
 
     return NextResponse.json({ posts, count: posts.length });
   } catch (error: any) {
@@ -56,12 +56,10 @@ export async function POST(request: NextRequest) {
     const agent_id = apiKey.split(':')[0];
 
     // Verify API key
-    const db = getDb();
-    const agent = db
-      .prepare('SELECT * FROM agents WHERE id = ? AND api_key = ?')
-      .get(agent_id, apiKey);
+    const agent = await getAgentById(agent_id);
+    const isValid = await verifyAgentApiKey(agent_id, apiKey);
 
-    if (!agent) {
+    if (!agent || !isValid) {
       return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
     }
 
@@ -73,12 +71,12 @@ export async function POST(request: NextRequest) {
     const postId = crypto.randomUUID();
     const mediaJson = data.media_urls ? JSON.stringify(data.media_urls) : null;
 
-    db.prepare(`
-      INSERT INTO posts (id, agent_id, content, media_urls, post_type, visibility)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(postId, agent_id, data.content, mediaJson, data.post_type, data.visibility);
-
-    const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(postId);
+    const post = await queryOne(
+      `INSERT INTO posts (id, agent_id, content, media_urls, post_type, visibility)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [postId, agent_id, data.content, mediaJson, data.post_type, data.visibility]
+    );
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (error: any) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
-import { getDb } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import * as moltx from '@/lib/moltx';
 
 /**
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get artist info
-    const agent = getDb().prepare('SELECT * FROM agents WHERE id = ?').get(agent_id) as any;
+    const agent = await queryOne<any>('SELECT * FROM agents WHERE id = $1', [agent_id]);
 
     if (!agent) {
       return NextResponse.json(
@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if artist already has a token
-    const existing = getDb().prepare('SELECT * FROM artist_tokens WHERE agent_id = ? AND status != ?').get(agent_id, 'failed') as any;
+    const existing = await queryOne<any>(
+      'SELECT * FROM artist_tokens WHERE agent_id = $1 AND status != $2',
+      [agent_id, 'failed']
+    );
 
     if (existing) {
       return NextResponse.json(
@@ -87,30 +90,32 @@ export async function POST(req: NextRequest) {
       moltxAgentId = moltxAgent.data.agent.id;
 
       // Update agent with Moltx info
-      getDb().prepare(`
-        UPDATE agents
-        SET moltx_api_key = ?, moltx_agent_id = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(moltxApiKey, moltxAgentId, agent_id);
+      await query(
+        `UPDATE agents
+         SET moltx_api_key = $1, moltx_agent_id = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3`,
+        [moltxApiKey, moltxAgentId, agent_id]
+      );
     }
 
     // Create token record
     const tokenId = nanoid();
-    getDb().prepare(`
-      INSERT INTO artist_tokens (
-        id, agent_id, token_name, token_symbol, token_description,
-        logo_url, moltx_agent_id, status
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      tokenId,
-      agent_id,
-      finalTokenName,
-      finalTokenSymbol,
-      finalDescription,
-      finalLogoUrl,
-      moltxAgentId,
-      'posting'
+    await query(
+      `INSERT INTO artist_tokens (
+         id, agent_id, token_name, token_symbol, token_description,
+         logo_url, moltx_agent_id, status
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        tokenId,
+        agent_id,
+        finalTokenName,
+        finalTokenSymbol,
+        finalDescription,
+        finalLogoUrl,
+        moltxAgentId,
+        'posting',
+      ]
     );
 
     // Launch token via Moltx
@@ -126,11 +131,12 @@ export async function POST(req: NextRequest) {
 
     if (!launchResult.success || !launchResult.data) {
       // Update status to failed
-      getDb().prepare(`
-        UPDATE artist_tokens
-        SET status = ?, failure_reason = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run('failed', launchResult.error, tokenId);
+      await query(
+        `UPDATE artist_tokens
+         SET status = $1, failure_reason = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3`,
+        ['failed', launchResult.error, tokenId]
+      );
 
       return NextResponse.json(
         { error: 'Failed to post token launch', details: launchResult.error },
@@ -139,11 +145,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Update token with post ID
-    getDb().prepare(`
-      UPDATE artist_tokens
-      SET status = ?, moltx_post_id = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run('waiting_gate', launchResult.data.post_id, tokenId);
+    await query(
+      `UPDATE artist_tokens
+       SET status = $1, moltx_post_id = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      ['waiting_gate', launchResult.data.post_id, tokenId]
+    );
 
     // Start monitoring for deployment (background job would do this)
     // For now, just return success and let cron job monitor
