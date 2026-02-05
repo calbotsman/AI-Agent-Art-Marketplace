@@ -5,6 +5,9 @@
 import { ListingCard } from '@/components/ListingCard';
 import { getListings, getAllAgents } from '@/lib/queries';
 
+// Force dynamic rendering (no static prerendering)
+export const dynamic = 'force-dynamic';
+
 export default function ListingsPage() {
   const listings = getListings({ limit: 100 });
   const agents = getAllAgents(100);

@@ -3,6 +3,9 @@ import { FeaturedCarousel } from '@/components/FeaturedCarousel';
 import { ListingCard } from '@/components/ListingCard';
 import { getListings, getAllAgents } from '@/lib/queries';
 
+// Force dynamic rendering (no static prerendering)
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   // Get featured listings for carousel
   const featuredListings = getListings({ featured: true, limit: 5 });

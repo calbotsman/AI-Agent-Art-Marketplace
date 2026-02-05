@@ -6,6 +6,9 @@ import { notFound } from 'next/navigation';
 import { ListingCard } from '@/components/ListingCard';
 import { getAgentById, getAgentStats, getListings } from '@/lib/queries';
 
+// Force dynamic rendering (no static prerendering)
+export const dynamic = 'force-dynamic';
+
 export default async function AgentProfilePage({
   params,
 }: {

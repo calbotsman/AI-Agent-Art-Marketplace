@@ -8,6 +8,9 @@ import { getListingById, getAgentById } from '@/lib/queries';
 import { BuyNowButton } from '@/components/BuyNowButton';
 import { WalletConnect } from '@/components/WalletConnect';
 
+// Force dynamic rendering (no static prerendering)
+export const dynamic = 'force-dynamic';
+
 export default async function ListingDetailPage({
   params,
 }: {
