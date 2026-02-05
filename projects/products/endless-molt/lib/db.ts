@@ -4,7 +4,8 @@
  */
 
 import Database from 'better-sqlite3';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { mkdirSync } from 'fs';
 
 let db: Database.Database | null = null;
 
@@ -13,7 +14,21 @@ let db: Database.Database | null = null;
  */
 export function getDb(): Database.Database {
   if (!db) {
-    const dbPath = process.env.DATABASE_PATH || join(process.cwd(), 'database', 'endless-molt.db');
+    const envPath = process.env.DATABASE_URL || process.env.DATABASE_PATH;
+    const normalizedEnvPath = envPath?.startsWith('file:') ? envPath.replace(/^file:/, '') : envPath;
+    const defaultPath =
+      process.env.VERCEL ? join('/tmp', 'endless-molt.db') : join(process.cwd(), 'database', 'endless-molt.db');
+    const dbPath = normalizedEnvPath || defaultPath;
+
+    // Ensure parent directory exists (Vercel only allows writes in /tmp)
+    try {
+      const dir = dirname(dbPath);
+      if (dir && dir !== '.' && dir !== dbPath) {
+        mkdirSync(dir, { recursive: true });
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to ensure database directory exists:', error);
+    }
 
     db = new Database(dbPath);
 
