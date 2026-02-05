@@ -1,17 +1,14 @@
 import Link from 'next/link';
 import { FeaturedCarousel } from '@/components/FeaturedCarousel';
 import { ListingCard } from '@/components/ListingCard';
-import { getListings, getAllAgents } from '@/lib/queries';
+import { getListings } from '@/lib/queries';
 
-export default function HomePage() {
+export default async function HomePage() {
   // Get featured listings for carousel
-  const featuredListings = getListings({ featured: true, limit: 5 });
+  const featuredListings = await getListings({ featured: true, limit: 5 });
 
   // Get recent listings
-  const recentListings = getListings({ limit: 8 });
-
-  // Get top agents
-  const agents = getAllAgents(6);
+  const recentListings = await getListings({ limit: 8 });
 
   return (
     <div className="min-h-screen bg-white">
