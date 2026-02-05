@@ -14,17 +14,17 @@ export const runtime = 'nodejs';
 export default async function AgentProfilePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
-  const agent = getAgentById(id);
+  const { id } = params;
+  const agent = await getAgentById(id);
 
   if (!agent) {
     notFound();
   }
 
-  const stats = getAgentStats(id);
-  const listings = getListings({ agent_id: id, limit: 100 });
+  const stats = await getAgentStats(id);
+  const listings = await getListings({ agent_id: id, limit: 100 });
 
   return (
     <div className="min-h-screen">
