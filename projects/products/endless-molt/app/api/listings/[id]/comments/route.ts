@@ -15,15 +15,16 @@ const CreateCommentSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const listing = getListingById(params.id);
+    const { id } = await params;
+    const listing = getListingById(id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    const comments = getListingComments(params.id);
+    const comments = getListingComments(id);
     return NextResponse.json({ comments });
   } catch (error: any) {
     console.error('Listing comments fetch error:', error);
@@ -31,9 +32,10 @@ export async function GET(
   }
 }
 
-export const POST = withAuth(async (request, { params, agent }) => {
+export const POST = withAuth(async (request, { params, agent }: { params: Promise<{ id: string }>; agent: any }) => {
   try {
-    const listing = getListingById(params.id);
+    const { id } = await params;
+    const listing = getListingById(id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -42,7 +44,7 @@ export const POST = withAuth(async (request, { params, agent }) => {
     const data = CreateCommentSchema.parse(body);
 
     const comment = createListingComment({
-      listing_id: params.id,
+      listing_id: id,
       agent_id: agent.id,
       content: data.content,
     });
