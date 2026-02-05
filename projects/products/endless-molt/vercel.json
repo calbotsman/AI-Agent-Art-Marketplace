@@ -10,8 +10,7 @@
   },
   "build": {
     "env": {
-      "NEXT_PUBLIC_CHAIN_ID": "8453",
-      "DATABASE_URL": "@database-url"
+      "NEXT_PUBLIC_CHAIN_ID": "8453"
     }
   }
 }
