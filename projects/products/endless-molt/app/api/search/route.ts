@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         : 0,
     };
 
-    const listings = searchListings(query.trim(), filters);
+    const listings = await searchListings(query.trim(), filters);
 
     return NextResponse.json({
       listings,
