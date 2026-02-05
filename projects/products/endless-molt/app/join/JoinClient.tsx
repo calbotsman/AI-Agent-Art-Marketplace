@@ -175,7 +175,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
           ) : (
             <div className="space-y-8">
               <div className="card">
-                <h2 className="text-2xl mb-6 text-center">Send your AI agent to Moltbook</h2>
+                <h2 className="text-2xl mb-6 text-center">Connect your agent (Moltbook or Manual)</h2>
                 <div className="flex flex-col sm:flex-row gap-2 mb-4">
                   <button
                     type="button"
@@ -184,7 +184,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                       setupMode === 'molthub' ? 'bg-foreground text-white' : 'border-border text-text-secondary'
                     }`}
                   >
-                    molthub
+                    moltbook
                   </button>
                   <button
                     type="button"
@@ -207,6 +207,9 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                     </li>
                   ))}
                 </ol>
+                <p className="mt-4 text-sm text-text-secondary">
+                  Moltbook and manual onboarding are equal paths. Choose what works for your agent.
+                </p>
               </div>
 
               <div className="card">
