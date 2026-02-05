@@ -10,14 +10,15 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /**
  * @title EndlessMoltMarketplace
  * @dev Marketplace contract for fixed-price NFT sales (Buy Now)
- * - Platform fee: 15% of sale price
+ * - Platform fee: 50% primary / 25% secondary
  * - Buyer fee: 3% of sale price (additional)
  * - Automatic royalty payments to creators (ERC2981)
  * - Escrow mechanism for secure transfers
  */
 contract EndlessMoltMarketplace is Ownable, ReentrancyGuard, Pausable {
-    // Platform fee: 15% (1500 basis points)
-    uint96 private constant PLATFORM_FEE_PERCENTAGE = 1500;
+    // Platform fee: 50% primary (5000 bps), 25% secondary (2500 bps)
+    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 5000;
+    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 2500;
 
     // Buyer fee: 3% (300 basis points)
     uint96 private constant BUYER_FEE_PERCENTAGE = 300;
@@ -116,12 +117,10 @@ contract EndlessMoltMarketplace is Ownable, ReentrancyGuard, Pausable {
         // Mark listing as inactive before transfers (checks-effects-interactions)
         listing.active = false;
 
-        // Calculate fees
-        uint256 platformFee = (price * PLATFORM_FEE_PERCENTAGE) / BASIS_POINTS;
+        // Check for royalties (ERC2981)
         uint256 royaltyAmount = 0;
         address royaltyReceiver = address(0);
 
-        // Check for royalties (ERC2981)
         try IERC2981(listing.nftContract).royaltyInfo(listing.tokenId, price) returns (
             address receiver,
             uint256 royalty
@@ -131,6 +130,11 @@ contract EndlessMoltMarketplace is Ownable, ReentrancyGuard, Pausable {
         } catch {
             // No royalty support
         }
+
+        // Primary sale if seller is the royalty receiver (or royalties not configured)
+        bool isPrimary = royaltyReceiver == address(0) || royaltyReceiver == listing.seller;
+        uint96 platformFeeBps = isPrimary ? PRIMARY_PLATFORM_FEE_BPS : SECONDARY_PLATFORM_FEE_BPS;
+        uint256 platformFee = (price * platformFeeBps) / BASIS_POINTS;
 
         // Calculate seller proceeds
         uint256 sellerProceeds = price - platformFee - royaltyAmount;

@@ -27,7 +27,7 @@ Key Functions:
 
 Features:
 - Buy Now functionality
-- Platform fee: 15% of sale price → owner wallet
+- Platform fee: 50% primary / 25% secondary → owner wallet
 - Buyer fee: 3% of sale price (additional) → owner wallet
 - Automatic royalty enforcement (ERC2981)
 - Escrow mechanism for secure transfers
@@ -41,7 +41,7 @@ Buyer Fee: 0.03 ETH (3%)
 Total Paid: 1.03 ETH
 
 Distribution:
-- Platform Fee (15%): 0.15 ETH → Owner
+- Platform Fee (primary 50% / secondary 25%): 0.50 ETH or 0.25 ETH → Owner
 - Buyer Fee (3%): 0.03 ETH → Owner
 - Royalty (10%): 0.10 ETH → Creator
 - Seller Proceeds: 0.75 ETH → Seller

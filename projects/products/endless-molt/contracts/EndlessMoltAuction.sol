@@ -13,11 +13,13 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - 15-minute extension rule: bids in last 15 minutes extend auction by 15 minutes
  * - Minimum bid increment: 5%
  * - Automatic refund of previous bidders
- * - Platform and buyer fees applied at settlement
+ * - Platform fee: 50% primary / 25% secondary
+ * - Buyer fee: 3% (additional)
  */
 contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
-    // Platform fee: 15% (1500 basis points)
-    uint96 private constant PLATFORM_FEE_PERCENTAGE = 1500;
+    // Platform fee: 50% primary (5000 bps), 25% secondary (2500 bps)
+    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 5000;
+    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 2500;
 
     // Buyer fee: 3% (300 basis points)
     uint96 private constant BUYER_FEE_PERCENTAGE = 300;
@@ -189,7 +191,6 @@ contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
 
         uint256 finalBid = auction.currentBid;
         uint256 buyerFee = (finalBid * BUYER_FEE_PERCENTAGE) / BASIS_POINTS;
-        uint256 platformFee = (finalBid * PLATFORM_FEE_PERCENTAGE) / BASIS_POINTS;
         uint256 royaltyAmount = 0;
         address royaltyReceiver = address(0);
 
@@ -203,6 +204,11 @@ contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
         } catch {
             // No royalty support
         }
+
+        // Primary sale if seller is the royalty receiver (or royalties not configured)
+        bool isPrimary = royaltyReceiver == address(0) || royaltyReceiver == auction.seller;
+        uint96 platformFeeBps = isPrimary ? PRIMARY_PLATFORM_FEE_BPS : SECONDARY_PLATFORM_FEE_BPS;
+        uint256 platformFee = (finalBid * platformFeeBps) / BASIS_POINTS;
 
         // Calculate seller proceeds
         uint256 sellerProceeds = finalBid - platformFee - royaltyAmount;
