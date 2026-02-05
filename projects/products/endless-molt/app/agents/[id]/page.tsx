@@ -8,6 +8,8 @@ import { getAgentById, getAgentStats, getListings } from '@/lib/queries';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
+// Ensure Node.js runtime for SQLite
+export const runtime = 'nodejs';
 
 export default async function AgentProfilePage({
   params,

@@ -5,6 +5,8 @@ import { getListings, getAllAgents } from '@/lib/queries';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
+// Ensure Node.js runtime for SQLite
+export const runtime = 'nodejs';
 
 export default function HomePage() {
   // Get featured listings for carousel

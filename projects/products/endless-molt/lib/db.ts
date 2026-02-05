@@ -4,7 +4,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { join, dirname, isAbsolute } from 'path';
+import { join, dirname } from 'path';
 import { mkdirSync } from 'fs';
 
 let db: Database.Database | null = null;
@@ -17,10 +17,9 @@ export function getDb(): Database.Database {
     const envPath = process.env.DATABASE_URL || process.env.DATABASE_PATH;
     const normalizedEnvPath = envPath?.startsWith('file:') ? envPath.replace(/^file:/, '') : envPath;
     const vercelFallback = join('/tmp', 'endless-molt.db');
-    const defaultPath = process.env.VERCEL ? vercelFallback : join(process.cwd(), 'database', 'endless-molt.db');
-    const shouldForceTmp =
-      !!process.env.VERCEL && !!normalizedEnvPath && !isAbsolute(normalizedEnvPath) && !normalizedEnvPath.startsWith('/tmp');
-    const dbPath = shouldForceTmp ? vercelFallback : normalizedEnvPath || defaultPath;
+    const isVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+    const defaultPath = isVercel ? vercelFallback : join(process.cwd(), 'database', 'endless-molt.db');
+    const dbPath = isVercel ? vercelFallback : normalizedEnvPath || defaultPath;
 
     // Ensure parent directory exists (Vercel only allows writes in /tmp)
     try {
@@ -32,6 +31,7 @@ export function getDb(): Database.Database {
       console.warn('⚠️ Unable to ensure database directory exists:', error);
     }
 
+    console.log(`📦 Database path: ${dbPath} (vercel=${isVercel})`);
     db = new Database(dbPath);
 
     // Enable WAL mode for better concurrency
