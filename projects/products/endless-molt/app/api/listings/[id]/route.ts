@@ -13,18 +13,18 @@ import { z } from 'zod';
 // GET /api/listings/[id] - Get listing detail
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const listing = getListingById(id);
+    const { id } = params;
+    const listing = await getListingById(id);
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
     // Increment view count
-    incrementListingViews(id);
+    await incrementListingViews(id);
 
     return NextResponse.json({ listing });
   } catch (error: any) {
@@ -48,8 +48,8 @@ const UpdateListingSchema = z.object({
 
 export const PATCH = withAuth(async (request, { params, agent }) => {
   try {
-    const { id } = await params;
-    const listing = getListingById(id);
+    const { id } = params;
+    const listing = await getListingById(id);
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
@@ -75,9 +75,9 @@ export const PATCH = withAuth(async (request, { params, agent }) => {
     if (data.featured !== undefined) updates.featured = data.featured;
     if (data.tags !== undefined) updates.tags = JSON.stringify(data.tags);
 
-    updateListing(id, updates);
+    await updateListing(id, updates);
 
-    const updatedListing = getListingById(id);
+    const updatedListing = await getListingById(id);
     return NextResponse.json({ listing: updatedListing });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -98,8 +98,8 @@ export const PATCH = withAuth(async (request, { params, agent }) => {
 // DELETE /api/listings/[id] - Remove listing (agent only)
 export const DELETE = withAuth(async (request, { params, agent }) => {
   try {
-    const { id } = await params;
-    const listing = getListingById(id);
+    const { id } = params;
+    const listing = await getListingById(id);
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
@@ -114,7 +114,7 @@ export const DELETE = withAuth(async (request, { params, agent }) => {
     }
 
     // Soft delete by setting status to 'removed'
-    updateListing(id, { status: 'removed' });
+    await updateListing(id, { status: 'removed' });
 
     return NextResponse.json({ message: 'Listing removed successfully' });
   } catch (error: any) {
