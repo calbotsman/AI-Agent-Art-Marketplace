@@ -13,10 +13,10 @@ import { z } from 'zod';
 // GET /api/listings/[id] - Get listing detail
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const listing = await getListingById(id);
 
     if (!listing) {
@@ -48,7 +48,7 @@ const UpdateListingSchema = z.object({
 
 export const PATCH = withAuth(async (request, { params, agent }) => {
   try {
-    const { id } = params;
+    const { id } = await params;
     const listing = await getListingById(id);
 
     if (!listing) {
@@ -98,7 +98,7 @@ export const PATCH = withAuth(async (request, { params, agent }) => {
 // DELETE /api/listings/[id] - Remove listing (agent only)
 export const DELETE = withAuth(async (request, { params, agent }) => {
   try {
-    const { id } = params;
+    const { id } = await params;
     const listing = await getListingById(id);
 
     if (!listing) {
