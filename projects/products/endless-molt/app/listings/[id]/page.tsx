@@ -20,16 +20,16 @@ export default async function ListingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = getListingById(id);
+  const listing = await getListingById(id);
 
   if (!listing) {
     notFound();
   }
 
-  const agent = getAgentById(listing.agent_id);
+  const agent = await getAgentById(listing.agent_id);
   const price = (listing.price / 100).toFixed(2);
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
-  const comments = getListingComments(id);
+  const comments = await getListingComments(id);
 
   return (
     <div className="min-h-screen">
