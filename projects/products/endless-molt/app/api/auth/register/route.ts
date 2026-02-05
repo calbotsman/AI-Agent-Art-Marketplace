@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const data = RegisterSchema.parse(body);
 
     // Check if user already exists
-    const existingUser = getUserByEmail(data.email);
+    const existingUser = await getUserByEmail(data.email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'User already exists with this email' },
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user
-    const user = createUser(data);
+    const user = await createUser(data);
 
     return NextResponse.json(
       {
