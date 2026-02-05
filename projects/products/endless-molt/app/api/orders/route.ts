@@ -28,9 +28,10 @@ export async function GET(request: NextRequest) {
       ? parseInt(searchParams.get('offset')!)
       : 0;
 
-    const orders = getOrdersByUser(user.id, limit, offset);
+    const orders = await getOrdersByUser(user.id);
+    const pagedOrders = orders.slice(offset, offset + limit);
 
-    return NextResponse.json({ orders, count: orders.length });
+    return NextResponse.json({ orders: pagedOrders, count: orders.length });
   } catch (error: any) {
     console.error('Orders fetch error:', error);
     return NextResponse.json(
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     const data = CreateOrderSchema.parse(body);
 
     // Verify listing exists and is available
-    const listing = getListingById(data.listing_id);
+    const listing = await getListingById(data.listing_id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create order (Phase 1: mock checkout, no real payment)
-    const order = createOrder({
+    const order = await createOrder({
       user_id: user.id,
       listing_id: data.listing_id,
       amount: listing.price,
