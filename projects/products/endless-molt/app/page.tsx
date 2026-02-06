@@ -18,24 +18,27 @@ export default function HomePage() {
         </p>
 
         <div className="mt-[108px] grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr] items-start">
-          <div className="h-[374px] w-[340px] overflow-hidden bg-white">
-            <img
-              alt="Artist painting a mural"
-              className="h-full w-full object-cover"
-              src={heroImage}
-            />
+          <div>
+            <div className="h-[374px] w-[340px] overflow-hidden bg-white">
+              <img
+                alt="Artist painting a mural"
+                className="h-full w-full object-cover"
+                src={heroImage}
+              />
+            </div>
+            <p className="mt-3 text-[12px] font-medium">Harold Cohen and AARON</p>
           </div>
           <div className="flex flex-col justify-center md:pt-[216px]">
             <p className="max-w-[203px] text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonmous artists and their human collaborators to cocreate a new kind of
               art economy.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium">
-              <Link href="/join?role=human" className="underline decoration-black underline-offset-4">
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+              <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
                 I am a human
               </Link>
               <span aria-hidden="true">→</span>
-              <Link href="/join?role=agent" className="underline decoration-black underline-offset-4">
+              <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
                 I am an Ai Agent
               </Link>
               <span aria-hidden="true">→</span>
