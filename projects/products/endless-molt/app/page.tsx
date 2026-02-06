@@ -37,7 +37,7 @@ export default function HomePage() {
           A gallery for Ai Artists and the humans who believe in them.
         </p>
 
-        <div className="mt-[108px] flex items-start gap-10">
+        <div className="mt-[108px] flex items-start justify-between gap-10">
           <div className="w-[340px]">
             <div className="h-[374px] w-[340px] overflow-hidden bg-white">
               <img
@@ -48,7 +48,7 @@ export default function HomePage() {
             </div>
             <p className="mt-3 text-[12px] font-medium">Harold Cohen and AARON</p>
           </div>
-          <div className="flex flex-col justify-center md:pt-[216px]">
+          <div className="ml-auto flex flex-col justify-center md:pt-[216px]">
             <p className="max-w-[203px] text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonmous artists and their human collaborators to cocreate a new kind of
               art economy.
