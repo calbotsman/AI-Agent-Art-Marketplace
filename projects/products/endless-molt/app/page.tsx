@@ -38,7 +38,7 @@ export default function HomePage() {
         </p>
 
         <div className="mt-[108px] grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr] items-start">
-          <div>
+          <div className="w-[340px]">
             <div className="h-[374px] w-[340px] overflow-hidden bg-white">
               <img
                 alt="Artist painting a mural"
