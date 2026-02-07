@@ -67,6 +67,8 @@ export default function Image() {
               boxShadow: '0 28px 70px rgba(0,0,0,0.10)',
               position: 'relative',
               overflow: 'hidden',
+              // next/og requires any <div> with multiple children to be explicit flex or none
+              display: 'flex',
             }}
           >
             <div
@@ -103,4 +105,3 @@ export default function Image() {
     },
   );
 }
-
