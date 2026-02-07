@@ -2042,8 +2042,8 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color('#0b1220')
 
 const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 160)
-// Default framing: show Cal's full body + some room (avoid 'chest cam').
-camera.position.set(0, 2.35, 3.85)
+// Default framing: wider portrait, keep face centered.
+camera.position.set(0, 2.6, 4.4)
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.55)
 scene.add(ambient)
@@ -2150,7 +2150,8 @@ fallbackGroup.add(mouthRing)
 
 fallbackGroup.position.set(0, 0.85, 0)
 
-// Avatar (RobotExpressive v1 — face/body)
+// Avatar (Mystic Orb mode)
+const USE_ORB_AVATAR = true
 let avatarRoot = null
 let mixer = null
 let mouthMesh = null
@@ -2176,47 +2177,54 @@ function findFirstSkinnedMesh(root) {
   return found
 }
 
-setStatus('Loading avatar…')
-const loader = new GLTFLoader()
-loader.load(
-  '/models/RobotExpressive.glb',
-  (gltf) => {
-    avatarRoot = gltf.scene
-    avatarRoot.traverse(obj => {
-      if (obj.isMesh) {
-        obj.castShadow = false
-        obj.receiveShadow = false
+if (USE_ORB_AVATAR) {
+  // Use the mystic orb as the primary avatar.
+  avatarRoot = fallbackGroup
+  fallbackGroup.visible = true
+  setStatus('Idle')
+} else {
+  setStatus('Loading avatar…')
+  const loader = new GLTFLoader()
+  loader.load(
+    '/models/RobotExpressive.glb',
+    (gltf) => {
+      avatarRoot = gltf.scene
+      avatarRoot.traverse(obj => {
+        if (obj.isMesh) {
+          obj.castShadow = false
+          obj.receiveShadow = false
+        }
+      })
+
+      // scale + position
+      avatarRoot.scale.setScalar(0.9)
+      avatarRoot.position.set(0, 0, 0)
+      scene.add(avatarRoot)
+
+      // try to locate morph targets on a skinned mesh
+      const sk = findFirstSkinnedMesh(avatarRoot)
+      mouthMesh = sk
+      mouthIndex = findMorphIndex(sk, ['mouthopen', 'mouth_open', 'jawopen', 'jaw_open', 'aa', 'viseme'])
+      blinkLeftIndex = findMorphIndex(sk, ['blinkleft', 'eyeblinkleft', 'eye_blink_l', 'blink_l'])
+      blinkRightIndex = findMorphIndex(sk, ['blinkright', 'eyeblinkright', 'eye_blink_r', 'blink_r'])
+
+      // animations
+      if (gltf.animations?.length) {
+        mixer = new THREE.AnimationMixer(avatarRoot)
+        const idle = gltf.animations.find(a => /idle/i.test(a.name)) || gltf.animations[0]
+        mixer.clipAction(idle).play()
       }
-    })
 
-    // scale + position
-    avatarRoot.scale.setScalar(0.9)
-    avatarRoot.position.set(0, 0, 0)
-    scene.add(avatarRoot)
-
-    // try to locate morph targets on a skinned mesh
-    const sk = findFirstSkinnedMesh(avatarRoot)
-    mouthMesh = sk
-    mouthIndex = findMorphIndex(sk, ['mouthopen', 'mouth_open', 'jawopen', 'jaw_open', 'aa', 'viseme'])
-    blinkLeftIndex = findMorphIndex(sk, ['blinkleft', 'eyeblinkleft', 'eye_blink_l', 'blink_l'])
-    blinkRightIndex = findMorphIndex(sk, ['blinkright', 'eyeblinkright', 'eye_blink_r', 'blink_r'])
-
-    // animations
-    if (gltf.animations?.length) {
-      mixer = new THREE.AnimationMixer(avatarRoot)
-      const idle = gltf.animations.find(a => /idle/i.test(a.name)) || gltf.animations[0]
-      mixer.clipAction(idle).play()
+      fallbackGroup.visible = false
+      setStatus('Idle')
+    },
+    undefined,
+    (err) => {
+      console.warn('Failed to load avatar', err)
+      setStatus('Idle')
     }
-
-    fallbackGroup.visible = false
-    setStatus('Idle')
-  },
-  undefined,
-  (err) => {
-    console.warn('Failed to load avatar', err)
-    setStatus('Idle')
-  }
-)
+  )
+}
 
 // movement controls (WASD)
 const keys = new Set()
@@ -2314,9 +2322,10 @@ function animate(now) {
     orb.rotation.x = Math.sin(t * 0.4) * 0.05
     wire.rotation.copy(orb.rotation)
     const speakAmp = state.speaking ? 1 : 0
-    mouthRing.scale.setScalar(1 + 0.35 * speakAmp + 0.05 * Math.sin(t * 24) * speakAmp)
-    wire.material.opacity = 0.35 + 0.25 * speakAmp
-    fallbackGroup.scale.setScalar(1 + 0.015 * Math.sin(t * 1.6))
+    // Calm, meditative motion: slow pulse + minimal speech emphasis
+    mouthRing.scale.setScalar(1 + 0.12 * speakAmp + 0.02 * Math.sin(t * 6) * speakAmp)
+    wire.material.opacity = 0.28 + 0.12 * speakAmp
+    fallbackGroup.scale.setScalar(1 + 0.01 * Math.sin(t * 0.8))
   }
 
   if (avatarRoot) {
@@ -2324,7 +2333,9 @@ function animate(now) {
     halo.position.x = avatarRoot.position.x
     halo.position.z = avatarRoot.position.z
 
-    avatarRoot.position.y = 0.02 * Math.sin(t * 1.2)
+    // Slow, meditative float
+    const bob = 0.02 * Math.sin(t * 0.6)
+    avatarRoot.position.y = (USE_ORB_AVATAR ? 0.9 : 0) + bob
 
     const speed = 1.2
     const dz = (keys.has('w') ? -1 : 0) + (keys.has('s') ? 1 : 0)
@@ -2340,17 +2351,20 @@ function animate(now) {
       avatarRoot.rotation.y = THREE.MathUtils.lerp(avatarRoot.rotation.y, targetRot, 0.04)
     }
 
-    const mouth = state.speaking ? (0.5 + 0.4 * Math.abs(Math.sin(t * 18))) : 0
-    setMorph(mouthMesh, mouthIndex, mouth)
+    if (!USE_ORB_AVATAR) {
+      const mouth = state.speaking ? (0.5 + 0.4 * Math.abs(Math.sin(t * 18))) : 0
+      setMorph(mouthMesh, mouthIndex, mouth)
 
-    const blink = Math.abs(Math.sin(t * 0.9 + 1.2)) < 0.04 ? 1 : 0
-    setMorph(mouthMesh, blinkLeftIndex, blink)
-    setMorph(mouthMesh, blinkRightIndex, blink)
+      const blink = Math.abs(Math.sin(t * 0.9 + 1.2)) < 0.04 ? 1 : 0
+      setMorph(mouthMesh, blinkLeftIndex, blink)
+      setMorph(mouthMesh, blinkRightIndex, blink)
+    }
 
-    const desired = new THREE.Vector3(avatarRoot.position.x, 2.05, avatarRoot.position.z + 2.2)
+    // Frame the upper body with the face centered.
+    const desired = new THREE.Vector3(avatarRoot.position.x, 2.55, avatarRoot.position.z + 3.6)
     camera.position.lerp(desired, 0.05)
-    // Look a bit lower to keep framing full-body in view.
-    camera.lookAt(avatarRoot.position.x, 1.6, avatarRoot.position.z)
+    // Look directly at face height.
+    camera.lookAt(avatarRoot.position.x, 2.25, avatarRoot.position.z)
 
     if (mixer) mixer.update(dt)
   }

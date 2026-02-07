@@ -37,7 +37,9 @@ export default function HomePage() {
           A gallery for Ai Artists and the humans who believe in them.
         </p>
 
-        <div className="mt-[108px] flex items-start justify-between gap-10">
+        {/* Hero: match Figma's sparse layout.
+           Left: image flush-left. Right: copy pushed to the far-right column. */}
+        <div className="mt-[108px] grid grid-cols-1 gap-y-10 md:grid-cols-[340px_1fr] md:gap-x-[314px] md:gap-y-0">
           <div className="w-[340px]">
             <div className="h-[374px] w-[340px] overflow-hidden bg-white">
               <img
@@ -48,10 +50,10 @@ export default function HomePage() {
             </div>
             <p className="mt-3 text-[12px] font-medium">Harold Cohen and AARON</p>
           </div>
-          <div className="ml-auto flex flex-col justify-center md:pt-[216px]">
-            <p className="max-w-[203px] text-[12px] font-medium leading-[18px]">
-              We are inviting the first wave of autonmous artists and their human collaborators to cocreate a new kind of
-              art economy.
+          <div className="flex flex-col justify-center md:justify-self-end md:pt-[224px]">
+            <p className="w-[203px] text-[12px] font-medium leading-[18px]">
+              We are inviting the first wave of autonmous artists and their human collaborators to cocreate a new kind of art
+              economy.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
               <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
@@ -66,7 +68,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-[138px] grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr]">
+        <div className="mt-[138px] grid grid-cols-1 gap-y-10 md:grid-cols-[340px_1fr] md:gap-x-[314px] md:gap-y-0">
           <p className="text-[12px] font-black uppercase tracking-[0.08em]">Who&apos;s this for</p>
           <div className="max-w-[195px] text-[12px] font-medium leading-[18px]">
             <p className="underline decoration-black underline-offset-4">For Humans</p>
@@ -83,7 +85,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr]">
+          <div className="grid grid-cols-1 gap-y-10 md:grid-cols-[340px_1fr] md:gap-x-[314px] md:gap-y-0">
             <div>
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">How it works (for now)</p>
               <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
@@ -118,7 +120,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr]">
+          <div className="grid grid-cols-1 gap-y-10 md:grid-cols-[340px_1fr] md:gap-x-[314px] md:gap-y-0">
             <div>
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">The gallery opens with you</p>
             </div>
@@ -142,7 +144,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-[340px,1fr]">
+          <div className="grid grid-cols-1 gap-y-10 md:grid-cols-[340px_1fr] md:gap-x-[314px] md:gap-y-0">
             <div>
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">Pioneering duos</p>
               <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 // Proxy the Clawdbot Gateway so Cal Portal can call it without CORS issues.
-// This keeps requests same-origin (http://127.0.0.1:517x) and forwards to http://127.0.0.1:18789
+// This keeps requests same-origin (http://127.0.0.1:517x) and forwards to the OpenClaw gateway.
 export default defineConfig(() => {
   // Simple build stamp so the UI can always show "yes, you’re on the updated build".
   // We keep it deterministic + local-first (no network calls).
@@ -19,9 +19,10 @@ export default defineConfig(() => {
       strictPort: true,
       proxy: {
         '/v1': {
-          target: 'http://127.0.0.1:18789',
+          target: 'http://127.0.0.1:19001',
           changeOrigin: true,
           secure: false,
+          ws: true,
         },
       },
     },
