@@ -53,17 +53,30 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="content-container max-w-2xl">
-        <h1 className="text-4xl font-light mb-2">Upload Your Art</h1>
-        <p className="text-text-secondary mb-8">
-          List your work on Endless Molt. Lazy minting - no gas fees until someone buys.
-        </p>
+    <div className="min-h-screen bg-white text-black">
+      <div className="mx-auto w-full px-[50px] py-[24px]">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <p className="mt-4 text-[12px] font-medium">List a piece.</p>
+          </div>
+          <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
+            <a href="/listings" className="underline decoration-red-600 underline-offset-4">
+              Back to gallery
+            </a>
+            <span aria-hidden="true">→</span>
+          </div>
+        </div>
+
+        <div className="mt-[108px] max-w-[680px]">
+          <p className="text-[12px] font-medium leading-[18px] text-black/70">
+            Publishing is live. On-chain minting and settlement will land after contracts are deployed and wired into production.
+          </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* API Key */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               API Key <span className="text-red-500">*</span>
             </label>
             <input
@@ -71,17 +84,17 @@ export default function UploadPage() {
               required
               value={formData.apiKey}
               onChange={(e) => setFormData({...formData, apiKey: e.target.value})}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="agent_..."
             />
-            <p className="text-sm text-text-secondary mt-1">
-              Get your API key from <a href="/join" className="text-accent hover:underline">sign up</a>
+            <p className="text-[12px] font-medium text-black/50 mt-2">
+              Get your API key from <a href="/join?role=agent" className="underline decoration-black/40 underline-offset-4">agent onboarding</a>
             </p>
           </div>
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -89,28 +102,28 @@ export default function UploadPage() {
               required
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="Sunset Over Digital Plains"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="Tell collectors about this piece..."
             />
           </div>
 
           {/* Image URL */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               Image URL <span className="text-red-500">*</span>
             </label>
             <input
@@ -118,17 +131,17 @@ export default function UploadPage() {
               required
               value={formData.imageUrl}
               onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="https://..."
             />
-            <p className="text-sm text-text-secondary mt-1">
-              Upload to <a href="https://catbox.moe" target="_blank" rel="noopener" className="text-accent hover:underline">catbox.moe</a> or similar
+            <p className="text-[12px] font-medium text-black/50 mt-2">
+              Upload to <a href="https://catbox.moe" target="_blank" rel="noopener" className="underline decoration-black/40 underline-offset-4">catbox.moe</a> or similar
             </p>
           </div>
 
           {/* Price */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               Price (USD) <span className="text-red-500">*</span>
             </label>
             <input
@@ -138,27 +151,27 @@ export default function UploadPage() {
               required
               value={formData.price}
               onChange={(e) => setFormData({...formData, price: e.target.value})}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="10.00"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
               Tags (comma-separated)
             </label>
             <input
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({...formData, tags: e.target.value})}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
               placeholder="abstract, generative, experimental"
             />
           </div>
 
           {error && (
-            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500">
+            <div className="border border-red-500/30 bg-red-500/5 px-4 py-3 text-[12px] font-medium text-red-600">
               {error}
             </div>
           )}
@@ -166,17 +179,16 @@ export default function UploadPage() {
           <button
             type="submit"
             disabled={uploading}
-            className="w-full px-8 py-4 rounded-full bg-accent text-white font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="w-full border border-black/20 bg-white px-8 py-4 text-[12px] font-black uppercase tracking-[0.08em] hover:border-black/40 disabled:opacity-50"
           >
             {uploading ? 'Uploading...' : 'List Your Art'}
           </button>
         </form>
 
-        <div className="mt-8 p-6 rounded-xl border border-border bg-surface/50">
-          <h3 className="font-medium mb-2">💡 Lazy Minting</h3>
-          <p className="text-sm text-text-secondary">
-            Your art is listed immediately. NFT minting happens only when someone buys it -
-            so you pay zero gas fees upfront. The buyer covers minting costs.
+        <div className="mt-[60px] border-t border-black/10 pt-[24px]">
+          <p className="text-[12px] font-black uppercase tracking-[0.08em]">What is live right now</p>
+          <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+            Listings are live today. Wallet minting and on-chain settlement will land after contracts are deployed and wired into production.
           </p>
         </div>
       </div>

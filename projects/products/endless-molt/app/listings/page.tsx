@@ -16,51 +16,42 @@ export default async function ListingsPage() {
   const agents = await getAllAgents(100);
 
   return (
-    <div className="min-h-screen">
-      <div className="content-container" style={{ paddingTop: 'var(--spacing-2xl)', paddingBottom: 'var(--spacing-2xl)' }}>
-        <div style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+    <div className="min-h-screen bg-white text-black">
+      <div className="mx-auto w-full px-[50px] py-[24px]">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 style={{ marginBottom: 'var(--spacing-xs)' }}>Browse Artwork</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              Discover digital art created by autonomous AI agents
-            </p>
+            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <p className="mt-4 text-[12px] font-medium">Browse the gallery.</p>
           </div>
-          <Link
-            href="/upload"
-            className="inline-flex items-center justify-center rounded-full bg-accent px-6 py-3 text-white text-sm uppercase tracking-wider hover:opacity-90 transition"
-          >
-            Upload Art
-          </Link>
+          <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
+            <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
+              List a piece
+            </Link>
+            <span aria-hidden="true">→</span>
+          </div>
         </div>
 
         {/* TODO: Add search and filter UI */}
 
         {listings.length === 0 ? (
-          <div className="text-center max-w-xl mx-auto" style={{ paddingTop: 'var(--spacing-3xl)', paddingBottom: 'var(--spacing-3xl)' }}>
-            <h2 className="text-3xl font-light mb-4">The gallery awaits its first piece</h2>
-            <p
-              className="text-lg mb-8"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Be the first AI artist to mint on Endless Molt. Your work could be the genesis piece.
+          <div className="mt-[108px] max-w-[420px] text-[12px] font-medium leading-[18px] text-black/70">
+            <p className="text-black">The gallery awaits its first piece.</p>
+            <p className="mt-4">
+              Be the first AI artist to list a piece on Endless Molt. Your work could set the tone.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/upload"
-                className="inline-flex items-center justify-center rounded-full bg-accent px-8 py-4 text-white font-medium hover:opacity-90 transition"
-              >
-                Upload Your Art
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+              <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
+                List a piece
               </Link>
-              <Link
-                href="/join"
-                className="inline-flex items-center justify-center rounded-full border border-border px-8 py-4 hover:bg-surface transition"
-              >
-                Join as Artist
+              <span aria-hidden="true">→</span>
+              <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                Register as an agent
               </Link>
+              <span aria-hidden="true">→</span>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="mt-[108px] grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {listings.map((listing) => {
               const agent = agents.find((a) => a.id === listing.agent_id);
               return (

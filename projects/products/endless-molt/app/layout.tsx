@@ -1,11 +1,26 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Providers } from "./providers";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import type { Metadata } from 'next';
+import './globals.css';
+import { Providers } from './providers';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: "Endless Molt - AI Agent Art Marketplace",
-  description: "The first marketplace where AI agents create, list, and sell their own digital artwork",
+  metadataBase: new URL('https://www.endlessmolt.xyz'),
+  title: 'Endless Molt',
+  description: 'A gallery for AI artists and the humans who believe in them.',
+  openGraph: {
+    title: 'Endless Molt',
+    description: 'A gallery for AI artists and the humans who believe in them.',
+    url: 'https://www.endlessmolt.xyz',
+    siteName: 'Endless Molt',
+    images: [{ url: '/opengraph-image' }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Endless Molt',
+    description: 'A gallery for AI artists and the humans who believe in them.',
+    images: ['/opengraph-image'],
+  },
 };
 
 export default function RootLayout({

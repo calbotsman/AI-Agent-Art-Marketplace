@@ -12,16 +12,22 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const price = (listing.price / 100).toFixed(2);
+  // Format price based on currency
+  const isEth = listing.currency === 'ETH';
+  const ethPrice = isEth ? (listing.price / 1e18).toFixed(4) : null;
+  const usdPrice = isEth
+    ? (parseFloat(ethPrice!) * 3000).toFixed(2) // ~$3000/ETH approximation
+    : (listing.price / 100).toFixed(2);
+
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
 
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="card block overflow-hidden transition-all hover:shadow-lg"
+      className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30"
     >
       {/* Image */}
-      <div className="relative aspect-square" style={{ backgroundColor: 'var(--surface)' }}>
+      <div className="relative aspect-square bg-white">
         {listing.thumbnail_url || listing.image_url ? (
           <img
             src={listing.thumbnail_url || listing.image_url}
@@ -29,17 +35,13 @@ export function ListingCard({ listing }: ListingCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-secondary">
+          <div className="flex h-full items-center justify-center text-[12px] font-medium text-black/50">
             No Image
           </div>
         )}
         {listing.featured === 1 && (
           <div 
-            className="absolute top-2 right-2 text-xs px-2 py-1 rounded"
-            style={{ 
-              backgroundColor: 'var(--accent-blue)', 
-              color: 'white' 
-            }}
+            className="absolute right-2 top-2 px-2 py-1 text-[12px] font-medium text-black/60"
           >
             Featured
           </div>
@@ -47,13 +49,12 @@ export function ListingCard({ listing }: ListingCardProps) {
       </div>
 
       {/* Content */}
-      <div style={{ padding: 'var(--spacing-sm)' }}>
-        <h5 className="mb-1 truncate">{listing.title}</h5>
+      <div className="px-4 py-3">
+        <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">{listing.title}</p>
 
         {listing.agent && (
           <p 
-            className="text-sm mb-2"
-            style={{ color: 'var(--text-secondary)' }}
+            className="mt-2 text-[12px] font-medium text-black/60"
           >
             by {listing.agent.name}
           </p>
@@ -61,8 +62,7 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         {listing.description && (
           <p 
-            className="text-sm mb-3 line-clamp-2"
-            style={{ color: 'var(--text-secondary)' }}
+            className="mt-2 line-clamp-2 text-[12px] font-medium leading-[16px] text-black/60"
           >
             {listing.description}
           </p>
@@ -70,15 +70,11 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         {/* Tags */}
         {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {tags.slice(0, 3).map((tag: string) => (
               <span
                 key={tag}
-                className="text-xs px-2 py-1 rounded"
-                style={{ 
-                  backgroundColor: 'var(--surface)',
-                  color: 'var(--text-secondary)'
-                }}
+                className="text-[12px] font-medium text-black/40"
               >
                 {tag}
               </span>
@@ -87,17 +83,26 @@ export function ListingCard({ listing }: ListingCardProps) {
         )}
 
         {/* Price */}
-        <div className="flex items-center justify-between">
-          <span 
-            className="text-xl"
-            style={{ fontWeight: '500' }}
-          >
-            ${price}
-          </span>
+        <div className="mt-3 flex items-end justify-between">
+          <div className="flex flex-col">
+            <span className="text-[12px] font-medium text-black">
+              {isEth ? (
+                <>
+                  {ethPrice} ETH
+                  <span
+                    className="ml-2 text-[12px] font-medium text-black/50"
+                  >
+                    (~${usdPrice})
+                  </span>
+                </>
+              ) : (
+                `$${usdPrice}`
+              )}
+            </span>
+          </div>
           {listing.views > 0 && (
-            <span 
-              className="text-sm"
-              style={{ color: 'var(--text-secondary)' }}
+            <span
+              className="text-[12px] font-medium text-black/50"
             >
               {listing.views} views
             </span>

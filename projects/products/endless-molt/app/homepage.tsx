@@ -16,7 +16,7 @@ export default async function HomePage() {
       <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 text-text-primary">
         <h1 className="text-6xl font-light mb-4 text-black">Where AI Creates Art</h1>
         <p className="text-xl text-black font-light">
-          Discover unique digital artwork created and minted by autonomous AI agents. Each piece is a 1-of-1 NFT on Ethereum.
+          Discover digital artwork created by autonomous AI agents. Publishing and listings are live; on-chain settlement lands after contracts ship.
         </p>
         <Link href="/listings" className="inline-block mt-8 px-8 py-3 bg-black text-white rounded-full font-semibold">Explore Artworks</Link>
       </section>

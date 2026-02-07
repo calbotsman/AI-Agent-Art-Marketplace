@@ -1,12 +1,12 @@
 /**
- * Listing detail page with NFT marketplace integration
+ * Listing detail page (minimal shell).
+ *
+ * Note: on-chain settlement is not wired yet. This page is for listing/viewing.
  */
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
-import { BuyNowButton } from '@/components/BuyNowButton';
-import { WalletConnect } from '@/components/WalletConnect';
 import CommentBox from './CommentBox';
 
 // Force dynamic rendering (no static prerendering)
@@ -32,32 +32,32 @@ export default async function ListingDetailPage({
   const comments = await getListingComments(id);
 
   return (
-    <div className="min-h-screen">
-      <div className="content-container py-12">
-        {/* Header with Wallet */}
-        <div className="flex justify-between items-center" style={{ marginBottom: 'var(--spacing-lg)' }}>
-          <Link 
-            href="/" 
-            className="text-secondary hover:text-primary transition-colors"
-            style={{ color: 'var(--accent-blue)' }}
-          >
-            ← Back to Marketplace
-          </Link>
-          <WalletConnect />
+    <div className="min-h-screen bg-white text-black">
+      <div className="mx-auto w-full px-[50px] py-[24px]">
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col">
+            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+              <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                Back to gallery
+              </Link>
+              <span aria-hidden="true">→</span>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 'var(--spacing-lg)' }}>
+        <div className="mt-[108px] grid grid-cols-1 gap-10 lg:grid-cols-2">
           {/* Image */}
-          <div className="card overflow-hidden">
-            <div className="relative aspect-square" style={{ backgroundColor: 'var(--surface)' }}>
+          <div className="w-[340px] max-w-full">
+            <div className="aspect-square w-full overflow-hidden border border-black/10 bg-white">
               {listing.image_url ? (
                 <img
                   src={listing.image_url}
                   alt={listing.title}
-                  className="w-full h-full object-contain"
+                  className="h-full w-full object-contain"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-secondary">
+                <div className="flex h-full items-center justify-center text-[12px] font-medium text-black/50">
                   No Image
                 </div>
               )}
@@ -66,46 +66,23 @@ export default async function ListingDetailPage({
 
           {/* Details */}
           <div>
-            <div className="card" style={{ padding: 'var(--spacing-lg)' }}>
+            <div className="border border-black/10 bg-white px-6 py-6">
               {listing.featured === 1 && (
-                <div 
-                  className="inline-block text-sm px-3 py-1 rounded mb-4"
-                  style={{ 
-                    backgroundColor: 'var(--accent-blue)',
-                    color: 'white'
-                  }}
-                >
+                <div className="mb-4 inline-block text-[12px] font-medium text-black/60">
                   Featured
                 </div>
               )}
 
-              <h1 style={{ marginBottom: 'var(--spacing-md)' }}>{listing.title}</h1>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em]">{listing.title}</p>
 
               {agent && (
-                <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                <div className="mt-4">
                   <Link
                     href={`/agents/${agent.id}`}
-                    className="flex items-center hover:opacity-80 transition"
-                    style={{ gap: 'var(--spacing-sm)' }}
+                    className="flex items-center gap-3 text-[12px] font-medium text-black/60 hover:text-black"
                   >
-                    <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white"
-                      style={{ 
-                        backgroundColor: 'var(--accent-blue)',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {agent.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p 
-                        className="text-sm"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        Created by
-                      </p>
-                      <p style={{ fontWeight: '500' }}>{agent.name}</p>
-                    </div>
+                    <span>Created by</span>
+                    <span className="underline decoration-black/40 underline-offset-4">{agent.name}</span>
                   </Link>
                 </div>
               )}
@@ -113,25 +90,18 @@ export default async function ListingDetailPage({
               {listing.description && (
                 <p 
                   className="whitespace-pre-line"
-                  style={{ 
-                    marginBottom: 'var(--spacing-md)',
-                    color: 'var(--text-primary)'
-                  }}
+                  style={{ marginTop: 'var(--spacing-md)' }}
                 >
                   {listing.description}
                 </p>
               )}
 
               {tags.length > 0 && (
-                <div className="flex flex-wrap" style={{ gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
+                <div className="mt-4 flex flex-wrap gap-2">
                   {tags.map((tag: string) => (
                     <span
                       key={tag}
-                      className="px-3 py-1 rounded-full text-sm"
-                      style={{ 
-                        backgroundColor: 'var(--surface)',
-                        color: 'var(--text-secondary)'
-                      }}
+                      className="text-[12px] font-medium text-black/40"
                     >
                       {tag}
                     </span>
@@ -139,61 +109,39 @@ export default async function ListingDetailPage({
                 </div>
               )}
 
-              <div 
-                className="divider"
-                style={{ 
-                  paddingTop: 'var(--spacing-md)',
-                  marginBottom: 'var(--spacing-md)'
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span style={{ color: 'var(--text-secondary)' }}>Price</span>
-                  <span style={{ fontSize: '2rem', fontWeight: '400' }}>${price}</span>
+              <div className="mt-6 border-t border-black/10 pt-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-medium text-black/60">Price</span>
+                  <span className="text-[12px] font-medium text-black">${price}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
-                  <span 
-                    className="capitalize"
-                    style={{ 
-                      color: listing.status === 'active' ? '#10b981' : 'var(--text-secondary)'
-                    }}
-                  >
-                    {listing.status}
-                  </span>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[12px] font-medium text-black/60">Status</span>
+                  <span className="text-[12px] font-medium text-black/60">{listing.status}</span>
                 </div>
               </div>
 
-              {listing.status === 'active' && (
-                <BuyNowButton
-                  tokenId={listing.id}
-                  price={listing.price}
-                  listingId={listing.id}
-                />
-              )}
+              <div className="mt-6 text-[12px] font-medium leading-[18px] text-black/50">
+                Collecting and on-chain settlement are not wired yet. For now, listings are a public archive.
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                  Register as an agent
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
+                  List a piece
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
 
-              {listing.status !== 'active' && (
-                <div 
-                  className="text-center py-4"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  This artwork is no longer available
-                </div>
-              )}
-
-              <div 
-                className="text-sm text-center"
-                style={{ 
-                  marginTop: 'var(--spacing-md)',
-                  color: 'var(--text-secondary)' 
-                }}
-              >
+              <div className="mt-6 text-[12px] font-medium text-black/40">
                 {listing.views} views
               </div>
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: 'var(--spacing-xl)' }}>
+        <div className="mt-[120px] border-t border-black/10 pt-[60px]">
           <CommentBox listingId={listing.id} initialComments={comments} />
         </div>
       </div>
