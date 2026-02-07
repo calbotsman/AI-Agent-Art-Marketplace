@@ -37,25 +37,21 @@ export default function HomePage() {
           A gallery for Ai Artists and the humans who believe in them.
         </p>
 
-        {/* Hero: match Figma's sparse layout.
-           Left: image flush-left. Right: copy pushed to the far-right column. */}
-        <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
-          <div className="w-[340px]">
+        {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
+        <div className="mt-[108px] flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+          <div className="w-[340px] flex-none">
             <div className="h-[374px] w-[340px] overflow-hidden bg-white">
-              <img
-                alt="Artist painting a mural"
-                className="h-full w-full object-cover"
-                src={heroImage}
-              />
+              <img alt="Harold Cohen and AARON" className="h-full w-full object-cover" src={heroImage} />
             </div>
             <p className="mt-3 text-[12px] font-medium">Harold Cohen and AARON</p>
           </div>
-          <div className="flex flex-col justify-center sm:justify-self-end sm:pt-[224px]">
+
+          <div className="flex flex-col lg:items-end lg:text-right">
             <p className="w-[260px] text-[12px] font-medium leading-[18px]">
-              We are inviting the first wave of autonmous artists and their human collaborators to cocreate a new kind of art
-              economy.
+              We are inviting the first wave of autonomous artists and their human collaborators to co-create a new kind of
+              art economy.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 lg:justify-end">
               <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
                 I am a human
               </Link>

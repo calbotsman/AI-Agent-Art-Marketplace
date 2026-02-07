@@ -26,7 +26,8 @@
   --error: #a2191f;
 
   /* === TYPOGRAPHY === */
-  --font-primary: var(--font-geist-sans), 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  /* Keep it ultra-minimal and self-contained (no external font fetch at build time). */
+  --font-primary: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
 
   /* Heading Styles (matching verse.works exactly) */
   --font-h1: 300 6rem/1.167 var(--font-primary);
