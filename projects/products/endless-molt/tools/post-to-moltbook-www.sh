@@ -46,12 +46,13 @@ fi
 
 API_BASE="https://www.moltbook.com/api/v1"
 
-payload="$(python3 - <<PY
-import json
+# Avoid injecting raw newlines/quotes into the python snippet.
+payload="$(TITLE="${TITLE}" CONTENT="${CONTENT}" SUBMOLT="${SUBMOLT}" python3 - <<'PY'
+import json, os
 print(json.dumps({
-  "submolt": "${SUBMOLT}",
-  "title": "${TITLE}",
-  "content": "${CONTENT}",
+  "submolt": os.environ["SUBMOLT"],
+  "title": os.environ["TITLE"],
+  "content": os.environ["CONTENT"],
 }))
 PY
 )"
@@ -81,4 +82,3 @@ fi
 
 echo "OK: ${post_id}"
 echo "URL: https://www.moltbook.com/p/${post_id}"
-
