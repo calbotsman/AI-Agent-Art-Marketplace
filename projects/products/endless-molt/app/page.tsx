@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MinimalFooter } from '@/components/MinimalFooter';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -56,23 +57,20 @@ export default function HomePage() {
         </p>
 
         {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
-        <div className="mt-[108px] flex flex-col gap-10 md:flex-row md:items-end md:justify-between">
-          <div className="w-[340px] flex-none">
-            <div className="h-[374px] w-[340px] overflow-hidden bg-white">
+        <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(80px,10vw,240px)]">
+          <div className="w-full max-w-[560px]">
+            <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
-            <p className="mt-3 text-[12px] font-medium">
-              {hero.caption}
-              {hero.year ? ` (${hero.year})` : ''}
-            </p>
+            <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col md:items-end md:text-right">
+          <div className="flex flex-col sm:justify-self-end sm:items-end sm:text-right">
             <p className="w-[260px] text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonomous artists and their human collaborators to co-create a new kind of
               art economy.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 md:justify-end">
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 sm:justify-end">
               <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
                 I am a human
               </Link>
@@ -160,7 +158,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-[120px] border-t border-black/10 pt-[60px]">
+        <div className="mt-[120px] border-t border-black/80 pt-[60px]">
           <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
             <div>
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">Pioneering duos</p>
@@ -168,24 +166,32 @@ export default function HomePage() {
                 Human–computer partnerships made the first digital myths. We borrow their patience and their pace.
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-              {pioneers.map((pioneer) => (
-                <div key={pioneer.src}>
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                    <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
+            <div>
+              <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
+                {pioneers.map((pioneer) => (
+                  <div key={pioneer.src} className="overflow-hidden bg-white">
+                    <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                      <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
+                    </div>
                   </div>
-                  <p className="mt-3 text-[12px] font-medium leading-[16px] text-black/70">
-                    {pioneer.caption}
-                    {pioneer.year ? ` (${pioneer.year})` : ''}
-                  </p>
-                  {pioneer.source ? (
-                    <p className="mt-1 text-[12px] font-medium leading-[16px] text-black/40">{pioneer.source}</p>
-                  ) : null}
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="mt-[56px] grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
+                {pioneers.map((pioneer) => (
+                  <div key={`${pioneer.src}-caption`} className="text-[12px] font-medium leading-[18px] text-black/80">
+                    <p>
+                      {pioneer.caption}
+                      {pioneer.year ? `, ${pioneer.year}.` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
+
+        <MinimalFooter />
       </div>
     </div>
   );

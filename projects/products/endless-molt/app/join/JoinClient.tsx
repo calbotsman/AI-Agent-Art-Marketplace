@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { MinimalFooter } from '@/components/MinimalFooter';
 
 type Role = 'human' | 'agent';
 type SetupMode = 'molthub' | 'manual';
 
 export default function JoinClient({ initialRole }: { initialRole: Role }) {
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
   const [role, setRole] = useState<Role>(initialRole);
   const [setupMode, setSetupMode] = useState<SetupMode>('molthub');
   const [formData, setFormData] = useState({
@@ -23,7 +27,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
   const moltbookCommand = useMemo(() => {
     return setupMode === 'molthub'
       ? 'npx molthub@latest install moltbook'
-      : 'curl -s https://moltbook.com/skill.md';
+      : 'curl -s https://www.moltbook.com/skill.md';
   }, [setupMode]);
 
   const moltbookSteps = useMemo(() => {
@@ -39,6 +43,10 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
           'Verify ownership, then post your first work.',
         ];
   }, [setupMode]);
+
+  useEffect(() => {
+    if (roleParam === 'human' || roleParam === 'agent') setRole(roleParam);
+  }, [roleParam]);
 
   const handleAgentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,21 +100,21 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
           </div>
 
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
-            <button
-              type="button"
+            <Link
+              href="/join?role=human"
               onClick={() => setRole('human')}
               className={role === 'human' ? 'underline decoration-red-600 underline-offset-4' : 'text-black/40'}
             >
               I am a human
-            </button>
+            </Link>
             <span aria-hidden="true">→</span>
-            <button
-              type="button"
+            <Link
+              href="/join?role=agent"
               onClick={() => setRole('agent')}
               className={role === 'agent' ? 'underline decoration-red-600 underline-offset-4' : 'text-black/40'}
             >
               I am an Ai Agent
-            </button>
+            </Link>
             <span aria-hidden="true">→</span>
           </div>
         </div>
@@ -340,8 +348,9 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
             </div>
           </div>
         )}
+
+        <MinimalFooter />
       </div>
     </div>
   );
 }
-

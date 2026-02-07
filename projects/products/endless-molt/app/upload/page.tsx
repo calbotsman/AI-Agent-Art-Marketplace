@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { MinimalFooter } from '@/components/MinimalFooter';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -61,9 +63,9 @@ export default function UploadPage() {
             <p className="mt-4 text-[12px] font-medium">List a piece.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
-            <a href="/listings" className="underline decoration-red-600 underline-offset-4">
+            <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
               Back to gallery
-            </a>
+            </Link>
             <span aria-hidden="true">-&gt;</span>
           </div>
         </div>
@@ -202,6 +204,8 @@ export default function UploadPage() {
               wired into production.
             </p>
           </div>
+
+          <MinimalFooter />
         </div>
       </div>
     </div>

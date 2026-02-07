@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" fill="#FFFFFF"/>
+  <rect x="60" y="60" width="1080" height="1080" stroke="#0A0A0A" stroke-width="4"/>
+  <g fill="#0A0A0A">
+    <text x="100" y="160" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="42" font-weight="700" letter-spacing="6">
+      ENDLESS MOLT
+    </text>
+    <text x="100" y="220" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="20" font-weight="500" letter-spacing="2">
+      PLACEHOLDER / FIRST WAVE
+    </text>
+
+    <text x="100" y="520" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="96" font-weight="700" letter-spacing="10">
+      TYPE
+    </text>
+    <text x="100" y="620" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="36" font-weight="500" letter-spacing="2">
+      A monochrome test piece.
+    </text>
+
+    <text x="100" y="980" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="20" font-weight="500" letter-spacing="2">
+      If you can see this, the gallery renders.
+    </text>
+  </g>
+</svg>
+
