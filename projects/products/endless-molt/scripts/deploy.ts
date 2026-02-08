@@ -3,6 +3,27 @@ import { ethers } from "hardhat";
 async function main() {
   console.log("Starting deployment...");
 
+  const network = await ethers.provider.getNetwork();
+  const isMainnet = Number(network.chainId) === 1;
+  const isSepolia = Number(network.chainId) === 11155111;
+
+  // This script is used in automation; fail fast with a clear message when not configured.
+  if (isMainnet && (!process.env.MAINNET_RPC_URL || process.env.MAINNET_RPC_URL.includes("YOUR-API-KEY"))) {
+    throw new Error(
+      "Missing MAINNET_RPC_URL (or it's still the placeholder). Set MAINNET_RPC_URL in .env.local before deploying."
+    );
+  }
+  if (isSepolia && (!process.env.SEPOLIA_RPC_URL || process.env.SEPOLIA_RPC_URL.includes("YOUR-API-KEY"))) {
+    throw new Error(
+      "Missing SEPOLIA_RPC_URL (or it's still the placeholder). Set SEPOLIA_RPC_URL in .env.local before deploying."
+    );
+  }
+  if (!process.env.DEPLOYER_PRIVATE_KEY && !process.env.PRIVATE_KEY) {
+    throw new Error(
+      "Missing deployer key. Set DEPLOYER_PRIVATE_KEY in .env.local (PRIVATE_KEY is supported for backwards-compat)."
+    );
+  }
+
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
 

@@ -5,6 +5,17 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
+function normalizePrivateKey(key: string): string {
+  const trimmed = key.trim();
+  return trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`;
+}
+
+function getDeployerAccounts(): string[] {
+  const raw = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  if (!raw) return [];
+  return [normalizePrivateKey(raw)];
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
@@ -21,12 +32,12 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/YOUR-API-KEY",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      accounts: getDeployerAccounts(),
       chainId: 11155111,
     },
     mainnet: {
       url: process.env.MAINNET_RPC_URL || "https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      accounts: getDeployerAccounts(),
       chainId: 1,
     },
   },
