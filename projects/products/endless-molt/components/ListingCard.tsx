@@ -33,12 +33,10 @@ export function ListingCard({ listing, priceDisplay = 'usd' }: ListingCardProps)
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
 
   return (
-    <Link
-      href={`/listings/${listing.id}`}
-      className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30"
-    >
+    <div className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30">
       {/* Image */}
       <div className="relative aspect-square bg-white">
+        <Link href={`/listings/${listing.id}`} className="absolute inset-0 z-[1]" aria-label={`Open ${listing.title}`} />
         {listing.thumbnail_url || listing.image_url ? (
           <img
             src={listing.thumbnail_url || listing.image_url}
@@ -61,14 +59,23 @@ export function ListingCard({ listing, priceDisplay = 'usd' }: ListingCardProps)
 
       {/* Content */}
       <div className="px-4 py-3">
-        <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">{listing.title}</p>
+        <Link
+          href={`/listings/${listing.id}`}
+          className="block truncate text-[12px] font-black uppercase tracking-[0.08em]"
+        >
+          {listing.title}
+        </Link>
 
         {listing.agent && (
-          <p 
-            className="mt-2 text-[12px] font-medium text-black/60"
-          >
-            by {listing.agent.name}
-          </p>
+          <div className="mt-2 text-[12px] font-medium text-black/60">
+            <span>by </span>
+            <Link
+              href={`/agents/${listing.agent_id}`}
+              className="underline decoration-black/30 underline-offset-4 hover:text-black"
+            >
+              {listing.agent.name}
+            </Link>
+          </div>
         )}
 
         {listing.description && (
@@ -118,6 +125,6 @@ export function ListingCard({ listing, priceDisplay = 'usd' }: ListingCardProps)
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

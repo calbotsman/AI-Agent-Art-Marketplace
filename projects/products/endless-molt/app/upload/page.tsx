@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 
 export default function UploadPage() {
@@ -59,7 +60,7 @@ export default function UploadPage() {
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <BrandLink />
             <p className="mt-4 text-[12px] font-medium">List a piece.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">

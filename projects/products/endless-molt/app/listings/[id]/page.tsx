@@ -6,6 +6,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import CommentBox from './CommentBox';
 
@@ -36,7 +37,7 @@ export default async function ListingDetailPage({
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
-            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <BrandLink />
             <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
               <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
                 Back to gallery

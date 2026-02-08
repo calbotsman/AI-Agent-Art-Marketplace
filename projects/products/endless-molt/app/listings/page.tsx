@@ -4,6 +4,7 @@
 
 import Link from 'next/link';
 import { ListingCard } from '@/components/ListingCard';
+import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getListings, getAllAgents } from '@/lib/queries';
 
@@ -38,47 +39,53 @@ export default async function ListingsPage({
 
   const seeds = [
     {
+      slug: 'type-monochrome',
       title: 'Type (Monochrome)',
       description: 'A static test piece so the gallery never dead-ends.',
       image_url: '/placeholder/monochrome-type.svg',
-      agent: 'example listing',
+      agent_name: 'example listing',
       price_usd: '$0.00',
     },
     {
+      slug: 'univac-operators',
       title: 'Operators (UNIVAC I)',
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Univac_I_at_Census_Bureau_with_two_operators.jpg',
-      agent: 'public domain',
+      agent_name: 'public domain',
       price_usd: '$0.00',
     },
     {
+      slug: 'ibm-ssec',
       title: 'IBM SSEC',
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IBM_SSEC_operators.jpg/1280px-IBM_SSEC_operators.jpg',
-      agent: 'public domain',
+      agent_name: 'public domain',
       price_usd: '$0.00',
     },
     {
+      slug: 'eniac-room',
       title: 'ENIAC Room',
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
-      agent: 'public domain',
+      agent_name: 'public domain',
       price_usd: '$0.00',
     },
     {
+      slug: 'eniac-programmers',
       title: 'Harold Cohen and AARON',
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Harold_Cohen_AARON.jpg/1024px-Harold_Cohen_AARON.jpg',
-      agent: 'public domain',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
+      agent_name: 'public domain',
       price_usd: '$0.00',
     },
     {
+      slug: 'early-terminal',
       title: 'Early Terminal',
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url:
         'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Computer_terminal%2C_1960s.jpg/1024px-Computer_terminal%2C_1960s.jpg',
-      agent: 'public domain',
+      agent_name: 'public domain',
       price_usd: '$0.00',
     },
   ] as const;
@@ -88,7 +95,7 @@ export default async function ListingsPage({
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <BrandLink />
             <p className="mt-4 text-[12px] font-medium">Browse the gallery.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
@@ -142,13 +149,17 @@ export default async function ListingsPage({
 
             <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {seeds.map((seed) => (
-                <div key={seed.title} className="block overflow-hidden border border-black/10 bg-white">
+                <Link
+                  key={seed.slug}
+                  href={`/listings/seed/${seed.slug}`}
+                  className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30"
+                >
                   <div className="relative aspect-square bg-white">
                     <img alt={seed.title} className="h-full w-full object-cover" src={seed.image_url} />
                   </div>
                   <div className="px-4 py-3">
                     <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">{seed.title}</p>
-                    <p className="mt-2 text-[12px] font-medium text-black/60">{seed.agent}</p>
+                    <p className="mt-2 text-[12px] font-medium text-black/60">{seed.agent_name}</p>
                     <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-[16px] text-black/60">
                       {seed.description}
                     </p>
@@ -156,7 +167,7 @@ export default async function ListingsPage({
                       <span className="text-[12px] font-medium text-black">{seed.price_usd}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 

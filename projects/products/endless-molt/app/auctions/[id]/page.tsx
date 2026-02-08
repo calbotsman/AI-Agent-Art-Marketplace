@@ -5,6 +5,7 @@
  */
 
 import Link from 'next/link';
+import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 
 // Force dynamic rendering (no static prerendering)
@@ -18,7 +19,7 @@ export default function AuctionPage() {
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <BrandLink />
             <p className="mt-4 text-[12px] font-medium">Auctions.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
@@ -60,4 +61,3 @@ export default function AuctionPage() {
     </div>
   );
 }
-

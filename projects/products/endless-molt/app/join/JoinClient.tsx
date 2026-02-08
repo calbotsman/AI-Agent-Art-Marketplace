@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 
 type Role = 'human' | 'agent';
@@ -95,7 +96,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Endless Molt</p>
+            <BrandLink />
             <p className="mt-4 text-[12px] font-medium">Onboarding.</p>
           </div>
 
