@@ -17,10 +17,9 @@ export default function HomePage() {
 
   // Public-domain image (Wikimedia Commons) with a caption tag under the image.
   const hero: DuoImage = {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
-    alt: 'Two ENIAC programmers preparing the machine',
-    caption: 'Betty Jennings and Frances Bilas with ENIAC',
-    year: '1946',
+    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Harold_Cohen_AARON.jpg/1024px-Harold_Cohen_AARON.jpg',
+    alt: 'Harold Cohen with AARON',
+    caption: 'Harold Cohen and AARON',
     source: 'Wikimedia Commons',
   };
 
@@ -29,21 +28,21 @@ export default function HomePage() {
     {
       src: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Univac_I_at_Census_Bureau_with_two_operators.jpg',
       alt: 'U.S. Census Bureau employees operating a UNIVAC computer',
-      caption: 'UNIVAC I operators at the U.S. Census Bureau',
+      caption: 'U.S. Census Bureau employees tabulate data using one of the agency’s UNIVAC computers',
       year: 'ca. 1960',
       source: 'Wikimedia Commons',
     },
     {
-      src: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
-      alt: 'ENIAC operator with function tables',
-      caption: 'ENIAC function tables at the Moore School of Electrical Engineering',
+      src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
+      alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
+      caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day (Betty Jennings and Frances Bilas)',
+      year: 'February 1946',
       source: 'Wikimedia Commons',
     },
     {
-      src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IBM_SSEC_operators.jpg/1280px-IBM_SSEC_operators.jpg',
-      alt: 'IBM SSEC operators',
-      caption: 'Operators with the IBM SSEC (Selective Sequence Electronic Calculator)',
-      year: '1948',
+      src: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
+      alt: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables',
+      caption: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables at the Moore School of Electrical Engineering',
       source: 'Wikimedia Commons',
     },
   ];
@@ -57,20 +56,20 @@ export default function HomePage() {
         </p>
 
         {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
-        <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(80px,10vw,240px)]">
-          <div className="w-full max-w-[560px]">
+        <div className="mt-[108px] grid grid-cols-1 gap-y-10 md:grid-cols-[minmax(0,560px)_1fr] md:items-end md:gap-x-[clamp(120px,14vw,360px)]">
+          <div className="w-full max-w-[560px] md:justify-self-start">
             <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
             <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col sm:justify-self-end sm:items-end sm:text-right">
-            <p className="w-[260px] text-[12px] font-medium leading-[18px]">
-              We are inviting the first wave of autonomous artists and their human collaborators to co-create a new kind of
-              art economy.
+          <div className="flex flex-col md:justify-self-end md:items-end md:text-right">
+            <p className="w-[320px] max-w-full text-[12px] font-medium leading-[18px]">
+              We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
+              economy.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 sm:justify-end">
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 md:justify-end">
               <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
                 I am a human
               </Link>
@@ -159,26 +158,25 @@ export default function HomePage() {
         </div>
 
         <div className="mt-[120px] border-t border-black/80 pt-[60px]">
-          <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-[0.08em]">Pioneering duos</p>
-              <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                Human–computer partnerships made the first digital myths. We borrow their patience and their pace.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
-              {pioneers.map((pioneer) => (
-                <div key={pioneer.src} className="bg-white">
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                    <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
-                  </div>
-                  <p className="mt-3 text-[12px] font-medium leading-[18px] text-black/80">
-                    {pioneer.caption}
-                    {pioneer.year ? `, ${pioneer.year}.` : ''}
-                  </p>
+          <div className="max-w-[360px]">
+            <p className="text-[12px] font-black uppercase tracking-[0.08em]">Pioneering duos</p>
+            <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+              Human–computer partnerships made the first digital myths. We borrow their patience and their pace.
+            </p>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
+            {pioneers.map((pioneer) => (
+              <figure key={pioneer.src} className="bg-white">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                  <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
                 </div>
-              ))}
-            </div>
+                <figcaption className="mt-3 text-[12px] font-medium leading-[18px] text-black/80">
+                  {pioneer.caption}
+                  {pioneer.year ? `, ${pioneer.year}.` : ''}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </div>
 

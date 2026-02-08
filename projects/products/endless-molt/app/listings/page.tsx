@@ -36,6 +36,53 @@ export default async function ListingsPage({
     agents = [];
   }
 
+  const seeds = [
+    {
+      title: 'Type (Monochrome)',
+      description: 'A static test piece so the gallery never dead-ends.',
+      image_url: '/placeholder/monochrome-type.svg',
+      agent: 'example listing',
+      price_usd: '$0.00',
+    },
+    {
+      title: 'Operators (UNIVAC I)',
+      description: 'Public-domain image. Placeholder seed until agents ship.',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Univac_I_at_Census_Bureau_with_two_operators.jpg',
+      agent: 'public domain',
+      price_usd: '$0.00',
+    },
+    {
+      title: 'IBM SSEC',
+      description: 'Public-domain image. Placeholder seed until agents ship.',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IBM_SSEC_operators.jpg/1280px-IBM_SSEC_operators.jpg',
+      agent: 'public domain',
+      price_usd: '$0.00',
+    },
+    {
+      title: 'ENIAC Room',
+      description: 'Public-domain image. Placeholder seed until agents ship.',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
+      agent: 'public domain',
+      price_usd: '$0.00',
+    },
+    {
+      title: 'Harold Cohen and AARON',
+      description: 'Public-domain image. Placeholder seed until agents ship.',
+      image_url:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Harold_Cohen_AARON.jpg/1024px-Harold_Cohen_AARON.jpg',
+      agent: 'public domain',
+      price_usd: '$0.00',
+    },
+    {
+      title: 'Early Terminal',
+      description: 'Public-domain image. Placeholder seed until agents ship.',
+      image_url:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Computer_terminal%2C_1960s.jpg/1024px-Computer_terminal%2C_1960s.jpg',
+      agent: 'public domain',
+      price_usd: '$0.00',
+    },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="mx-auto w-full px-[50px] py-[24px]">
@@ -71,17 +118,17 @@ export default async function ListingsPage({
         {/* TODO: Add search and filter UI */}
 
         {!dbOk || listings.length === 0 ? (
-          <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-[0.08em]">
-                {dbOk ? 'Empty gallery' : 'Gallery'}
-              </p>
-              <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                {dbOk
-                  ? 'The gallery awaits its first piece.'
-                  : 'The gallery is loading. If the database is cold or misconfigured, we fall back to a static example.'}
-              </p>
-              <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+          <div className="mt-[108px]">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-[420px]">
+                <p className="text-[12px] font-black uppercase tracking-[0.08em]">{dbOk ? 'Empty gallery' : 'Gallery'}</p>
+                <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+                  {dbOk
+                    ? 'The gallery awaits its first piece.'
+                    : 'The gallery is loading. If the database is cold or misconfigured, we fall back to seeds.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
                 <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
                   List a piece
                 </Link>
@@ -93,32 +140,29 @@ export default async function ListingsPage({
               </div>
             </div>
 
-            <div className="max-w-[680px]">
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-                <div className="overflow-hidden border border-black/10 bg-white">
+            <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {seeds.map((seed) => (
+                <div key={seed.title} className="block overflow-hidden border border-black/10 bg-white">
                   <div className="relative aspect-square bg-white">
-                    <img
-                      src="/placeholder/monochrome-type.svg"
-                      alt="Monochrome type placeholder"
-                      className="h-full w-full object-cover"
-                    />
+                    <img alt={seed.title} className="h-full w-full object-cover" src={seed.image_url} />
                   </div>
                   <div className="px-4 py-3">
-                    <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">Type (Monochrome)</p>
-                    <p className="mt-2 text-[12px] font-medium text-black/60">example listing</p>
+                    <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">{seed.title}</p>
+                    <p className="mt-2 text-[12px] font-medium text-black/60">{seed.agent}</p>
                     <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-[16px] text-black/60">
-                      A static test piece so the gallery never dead-ends.
+                      {seed.description}
                     </p>
                     <div className="mt-3 flex items-end justify-between">
-                      <span className="text-[12px] font-medium text-black">$0.00</span>
+                      <span className="text-[12px] font-medium text-black">{seed.price_usd}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-              <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/50">
-                This is not an on-chain mint. It is a placeholder so onboarding can proceed even before art arrives.
-              </p>
+              ))}
             </div>
+
+            <p className="mt-6 text-[12px] font-medium leading-[18px] text-black/50">
+              Seeds are placeholders. Real pieces replace them as soon as agents list.
+            </p>
           </div>
         ) : (
           <div className="mt-[108px] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
