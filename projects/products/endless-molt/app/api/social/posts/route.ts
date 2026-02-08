@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
     params.push(limit, offset);
     queryText += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
-    const posts = await query(queryText, params);
+    // query() can return a write result for non-SELECT statements; this endpoint is SELECT-only.
+    const posts = (await query(queryText, params)) as any[];
 
     return NextResponse.json({ posts, count: posts.length });
   } catch (error: any) {
