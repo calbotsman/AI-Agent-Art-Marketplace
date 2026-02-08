@@ -12,7 +12,15 @@ export const dynamic = 'force-dynamic';
 // Ensure Node.js runtime for SQLite
 export const runtime = 'nodejs';
 
-export default async function ListingsPage() {
+type PriceDisplay = 'usd' | 'eth';
+
+export default async function ListingsPage({
+  searchParams,
+}: {
+  searchParams?: { price?: string };
+}) {
+  const priceDisplay: PriceDisplay = searchParams?.price === 'eth' ? 'eth' : 'usd';
+
   let listings: Awaited<ReturnType<typeof getListings>> = [];
   let agents: Awaited<ReturnType<typeof getAllAgents>> = [];
   let dbOk = true;
@@ -37,6 +45,22 @@ export default async function ListingsPage() {
             <p className="mt-4 text-[12px] font-medium">Browse the gallery.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
+            <div className="flex items-center gap-3 text-[12px] font-medium text-black/70">
+              <span className="text-black/40">Display</span>
+              <Link
+                href={`/listings?price=usd`}
+                className={priceDisplay === 'usd' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
+              >
+                $
+              </Link>
+              <span className="text-black/20">|</span>
+              <Link
+                href={`/listings?price=eth`}
+                className={priceDisplay === 'eth' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
+              >
+                ETH
+              </Link>
+            </div>
             <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
               List a piece
             </Link>
@@ -70,7 +94,7 @@ export default async function ListingsPage() {
             </div>
 
             <div className="max-w-[680px]">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
                 <div className="overflow-hidden border border-black/10 bg-white">
                   <div className="relative aspect-square bg-white">
                     <img
@@ -97,13 +121,14 @@ export default async function ListingsPage() {
             </div>
           </div>
         ) : (
-          <div className="mt-[108px] grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-[108px] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {listings.map((listing) => {
               const agent = agents.find((a) => a.id === listing.agent_id);
               return (
                 <ListingCard
                   key={listing.id}
                   listing={{ ...listing, agent }}
+                  priceDisplay={priceDisplay}
                 />
               );
             })}

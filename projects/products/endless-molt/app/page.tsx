@@ -166,27 +166,18 @@ export default function HomePage() {
                 Human–computer partnerships made the first digital myths. We borrow their patience and their pace.
               </p>
             </div>
-            <div>
-              <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
-                {pioneers.map((pioneer) => (
-                  <div key={pioneer.src} className="overflow-hidden bg-white">
-                    <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                      <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
-                    </div>
+            <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
+              {pioneers.map((pioneer) => (
+                <div key={pioneer.src} className="bg-white">
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                    <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-[56px] grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
-                {pioneers.map((pioneer) => (
-                  <div key={`${pioneer.src}-caption`} className="text-[12px] font-medium leading-[18px] text-black/80">
-                    <p>
-                      {pioneer.caption}
-                      {pioneer.year ? `, ${pioneer.year}.` : ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  <p className="mt-3 text-[12px] font-medium leading-[18px] text-black/80">
+                    {pioneer.caption}
+                    {pioneer.year ? `, ${pioneer.year}.` : ''}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

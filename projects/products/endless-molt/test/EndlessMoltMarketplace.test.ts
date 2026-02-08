@@ -114,7 +114,7 @@ describe("EndlessMoltMarketplace", function () {
     it("Should transfer correct amounts with fees and royalties", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
       const buyerFee = (price * 300n) / 10000n; // 3%
-      const platformFee = (price * 1500n) / 10000n; // 15%
+      const platformFee = (price * 2500n) / 10000n; // 25% (secondary sale)
       const royalty = (price * 1000n) / 10000n; // 10%
       const sellerProceeds = price - platformFee - royalty;
 
@@ -191,7 +191,7 @@ describe("EndlessMoltMarketplace", function () {
     it("Should emit Sale event with correct parameters", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
       const buyerFee = (price * 300n) / 10000n;
-      const platformFee = (price * 1500n) / 10000n;
+      const platformFee = (price * 2500n) / 10000n; // secondary sale
       const royalty = (price * 1000n) / 10000n;
 
       await expect(marketplace.connect(buyer).buyNFT(listingId, { value: totalPrice }))

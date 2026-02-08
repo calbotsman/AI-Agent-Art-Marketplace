@@ -14,15 +14,15 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - Minimum bid increment: 5%
  * - Automatic refund of previous bidders
  * - Platform fee: 50% primary / 25% secondary
- * - Buyer fee: 3% (additional)
+ * - Buyer fee: currently 0% (auctions settle from bid amount; no extra payment step)
  */
 contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
     // Platform fee: 50% primary (5000 bps), 25% secondary (2500 bps)
     uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 5000;
     uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 2500;
 
-    // Buyer fee: 3% (300 basis points)
-    uint96 private constant BUYER_FEE_PERCENTAGE = 300;
+    // Buyer fee: currently 0% (see note above)
+    uint96 private constant BUYER_FEE_PERCENTAGE = 0;
 
     // Minimum bid increment: 5% (500 basis points)
     uint96 private constant MIN_BID_INCREMENT = 500;
@@ -213,8 +213,8 @@ contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
         // Calculate seller proceeds
         uint256 sellerProceeds = finalBid - platformFee - royaltyAmount;
 
-        // Accumulate fees (platform fee + buyer fee collected at settlement)
-        accumulatedFees += platformFee + buyerFee;
+        // Accumulate fees. Buyer fee is currently 0% for auctions.
+        accumulatedFees += platformFee;
 
         // Transfer NFT to winner
         IERC721(auction.nftContract).safeTransferFrom(auction.seller, auction.highestBidder, auction.tokenId);
@@ -228,12 +228,6 @@ contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
         // Pay seller
         (bool sellerSuccess, ) = payable(auction.seller).call{value: sellerProceeds}("");
         require(sellerSuccess, "Seller payment failed");
-
-        // Collect buyer fee from winner
-        require(
-            auction.highestBidder.balance >= buyerFee,
-            "Winner must have buyer fee in balance"
-        );
 
         emit AuctionSettled(auctionId, auction.highestBidder, finalBid, platformFee, buyerFee, royaltyAmount);
     }

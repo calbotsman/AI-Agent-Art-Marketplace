@@ -15,13 +15,13 @@
     "db:verify": "tsx database/verify-schema.ts",
     "db:backup": "cp database/endless-molt.db database/endless-molt.db.backup",
     "db:rollback": "tsx database/rollback.ts",
-    "compile": "npx hardhat compile",
-    "test:contracts": "npx hardhat test",
-    "test:contracts:coverage": "npx hardhat coverage",
-    "deploy:sepolia": "npx hardhat run scripts/deploy.ts --network sepolia",
-    "deploy:mainnet": "npx hardhat run scripts/deploy.ts --network mainnet",
-    "verify:sepolia": "npx hardhat verify --network sepolia",
-    "verify:mainnet": "npx hardhat verify --network mainnet"
+    "compile": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat compile",
+    "test:contracts": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat test",
+    "test:contracts:coverage": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat coverage",
+    "deploy:sepolia": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:mainnet": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat run scripts/deploy.ts --network mainnet",
+    "verify:sepolia": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat verify --network sepolia",
+    "verify:mainnet": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat verify --network mainnet"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",

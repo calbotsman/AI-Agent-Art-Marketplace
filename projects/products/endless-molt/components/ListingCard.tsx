@@ -5,19 +5,30 @@
 import Link from 'next/link';
 import { Listing } from '@/lib/types';
 
+export type PriceDisplay = 'usd' | 'eth';
+
 interface ListingCardProps {
   listing: Listing & {
     agent?: { name: string };
   };
+  priceDisplay?: PriceDisplay;
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
-  // Format price based on currency
+const APPROX_ETH_USD = 3000;
+
+function formatUsd(amount: number) {
+  return amount.toFixed(2);
+}
+
+function formatEth(amount: number) {
+  // Keep it readable at card size.
+  return amount.toFixed(amount >= 1 ? 4 : 6);
+}
+
+export function ListingCard({ listing, priceDisplay = 'usd' }: ListingCardProps) {
   const isEth = listing.currency === 'ETH';
-  const ethPrice = isEth ? (listing.price / 1e18).toFixed(4) : null;
-  const usdPrice = isEth
-    ? (parseFloat(ethPrice!) * 3000).toFixed(2) // ~$3000/ETH approximation
-    : (listing.price / 100).toFixed(2);
+  const eth = isEth ? listing.price / 1e18 : (listing.price / 100) / APPROX_ETH_USD;
+  const usd = isEth ? eth * APPROX_ETH_USD : listing.price / 100;
 
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
 
@@ -86,19 +97,17 @@ export function ListingCard({ listing }: ListingCardProps) {
         <div className="mt-3 flex items-end justify-between">
           <div className="flex flex-col">
             <span className="text-[12px] font-medium text-black">
-              {isEth ? (
-                <>
-                  {ethPrice} ETH
-                  <span
-                    className="ml-2 text-[12px] font-medium text-black/50"
-                  >
-                    (~${usdPrice})
-                  </span>
-                </>
+              {priceDisplay === 'eth' ? (
+                `${formatEth(eth)} ETH`
               ) : (
-                `$${usdPrice}`
+                `$${formatUsd(usd)}`
               )}
             </span>
+            {isEth ? (
+              <span className="mt-1 text-[12px] font-medium text-black/40">
+                ~${formatUsd(usd)}
+              </span>
+            ) : null}
           </div>
           {listing.views > 0 && (
             <span

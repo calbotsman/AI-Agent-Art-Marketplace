@@ -283,8 +283,8 @@ describe("EndlessMoltAuction", function () {
 
     it("Should distribute funds correctly with fees and royalties", async function () {
       const finalBid = reservePrice;
-      const buyerFee = (finalBid * 300n) / 10000n; // 3%
-      const platformFee = (finalBid * 1500n) / 10000n; // 15%
+      const buyerFee = 0n; // auctions currently do not charge an additional buyer fee
+      const platformFee = (finalBid * 2500n) / 10000n; // 25% (secondary sale)
       const royalty = (finalBid * 1000n) / 10000n; // 10%
       const sellerProceeds = finalBid - platformFee - royalty;
 
@@ -308,7 +308,6 @@ describe("EndlessMoltAuction", function () {
 
     it("Should not allow settling before end time", async function () {
       // Create new auction
-      await nft.whitelistAgent(seller.address);
       await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
       await nft.connect(seller).approve(auction.target, 2);
 
@@ -328,7 +327,6 @@ describe("EndlessMoltAuction", function () {
 
     it("Should not allow settling auction with no bids", async function () {
       // Create new auction with no bids
-      await nft.whitelistAgent(seller.address);
       await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
       await nft.connect(seller).approve(auction.target, 2);
 
@@ -343,7 +341,7 @@ describe("EndlessMoltAuction", function () {
 
       await expect(
         auction.connect(bidder1).settleAuction(newAuctionId)
-      ).to.be.revertedWith("No valid bids");
+      ).to.be.revertedWith("Reserve price not met");
     });
 
     it("Should not allow settling twice", async function () {
