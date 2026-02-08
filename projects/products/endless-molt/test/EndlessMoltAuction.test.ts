@@ -284,7 +284,7 @@ describe("EndlessMoltAuction", function () {
     it("Should distribute funds correctly with fees and royalties", async function () {
       const finalBid = reservePrice;
       const buyerFee = 0n; // auctions currently do not charge an additional buyer fee
-      const platformFee = (finalBid * 2500n) / 10000n; // 25% (secondary sale)
+      const platformFee = (finalBid * 500n) / 10000n; // 5% (secondary sale)
       const royalty = (finalBid * 1000n) / 10000n; // 10%
       const sellerProceeds = finalBid - platformFee - royalty;
 

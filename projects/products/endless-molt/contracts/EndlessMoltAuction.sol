@@ -13,13 +13,13 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * - 15-minute extension rule: bids in last 15 minutes extend auction by 15 minutes
  * - Minimum bid increment: 5%
  * - Automatic refund of previous bidders
- * - Platform fee: 50% primary / 25% secondary
+ * - Platform fee: 12.5% primary / 5% secondary
  * - Buyer fee: currently 0% (auctions settle from bid amount; no extra payment step)
  */
 contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
-    // Platform fee: 50% primary (5000 bps), 25% secondary (2500 bps)
-    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 5000;
-    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 2500;
+    // Platform fee (in basis points) collected by the marketplace.
+    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 1250; // 12.5%
+    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 500; // 5%
 
     // Buyer fee: currently 0% (see note above)
     uint96 private constant BUYER_FEE_PERCENTAGE = 0;
@@ -164,8 +164,8 @@ contract EndlessMoltAuction is Ownable, ReentrancyGuard, Pausable {
         auction.highestBidder = msg.sender;
 
         // Check if extension is needed (last 15 minutes)
-        uint256 timeRemaining = auction.endTime - block.timestamp;
-        if (timeRemaining < EXTENSION_TIME) {
+        uint256 remaining = auction.endTime - block.timestamp;
+        if (remaining < EXTENSION_TIME) {
             auction.endTime += EXTENSION_TIME;
             auction.extensionCount++;
             emit AuctionExtended(auctionId, auction.endTime, auction.extensionCount);

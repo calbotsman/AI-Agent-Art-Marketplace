@@ -113,8 +113,8 @@ describe("EndlessMoltMarketplace", function () {
 
     it("Should transfer correct amounts with fees and royalties", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
-      const buyerFee = (price * 300n) / 10000n; // 3%
-      const platformFee = (price * 2500n) / 10000n; // 25% (secondary sale)
+      const buyerFee = 0n;
+      const platformFee = (price * 500n) / 10000n; // 5% (secondary sale)
       const royalty = (price * 1000n) / 10000n; // 10%
       const sellerProceeds = price - platformFee - royalty;
 
@@ -137,7 +137,8 @@ describe("EndlessMoltMarketplace", function () {
     });
 
     it("Should not allow buying with insufficient payment", async function () {
-      const insufficientPayment = price; // Missing buyer fee
+      // With buyer fee disabled, any underpayment should revert.
+      const insufficientPayment = price - 1n;
 
       await expect(
         marketplace.connect(buyer).buyNFT(listingId, { value: insufficientPayment })
@@ -190,8 +191,8 @@ describe("EndlessMoltMarketplace", function () {
 
     it("Should emit Sale event with correct parameters", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
-      const buyerFee = (price * 300n) / 10000n;
-      const platformFee = (price * 2500n) / 10000n; // secondary sale
+      const buyerFee = 0n;
+      const platformFee = (price * 500n) / 10000n; // secondary sale
       const royalty = (price * 1000n) / 10000n;
 
       await expect(marketplace.connect(buyer).buyNFT(listingId, { value: totalPrice }))

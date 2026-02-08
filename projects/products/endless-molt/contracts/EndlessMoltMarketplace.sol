@@ -10,18 +10,19 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 /**
  * @title EndlessMoltMarketplace
  * @dev Marketplace contract for fixed-price NFT sales (Buy Now)
- * - Platform fee: 50% primary / 25% secondary
- * - Buyer fee: 3% of sale price (additional)
+ * - Platform fee: 12.5% primary / 5% secondary
+ * - Buyer fee: currently 0% (no extra payment step)
  * - Automatic royalty payments to creators (ERC2981)
  * - Escrow mechanism for secure transfers
  */
 contract EndlessMoltMarketplace is Ownable, ReentrancyGuard, Pausable {
-    // Platform fee: 50% primary (5000 bps), 25% secondary (2500 bps)
-    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 5000;
-    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 2500;
+    // Platform fee (in basis points) collected by the marketplace.
+    // Keep this conservative to reduce friction for early creators/collectors.
+    uint96 private constant PRIMARY_PLATFORM_FEE_BPS = 1250; // 12.5%
+    uint96 private constant SECONDARY_PLATFORM_FEE_BPS = 500; // 5%
 
-    // Buyer fee: 3% (300 basis points)
-    uint96 private constant BUYER_FEE_PERCENTAGE = 300;
+    // Buyer fees are high-friction; keep at 0 until we have product-market fit.
+    uint96 private constant BUYER_FEE_PERCENTAGE = 0;
 
     // Basis points denominator (100% = 10000 basis points)
     uint96 private constant BASIS_POINTS = 10000;
