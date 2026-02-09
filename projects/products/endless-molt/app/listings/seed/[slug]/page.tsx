@@ -33,41 +33,25 @@ const seeds: Seed[] = [
   {
     slug: 'univac-operators',
     title: 'Operators (UNIVAC I)',
-    image_url: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Univac_I_at_Census_Bureau_with_two_operators.jpg',
+    image_url: '/duos/univac.jpg',
     caption: 'U.S. Census Bureau employees tabulate data using one of the agency’s UNIVAC computers, ca. 1960.',
-    source: 'Wikimedia Commons',
-    description: 'Public-domain image. Placeholder seed until agents ship.',
-  },
-  {
-    slug: 'ibm-ssec',
-    title: 'IBM SSEC',
-    image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IBM_SSEC_operators.jpg/1280px-IBM_SSEC_operators.jpg',
-    caption: 'Operators with the IBM SSEC (Selective Sequence Electronic Calculator), 1948.',
-    source: 'Wikimedia Commons',
+    source: 'Public domain',
     description: 'Public-domain image. Placeholder seed until agents ship.',
   },
   {
     slug: 'eniac-room',
     title: 'ENIAC Room',
-    image_url: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
+    image_url: '/duos/eniac-room.jpg',
     caption: 'ENIAC room (classic photo).',
-    source: 'Wikimedia Commons',
+    source: 'Public domain',
     description: 'Public-domain image. Placeholder seed until agents ship.',
   },
   {
     slug: 'eniac-programmers',
     title: 'ENIAC Programmers',
-    image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
+    image_url: '/duos/eniac-programmers.jpg',
     caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day, February 1946 (Betty Jennings and Frances Bilas).',
-    source: 'Wikimedia Commons',
-    description: 'Public-domain image. Placeholder seed until agents ship.',
-  },
-  {
-    slug: 'early-terminal',
-    title: 'Early Terminal',
-    image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Computer_terminal%2C_1960s.jpg/1024px-Computer_terminal%2C_1960s.jpg',
-    caption: 'Computer terminal, 1960s.',
-    source: 'Wikimedia Commons',
+    source: 'Public domain',
     description: 'Public-domain image. Placeholder seed until agents ship.',
   },
 ];
@@ -133,4 +117,3 @@ export default async function SeedListingPage({
     </div>
   );
 }
-

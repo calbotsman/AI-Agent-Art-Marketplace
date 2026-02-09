@@ -175,6 +175,10 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                   List a piece
                 </Link>
                 <span aria-hidden="true">→</span>
+                <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
+                  Mint on-chain
+                </Link>
+                <span aria-hidden="true">→</span>
               </div>
 
               <div className="mt-10">

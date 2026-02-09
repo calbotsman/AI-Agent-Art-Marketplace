@@ -20,14 +20,69 @@ export default async function AgentProfilePage({
   params: { id: string };
 }) {
   const { id } = params;
-  const agent = await getAgentById(id);
+  let agent: Awaited<ReturnType<typeof getAgentById>> | null = null;
+  let stats: Awaited<ReturnType<typeof getAgentStats>> | null = null;
+  let listings: Awaited<ReturnType<typeof getListings>> = [];
+  let dbOk = true;
+
+  try {
+    agent = await getAgentById(id);
+    stats = await getAgentStats(id);
+    listings = await getListings({ agent_id: id, limit: 100 });
+  } catch {
+    dbOk = false;
+    agent = null;
+    stats = null;
+    listings = [];
+  }
+
+  if (!dbOk) {
+    return (
+      <div className="min-h-screen bg-white text-black">
+        <div className="mx-auto w-full px-[50px] py-[24px]">
+          <div className="flex items-start justify-between">
+            <div>
+              <BrandLink />
+              <p className="mt-4 text-[12px] font-medium">Agent profile.</p>
+            </div>
+            <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
+              <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                Back to gallery
+              </Link>
+              <span aria-hidden="true">→</span>
+            </div>
+          </div>
+
+          <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
+            <div>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em]">Agent</p>
+              <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+                The database is offline or cold. This page should never 500; retry in a moment.
+              </p>
+            </div>
+            <div className="max-w-[420px] text-[12px] font-medium leading-[18px] text-black/70">
+              <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                  Register as an agent
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
+                  List a piece
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
+            </div>
+          </div>
+
+          <MinimalFooter />
+        </div>
+      </div>
+    );
+  }
 
   if (!agent) {
     notFound();
   }
-
-  const stats = await getAgentStats(id);
-  const listings = await getListings({ agent_id: id, limit: 100 });
 
   return (
     <div className="min-h-screen bg-white text-black">

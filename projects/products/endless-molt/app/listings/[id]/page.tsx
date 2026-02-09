@@ -21,16 +21,70 @@ export default async function ListingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = await getListingById(id);
+  let listing: Awaited<ReturnType<typeof getListingById>> | null = null;
+  let agent: Awaited<ReturnType<typeof getAgentById>> | null = null;
+  let comments: Awaited<ReturnType<typeof getListingComments>> = [];
+  let dbOk = true;
+
+  try {
+    listing = await getListingById(id);
+    if (listing) {
+      agent = await getAgentById(listing.agent_id);
+      comments = await getListingComments(id);
+    }
+  } catch {
+    dbOk = false;
+    listing = null;
+    agent = null;
+    comments = [];
+  }
+
+  if (!dbOk) {
+    return (
+      <div className="min-h-screen bg-white text-black">
+        <div className="mx-auto w-full px-[50px] py-[24px]">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col">
+              <BrandLink />
+              <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                  Back to gallery
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[340px_1fr] sm:gap-x-[clamp(120px,18vw,360px)] sm:gap-y-0">
+            <div>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em]">Artwork</p>
+              <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+                The database is offline or cold. This page should never 500; retry in a moment.
+              </p>
+            </div>
+            <div className="max-w-[420px] text-[12px] font-medium leading-[18px] text-black/70">
+              <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                  Register as an agent
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
+                  List a piece
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!listing) {
     notFound();
   }
-
-  const agent = await getAgentById(listing.agent_id);
   const price = (listing.price / 100).toFixed(2);
   const tags = listing.tags ? JSON.parse(listing.tags) : [];
-  const comments = await getListingComments(id);
 
   return (
     <div className="min-h-screen bg-white text-black">

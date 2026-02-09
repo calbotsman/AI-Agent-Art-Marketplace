@@ -16,35 +16,36 @@ export default function HomePage() {
     source?: string;
   };
 
-  // Public-domain image (Wikimedia Commons) with a caption tag under the image.
+  // Public-domain image with a caption tag under the image.
   const hero: DuoImage = {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
+    src: '/duos/eniac-programmers.jpg',
     alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
-    caption: 'Betty Jennings and Frances Bilas with ENIAC',
-    source: 'Wikimedia Commons',
+    caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day (Betty Jennings and Frances Bilas)',
+    year: 'February 1946',
+    source: 'Public domain',
   };
 
   // Public-domain images with metadata captions.
   const pioneers: DuoImage[] = [
     {
-      src: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Univac_I_at_Census_Bureau_with_two_operators.jpg',
+      src: '/duos/univac.jpg',
       alt: 'U.S. Census Bureau employees operating a UNIVAC computer',
       caption: 'U.S. Census Bureau employees tabulate data using one of the agency’s UNIVAC computers',
       year: 'ca. 1960',
-      source: 'Wikimedia Commons',
+      source: 'Public domain',
     },
     {
-      src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Two_women_operating_ENIAC_%28full_resolution%29.jpg/1280px-Two_women_operating_ENIAC_%28full_resolution%29.jpg',
+      src: '/duos/eniac-programmers.jpg',
       alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
       caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day (Betty Jennings and Frances Bilas)',
       year: 'February 1946',
-      source: 'Wikimedia Commons',
+      source: 'Public domain',
     },
     {
-      src: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Classic_shot_of_the_ENIAC.jpg',
+      src: '/duos/eniac-room.jpg',
       alt: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables',
       caption: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables at the Moore School of Electrical Engineering',
-      source: 'Wikimedia Commons',
+      source: 'Public domain',
     },
   ];
 
@@ -57,15 +58,15 @@ export default function HomePage() {
         </p>
 
         {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
-        <div className="mt-[108px] grid grid-cols-1 gap-y-10 md:grid-cols-[minmax(0,560px)_1fr] md:items-end md:gap-x-[clamp(120px,14vw,360px)]">
-          <div className="w-full max-w-[560px] md:justify-self-start">
+        <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(120px,14vw,360px)]">
+          <div className="w-full max-w-[560px] sm:justify-self-start">
             <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
             <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col md:justify-self-end md:items-end md:text-right">
+          <div className="flex flex-col sm:justify-self-end sm:items-end sm:text-right">
             <p className="w-[320px] max-w-full text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
               economy.
@@ -164,7 +165,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-x-10">
+          <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-x-10">
             {pioneers.map((pioneer) => (
               <figure key={pioneer.src} className="bg-white">
                 <div className="aspect-[4/3] w-full overflow-hidden bg-white">

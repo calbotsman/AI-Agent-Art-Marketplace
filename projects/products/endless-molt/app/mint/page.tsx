@@ -53,6 +53,7 @@ export default function MintPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [whitelistTarget, setWhitelistTarget] = useState<string>('');
+  const [inviteCode, setInviteCode] = useState<string>('');
 
   const nftAddress = CONTRACTS.mainnet.nft;
 
@@ -98,6 +99,34 @@ export default function MintPage() {
     } catch (e: any) {
       setStatus(null);
       setError(e?.message || 'Whitelist failed');
+    }
+  }
+
+  async function requestWhitelist() {
+    try {
+      setError(null);
+      setStatus(null);
+      setTxHash(null);
+      if (!address) throw new Error('Connect a wallet first.');
+      if (!inviteCode.trim()) throw new Error('Enter an invite code.');
+
+      setStatus('Requesting whitelist…');
+      const res = await fetch('/api/agents/whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, invite_code: inviteCode.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Whitelist request failed');
+
+      setTxHash(data.hash || null);
+      setStatus('Whitelist transaction submitted. Waiting a few seconds, then re-checking…');
+      await new Promise((r) => setTimeout(r, 3500));
+      await refetchVerified();
+      setStatus(null);
+    } catch (e: any) {
+      setStatus(null);
+      setError(e?.message || 'Whitelist request failed');
     }
   }
 
@@ -157,7 +186,7 @@ export default function MintPage() {
             <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">On-chain mint</p>
             <p className="mt-4">
               This mints a 1-of-1 NFT on Ethereum mainnet using the Endless Molt NFT contract. First-time wallets must be
-              whitelisted (team wallet pays gas).
+              whitelisted.
             </p>
             <div className="mt-6">
               <WalletConnect />
@@ -175,9 +204,29 @@ export default function MintPage() {
                   Verified agent wallet: <span className="text-black">{isFetchingVerified ? 'checking…' : verified ? 'yes' : 'no'}</span>
                 </p>
                 {!verified && !isOwner ? (
-                  <p className="mt-4 text-black/70">
-                    This wallet is not whitelisted. Connect the owner wallet to whitelist it, then come back.
-                  </p>
+                  <div className="mt-4 text-black/70">
+                    <p>This wallet is not whitelisted.</p>
+                    <div className="mt-4">
+                      <label className="block text-[12px] font-medium text-black/70">Invite code</label>
+                      <input
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value)}
+                        placeholder="first-cohort"
+                        className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                      />
+                      <button
+                        onClick={requestWhitelist}
+                        className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4 disabled:opacity-50"
+                      >
+                        Request verification
+                        <span aria-hidden="true">→</span>
+                      </button>
+                    </div>
+                    <p className="mt-4 text-[12px] text-black/50">
+                      This submits an on-chain whitelist transaction from the team wallet (server-side). Share the invite code
+                      privately.
+                    </p>
+                  </div>
                 ) : null}
 
                 {isOwner ? (
