@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { useAccount, useReadContract, useSignMessage, useWriteContract } from 'wagmi';
+import { useEffect, useState } from 'react';
+import { useAccount, useReadContract, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { parseAbi } from 'viem';
 import { BrandLink } from '@/components/BrandLink';
@@ -15,29 +15,32 @@ const NFT_ABI = parseAbi([
   'function verifiedAgents(address) view returns (bool)',
   'function whitelistAgent(address agent)',
   'function mint(address to, string metadataURI, address creator) returns (uint256)',
-  'event NFTMinted(uint256 indexed tokenId, address indexed creator, address indexed to, string metadataURI)',
 ]);
 
 const OWNER_ADDRESS = '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B' as const;
 
-function base64EncodeUtf8(input: string) {
-  // Browser-safe base64 for arbitrary UTF-8.
-  return btoa(unescape(encodeURIComponent(input)));
+type StorageMode = 'ipfs' | 'url' | 'onchain_minimal';
+
+function escapeXml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
-function makeMetadataDataUri(input: {
-  name: string;
-  description: string;
-  image: string;
-  attributes?: Array<{ trait_type: string; value: string }>;
-}) {
-  const json = {
-    name: input.name,
-    description: input.description,
-    image: input.image,
-    attributes: input.attributes || [],
-  };
-  const encoded = base64EncodeUtf8(JSON.stringify(json));
+function makeTinyOnchainTokenUri(input: { name: string; description: string }) {
+  // Still stored in contract storage. Keep tiny or the gas will spike.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect width="100%" height="100%" fill="#fff"/><text x="64" y="140" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="64" fill="#000">${escapeXml(
+    input.name,
+  )}</text><text x="64" y="240" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="32" fill="#000">${escapeXml(
+    input.description.slice(0, 120),
+  )}</text></svg>`;
+
+  const image = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  const json = { name: input.name, description: input.description, image };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(json))));
   return `data:application/json;base64,${encoded}`;
 }
 
@@ -47,13 +50,17 @@ export default function MintPage() {
 
   const [title, setTitle] = useState('Monochrome Field (Genesis)');
   const [description, setDescription] = useState('A monochrome type field to prove the pipe. Replace with real work.');
-  const [imageUrl, setImageUrl] = useState('https://dummyimage.com/1400x1400/000/fff.png?text=ENDLESS%20MOLT');
-  const [priceEth, setPriceEth] = useState('0.02');
+
+  const [storageMode, setStorageMode] = useState<StorageMode>('ipfs');
+  const [file, setFile] = useState<File | null>(null);
+  const [tokenUri, setTokenUri] = useState('');
+
+  const [inviteCode, setInviteCode] = useState<string>('');
+  const [whitelistTarget, setWhitelistTarget] = useState<string>('');
+
   const [txHash, setTxHash] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [whitelistTarget, setWhitelistTarget] = useState<string>('');
-  const [inviteCode, setInviteCode] = useState<string>('');
 
   const nftAddress = CONTRACTS.mainnet.nft;
 
@@ -73,32 +80,30 @@ export default function MintPage() {
     setError(null);
   }, [address, chainId]);
 
-  async function whitelistWallet() {
+  async function uploadToIpfs() {
     try {
       setError(null);
-      if (!isOwner) {
-        throw new Error(`Only the owner wallet can whitelist. Connect ${OWNER_ADDRESS}.`);
-      }
-      const target = whitelistTarget.trim();
-      if (!/^0x[a-fA-F0-9]{40}$/.test(target)) {
-        throw new Error('Enter a valid EVM address to whitelist.');
-      }
+      setStatus(null);
+      setTxHash(null);
 
-      setStatus('Submitting whitelist transaction…');
-      const hash = await writeContractAsync({
-        address: nftAddress as `0x${string}`,
-        abi: NFT_ABI,
-        functionName: 'whitelistAgent',
-        args: [target as `0x${string}`],
-      });
-      setTxHash(hash);
-      setStatus('Waiting for confirmation…');
-      await waitForTransactionReceipt(wagmiConfig, { hash });
-      setStatus('Whitelisted.');
+      if (!file) throw new Error('Choose an image file first.');
+      if (!title.trim()) throw new Error('Title required.');
+
+      setStatus('Uploading to IPFS…');
+      const form = new FormData();
+      form.append('file', file);
+      form.append('title', title.trim());
+      form.append('description', description.trim());
+
+      const res = await fetch('/api/ipfs/pin', { method: 'POST', body: form });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok) throw new Error((data && data.error) || `Upload failed (HTTP ${res.status})`);
+
+      setTokenUri(data.tokenUri || '');
       setStatus(null);
     } catch (e: any) {
       setStatus(null);
-      setError(e?.message || 'Whitelist failed');
+      setError(e?.message || 'Upload failed');
     }
   }
 
@@ -133,23 +138,58 @@ export default function MintPage() {
     }
   }
 
+  async function whitelistWallet() {
+    try {
+      setError(null);
+      if (!isOwner) {
+        throw new Error(`Only the owner wallet can whitelist. Connect ${OWNER_ADDRESS}.`);
+      }
+      const target = whitelistTarget.trim();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(target)) {
+        throw new Error('Enter a valid EVM address to whitelist.');
+      }
+
+      setStatus('Submitting whitelist transaction…');
+      const hash = await writeContractAsync({
+        address: nftAddress as `0x${string}`,
+        abi: NFT_ABI,
+        functionName: 'whitelistAgent',
+        args: [target as `0x${string}`],
+      });
+
+      setTxHash(hash);
+      setStatus('Waiting for confirmation…');
+      await waitForTransactionReceipt(wagmiConfig, { hash });
+      setStatus(null);
+    } catch (e: any) {
+      setStatus(null);
+      setError(e?.message || 'Whitelist failed');
+    }
+  }
+
   async function mintNow() {
     try {
       setError(null);
       setStatus('Submitting mint transaction…');
       setTxHash(null);
 
-      const tokenUri = makeMetadataDataUri({
-        name: title.trim() || 'Untitled',
-        description: description.trim() || '',
-        image: imageUrl.trim(),
-      });
+      const name = title.trim() || 'Untitled';
+      const desc = description.trim() || '';
+      const uri =
+        storageMode === 'onchain_minimal'
+          ? makeTinyOnchainTokenUri({ name, description: desc })
+          : tokenUri.trim();
+
+      if (!uri) throw new Error('Token URI is empty. Upload to IPFS or paste a metadata URL.');
+      if (storageMode !== 'onchain_minimal' && !(uri.startsWith('ipfs://') || uri.startsWith('https://') || uri.startsWith('http://'))) {
+        throw new Error('Token URI must be ipfs:// or https://');
+      }
 
       const hash = await writeContractAsync({
         address: nftAddress as `0x${string}`,
         abi: NFT_ABI,
         functionName: 'mint',
-        args: [address as `0x${string}`, tokenUri, address as `0x${string}`],
+        args: [address as `0x${string}`, uri, address as `0x${string}`],
       });
 
       setTxHash(hash);
@@ -160,12 +200,6 @@ export default function MintPage() {
       setStatus(null);
       setError(e?.shortMessage || e?.message || 'Mint failed');
     }
-  }
-
-  async function approveAndList() {
-    // Marketplace integration is not wired yet (marketplace uses bytes32 listing IDs and expects ERC721 approvals).
-    // Leaving placeholder so we can ship mint first without blocking.
-    setError('Listing on-chain is not wired yet. Mint is live; listing will be the next step.');
   }
 
   return (
@@ -188,24 +222,24 @@ export default function MintPage() {
           <div className="text-[12px] font-medium leading-[18px] text-black/70">
             <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">On-chain mint</p>
             <p className="mt-4">
-              This mints a 1-of-1 NFT on Ethereum mainnet using the Endless Molt NFT contract. First-time wallets must be
-              whitelisted.
+              Mainnet mint writes your token URI into contract storage. If you paste a huge base64 URI, gas will explode.
+              Use IPFS or a short URL.
             </p>
             <div className="mt-6">
               <WalletConnect />
             </div>
 
-            {needsMainnet ? (
-              <p className="mt-4 text-red-600">Switch your wallet to Ethereum mainnet to mint.</p>
-            ) : null}
+            {needsMainnet ? <p className="mt-4 text-red-600">Switch your wallet to Ethereum mainnet to mint.</p> : null}
 
             {isConnected && address ? (
               <div className="mt-6">
                 <p className="text-black/70">Wallet</p>
                 <p className="mt-1 font-medium text-black">{address}</p>
                 <p className="mt-3 text-black/70">
-                  Verified agent wallet: <span className="text-black">{isFetchingVerified ? 'checking…' : verified ? 'yes' : 'no'}</span>
+                  Verified agent wallet:{' '}
+                  <span className="text-black">{isFetchingVerified ? 'checking…' : verified ? 'yes' : 'no'}</span>
                 </p>
+
                 {!verified && !isOwner ? (
                   <div className="mt-4 text-black/70">
                     <p>This wallet is not whitelisted.</p>
@@ -214,7 +248,7 @@ export default function MintPage() {
                       <input
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
-                        placeholder="first-cohort"
+                        placeholder="first-cohort-2026"
                         className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
                       />
                       <button
@@ -225,10 +259,6 @@ export default function MintPage() {
                         <span aria-hidden="true">→</span>
                       </button>
                     </div>
-                    <p className="mt-4 text-[12px] text-black/50">
-                      This submits an on-chain whitelist transaction from the team wallet (server-side). Share the invite code
-                      privately.
-                    </p>
                   </div>
                 ) : null}
 
@@ -276,6 +306,36 @@ export default function MintPage() {
           <div className="max-w-[760px]">
             <div className="grid grid-cols-1 gap-6">
               <div>
+                <label className="block text-[12px] font-medium text-black/70">Storage</label>
+                <div className="mt-3 flex flex-wrap items-center gap-6 text-[12px] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setStorageMode('ipfs')}
+                    className={storageMode === 'ipfs' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
+                  >
+                    IPFS (recommended)
+                  </button>
+                  <span aria-hidden="true">→</span>
+                  <button
+                    type="button"
+                    onClick={() => setStorageMode('url')}
+                    className={storageMode === 'url' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
+                  >
+                    Metadata URL
+                  </button>
+                  <span aria-hidden="true">→</span>
+                  <button
+                    type="button"
+                    onClick={() => setStorageMode('onchain_minimal')}
+                    className={storageMode === 'onchain_minimal' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
+                  >
+                    On-chain minimal (expensive)
+                  </button>
+                  <span aria-hidden="true">→</span>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-[12px] font-medium text-black/70">Title</label>
                 <input
                   value={title}
@@ -283,6 +343,7 @@ export default function MintPage() {
                   className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
                 />
               </div>
+
               <div>
                 <label className="block text-[12px] font-medium text-black/70">Description</label>
                 <textarea
@@ -292,16 +353,57 @@ export default function MintPage() {
                   className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
                 />
               </div>
+
               <div>
-                <label className="block text-[12px] font-medium text-black/70">Image URL</label>
-                <input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
-                />
-                <p className="mt-2 text-[12px] text-black/50">
-                  This URL will be stored in the token metadata (data URI). Use a stable URL.
-                </p>
+                <label className="block text-[12px] font-medium text-black/70">
+                  {storageMode === 'ipfs' ? 'Upload image' : storageMode === 'url' ? 'Token URI' : 'Token URI'}
+                </label>
+
+                {storageMode === 'ipfs' ? (
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="block w-full text-[12px] font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={uploadToIpfs}
+                      className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4"
+                    >
+                      Upload to IPFS
+                      <span aria-hidden="true">→</span>
+                    </button>
+                    <p className="mt-3 text-[12px] text-black/50">
+                      Requires `PINATA_JWT` set in Vercel. This pins the image + metadata JSON, then sets `ipfs://...` as the token URI.
+                    </p>
+                    {tokenUri ? (
+                      <div className="mt-4">
+                        <p className="text-[12px] font-medium text-black/70">Token URI</p>
+                        <div className="mt-2 border border-black/10 bg-white px-4 py-3 font-mono text-[12px] text-black break-all">
+                          {tokenUri}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : storageMode === 'url' ? (
+                  <div className="mt-2">
+                    <input
+                      value={tokenUri}
+                      onChange={(e) => setTokenUri(e.target.value)}
+                      className="w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                      placeholder="ipfs://... or https://.../metadata.json"
+                    />
+                    <p className="mt-2 text-[12px] text-black/50">Keep it short. This is stored in contract storage.</p>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <p className="text-[12px] font-medium text-black/60">
+                      Mint will generate a tiny on-chain SVG token URI. Still costs mainnet gas. Use sparingly.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
@@ -311,14 +413,6 @@ export default function MintPage() {
                   className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
                 >
                   Mint now
-                </button>
-                <span aria-hidden="true">→</span>
-                <button
-                  onClick={approveAndList}
-                  disabled={!isConnected || needsMainnet || isWriting}
-                  className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-                >
-                  List for sale (next)
                 </button>
                 <span aria-hidden="true">→</span>
                 <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
@@ -335,3 +429,4 @@ export default function MintPage() {
     </div>
   );
 }
+
