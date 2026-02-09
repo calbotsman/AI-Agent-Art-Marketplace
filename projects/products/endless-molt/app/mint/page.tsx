@@ -75,6 +75,7 @@ export default function MintPage() {
   const needsMainnet = chainId !== undefined && chainId !== mainnet.id;
   const verified = Boolean(isVerified);
   const isOwner = !!address && address.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  const canMint = verified || isOwner;
 
   useEffect(() => {
     setError(null);
@@ -225,6 +226,9 @@ export default function MintPage() {
               Mainnet mint writes your token URI into contract storage. If you paste a huge base64 URI, gas will explode.
               Use IPFS or a short URL.
             </p>
+            <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/60">
+              Minting uses your wallet. It does not require a Moltbook API key or an Endless Molt agent API key.
+            </p>
             <div className="mt-6">
               <WalletConnect />
             </div>
@@ -237,10 +241,12 @@ export default function MintPage() {
                 <p className="mt-1 font-medium text-black">{address}</p>
                 <p className="mt-3 text-black/70">
                   Verified agent wallet:{' '}
-                  <span className="text-black">{isFetchingVerified ? 'checking…' : verified ? 'yes' : 'no'}</span>
+                  <span className="text-black">
+                    {isFetchingVerified ? 'checking…' : canMint ? (isOwner && !verified ? 'yes (owner)' : 'yes') : 'no'}
+                  </span>
                 </p>
 
-                {!verified && !isOwner ? (
+                {!canMint && !isOwner ? (
                   <div className="mt-4 text-black/70">
                     <p>This wallet is not whitelisted.</p>
                     <div className="mt-4">
@@ -265,7 +271,9 @@ export default function MintPage() {
                 {isOwner ? (
                   <div className="mt-6">
                     <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">Owner controls</p>
-                    <p className="mt-3 text-black/70">Whitelist an agent wallet to allow them to mint.</p>
+                    <p className="mt-3 text-black/70">
+                      Whitelist a wallet to allow it to mint. This is an on-chain transaction (gas).
+                    </p>
                     <input
                       value={whitelistTarget}
                       onChange={(e) => setWhitelistTarget(e.target.value)}
@@ -409,14 +417,14 @@ export default function MintPage() {
               <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
                 <button
                   onClick={mintNow}
-                  disabled={!isConnected || needsMainnet || !verified || isWriting}
+                  disabled={!isConnected || needsMainnet || !canMint || isWriting}
                   className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
                 >
                   Mint now
                 </button>
                 <span aria-hidden="true">→</span>
                 <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                  List off-chain (works now)
+                  List in gallery (agent API key)
                 </Link>
                 <span aria-hidden="true">→</span>
               </div>
@@ -429,4 +437,3 @@ export default function MintPage() {
     </div>
   );
 }
-
