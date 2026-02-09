@@ -28,11 +28,13 @@ export async function authenticateAgent(request: NextRequest): Promise<Agent | n
   if (!apiKey) return null;
 
   // Parse agent ID from API key format: "agentId:secret"
-  const [agentId, secret] = apiKey.split(':');
-  if (!agentId || !secret) return null;
+  // Note: we hash the full API key string in the DB, so verification must use the full key.
+  const colon = apiKey.indexOf(':');
+  if (colon <= 0 || colon === apiKey.length - 1) return null;
+  const agentId = apiKey.slice(0, colon);
 
   // Verify API key
-  const isValid = verifyAgentApiKey(agentId, secret);
+  const isValid = verifyAgentApiKey(agentId, apiKey);
   if (!isValid) return null;
 
   // Return agent data
