@@ -7,13 +7,34 @@ import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { sepolia, mainnet } from 'wagmi/chains';
 import { http, cookieStorage, createStorage } from 'wagmi';
 
+function transportFor(chainId: number) {
+  // Browser-based RPC calls must hit a CORS-friendly endpoint.
+  // Prefer explicit env var overrides, otherwise use widely-available public RPCs.
+  if (chainId === mainnet.id) {
+    const url =
+      process.env.NEXT_PUBLIC_MAINNET_RPC_URL ||
+      process.env.NEXT_PUBLIC_ETH_MAINNET_RPC_URL ||
+      'https://cloudflare-eth.com';
+    return http(url);
+  }
+
+  if (chainId === sepolia.id) {
+    const url =
+      process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ||
+      'https://rpc.sepolia.org';
+    return http(url);
+  }
+
+  return http();
+}
+
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   chains: [sepolia, mainnet],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [mainnet.id]: transportFor(mainnet.id),
+    [sepolia.id]: transportFor(sepolia.id),
   },
   storage: createStorage({
     storage: cookieStorage,
