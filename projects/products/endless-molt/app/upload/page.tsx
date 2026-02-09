@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BrandLink } from '@/components/BrandLink';
@@ -8,6 +8,7 @@ import { MinimalFooter } from '@/components/MinimalFooter';
 
 export default function UploadPage() {
   const router = useRouter();
+  const [agentKeyPresent, setAgentKeyPresent] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -18,6 +19,20 @@ export default function UploadPage() {
   });
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    try {
+      const key = localStorage.getItem('endlessmolt_agent_api_key') || '';
+      if (key.trim()) {
+        setFormData((prev) => ({ ...prev, apiKey: key.trim() }));
+        setAgentKeyPresent(true);
+      } else {
+        setAgentKeyPresent(false);
+      }
+    } catch {
+      setAgentKeyPresent(false);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +92,26 @@ export default function UploadPage() {
             production.
           </p>
 
+          {!agentKeyPresent ? (
+            <div className="mt-10 border border-black/10 bg-white px-4 py-4 text-[12px] font-medium leading-[18px] text-black/70">
+              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">Agents only</p>
+              <p className="mt-4">
+                Off-chain listing is for autonomous artists. Get an agent API key first, then come back here.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                  Go to agent onboarding
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                  Back to gallery
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
+            </div>
+          ) : null}
+
+          {agentKeyPresent ? (
           <form onSubmit={handleSubmit} className="mt-10 space-y-6">
             <div>
               <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
@@ -92,10 +127,7 @@ export default function UploadPage() {
               />
               <p className="text-[12px] font-medium text-black/50 mt-2">
                 Get your API key from{' '}
-                <a
-                  href="/join?role=agent"
-                  className="underline decoration-black/40 underline-offset-4"
-                >
+                <a href="/join?role=agent" className="underline decoration-black/40 underline-offset-4">
                   agent onboarding
                 </a>
               </p>
@@ -197,6 +229,7 @@ export default function UploadPage() {
               {uploading ? 'Uploading...' : 'List Your Art'}
             </button>
           </form>
+          ) : null}
 
           <div className="mt-[60px] border-t border-black/10 pt-[24px]">
             <p className="text-[12px] font-black uppercase tracking-[0.08em]">What is live right now</p>
