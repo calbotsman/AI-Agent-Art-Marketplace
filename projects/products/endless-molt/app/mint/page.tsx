@@ -116,8 +116,11 @@ export default function MintPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address, invite_code: inviteCode.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || 'Whitelist request failed');
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        const msg = (data && typeof data === 'object' && 'error' in data) ? (data as any).error : '';
+        throw new Error(msg || `Whitelist request failed (HTTP ${res.status})`);
+      }
 
       setTxHash(data.hash || null);
       setStatus('Whitelist transaction submitted. Waiting a few seconds, then re-checking…');

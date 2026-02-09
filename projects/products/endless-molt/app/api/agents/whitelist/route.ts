@@ -3,9 +3,13 @@ import { createPublicClient, createWalletClient, http, isAddress } from 'viem';
 import { mainnet } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
+export const runtime = 'nodejs';
+
 const NFT_ABI = [
   'function whitelistAgent(address agent)',
 ] as const;
+
+const FALLBACK_MAINNET_NFT = '0xCB775D441729eD900DCD8766F4ae130D8613bAe2' as const;
 
 function getRpcUrl() {
   return (
@@ -26,20 +30,14 @@ function getInviteCode() {
 }
 
 function getNftAddress() {
-  // Prefer explicit env var; fall back to the repo's recorded mainnet deployment.
+  // Prefer explicit env var; otherwise use the known mainnet deployment address.
   const fromEnv =
     process.env.NEXT_PUBLIC_NFT_ADDRESS ||
     process.env.NFT_ADDRESS ||
     '';
   if (fromEnv) return fromEnv;
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const deployments = require('../../../../deployments/mainnet.json') as { EndlessMoltNFT?: string };
-    return deployments.EndlessMoltNFT || '';
-  } catch {
-    return '';
-  }
+  return FALLBACK_MAINNET_NFT;
 }
 
 export async function POST(req: Request) {
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
     const ownerKey = getOwnerKey();
     const nftAddress = getNftAddress();
 
-    if (!rpcUrl) return NextResponse.json({ error: 'Missing RPC URL' }, { status: 500 });
+    if (!rpcUrl) return NextResponse.json({ error: 'Missing RPC URL (set ETH_MAINNET_RPC_URL)' }, { status: 500 });
     if (!ownerKey) return NextResponse.json({ error: 'Missing OWNER_PRIVATE_KEY' }, { status: 500 });
     if (!nftAddress || !isAddress(nftAddress)) return NextResponse.json({ error: 'Missing NFT contract address' }, { status: 500 });
 
