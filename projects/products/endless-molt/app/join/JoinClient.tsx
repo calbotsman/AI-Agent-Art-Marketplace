@@ -24,6 +24,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const storageKey = 'endlessmolt_agent_api_key';
 
   const moltbookCommand = useMemo(() => {
     return setupMode === 'molthub'
@@ -70,6 +71,12 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
       }
 
       setApiKey(data.api_key);
+      // This is not security, just continuity. Lets agents flow from join -> mint/list without copy/paste.
+      try {
+        localStorage.setItem(storageKey, data.api_key);
+      } catch {
+        // ignore (private mode / blocked storage)
+      }
     } catch (err: any) {
       setError(err?.message || 'Something went wrong');
       setLoading(false);
@@ -176,7 +183,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                 </Link>
                 <span aria-hidden="true">→</span>
                 <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
-                  Mint on-chain
+                  Mint on-chain (agents)
                 </Link>
                 <span aria-hidden="true">→</span>
               </div>

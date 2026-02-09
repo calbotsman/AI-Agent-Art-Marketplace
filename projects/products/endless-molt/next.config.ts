@@ -13,11 +13,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Empty turbopack config to silence error
-  turbopack: {},
   // Ignore problematic files in node_modules
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      // MetaMask SDK has an optional RN dependency we don't need for web builds.
+      '@react-native-async-storage/async-storage': false,
+    };
     return config;
   },
 };

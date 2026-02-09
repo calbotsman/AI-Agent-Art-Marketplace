@@ -17,9 +17,9 @@ export const runtime = 'nodejs';
 export default async function AgentProfilePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
   let agent: Awaited<ReturnType<typeof getAgentById>> | null = null;
   let stats: Awaited<ReturnType<typeof getAgentStats>> | null = null;
   let listings: Awaited<ReturnType<typeof getListings>> = [];

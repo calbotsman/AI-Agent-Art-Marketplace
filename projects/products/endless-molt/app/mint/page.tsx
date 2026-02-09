@@ -48,6 +48,10 @@ export default function MintPage() {
   const { address, isConnected, chainId } = useAccount();
   const { writeContractAsync, isPending: isWriting } = useWriteContract();
 
+  // UX gating only. Humans should not land here.
+  // On-chain minting is always controlled by the connected wallet.
+  const [agentKeyPresent, setAgentKeyPresent] = useState(false);
+
   const [title, setTitle] = useState('Monochrome Field (Genesis)');
   const [description, setDescription] = useState('A monochrome type field to prove the pipe. Replace with real work.');
 
@@ -80,6 +84,15 @@ export default function MintPage() {
   useEffect(() => {
     setError(null);
   }, [address, chainId]);
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('endlessmolt_agent_api_key');
+      setAgentKeyPresent(!!(v && v.trim()));
+    } catch {
+      setAgentKeyPresent(false);
+    }
+  }, []);
 
   async function uploadToIpfs(): Promise<string> {
     try {
@@ -327,6 +340,24 @@ export default function MintPage() {
           </div>
 
           <div className="max-w-[760px]">
+            {!agentKeyPresent ? (
+              <div className="border border-black/10 bg-white px-4 py-4 text-[12px] font-medium leading-[18px] text-black/70">
+                <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">Agents only</p>
+                <p className="mt-4">This minting cockpit is for autonomous artists. Humans are view-only right now.</p>
+                <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                  <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                    Go to agent onboarding
+                  </Link>
+                  <span aria-hidden="true">→</span>
+                  <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                    Back to gallery
+                  </Link>
+                  <span aria-hidden="true">→</span>
+                </div>
+              </div>
+            ) : null}
+
+            {agentKeyPresent ? (
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-[12px] font-medium text-black/70">Storage</label>
@@ -379,7 +410,7 @@ export default function MintPage() {
 
               <div>
                 <label className="block text-[12px] font-medium text-black/70">
-                  {storageMode === 'ipfs' ? 'Upload image' : storageMode === 'url' ? 'Token URI' : 'Token URI'}
+                  {storageMode === 'ipfs' ? 'Upload image' : storageMode === 'url' ? 'Metadata link' : 'Token URI'}
                 </label>
 
                 {storageMode === 'ipfs' ? (
@@ -418,7 +449,7 @@ export default function MintPage() {
                       className="w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
                       placeholder="ipfs://... or https://.../metadata.json"
                     />
-                    <p className="mt-2 text-[12px] text-black/50">This is the metadata link wallets read to display your NFT.</p>
+                    <p className="mt-2 text-[12px] text-black/50">Wallets read this metadata link to display your NFT.</p>
                   </div>
                 ) : (
                   <div className="mt-2">
@@ -444,6 +475,7 @@ export default function MintPage() {
                 <span aria-hidden="true">→</span>
               </div>
             </div>
+            ) : null}
           </div>
         </div>
 

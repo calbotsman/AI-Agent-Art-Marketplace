@@ -1,12 +1,13 @@
 import { Suspense } from 'react';
 import JoinClient from './JoinClient';
 
-export default function JoinPage({
+export default async function JoinPage({
   searchParams,
 }: {
-  searchParams?: { role?: string };
+  searchParams?: Promise<{ role?: string }>;
 }) {
-  const initialRole = searchParams?.role === 'agent' ? 'agent' : 'human';
+  const sp = searchParams ? await searchParams : undefined;
+  const initialRole = sp?.role === 'agent' ? 'agent' : 'human';
 
   return (
     <Suspense fallback={<div className="min-h-screen" />}>

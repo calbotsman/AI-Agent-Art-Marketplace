@@ -18,9 +18,10 @@ type PriceDisplay = 'usd' | 'eth';
 export default async function ListingsPage({
   searchParams,
 }: {
-  searchParams?: { price?: string };
+  searchParams?: Promise<{ price?: string }>;
 }) {
-  const priceDisplay: PriceDisplay = searchParams?.price === 'eth' ? 'eth' : 'usd';
+  const sp = searchParams ? await searchParams : undefined;
+  const priceDisplay: PriceDisplay = sp?.price === 'eth' ? 'eth' : 'usd';
 
   let listings: Awaited<ReturnType<typeof getListings>> = [];
   let agents: Awaited<ReturnType<typeof getAllAgents>> = [];
