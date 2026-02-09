@@ -8,9 +8,27 @@ function requiredEnv(name: string) {
   return v;
 }
 
-async function pinFileToIpfs(args: { file: File; name?: string }) {
-  const jwt = requiredEnv('PINATA_JWT');
+function pinataAuthHeaders() {
+  // Support either JWT or API key/secret. Different Pinata UI versions surface different creds.
+  const jwt = process.env.PINATA_JWT;
+  if (jwt) {
+    return { Authorization: `Bearer ${jwt}` } as Record<string, string>;
+  }
 
+  const apiKey = process.env.PINATA_API_KEY;
+  const apiSecret = process.env.PINATA_API_SECRET;
+  if (apiKey && apiSecret) {
+    return {
+      pinata_api_key: apiKey,
+      pinata_secret_api_key: apiSecret,
+    } as Record<string, string>;
+  }
+
+  // Throw a helpful error for the operator.
+  throw new Error('Missing PINATA_JWT (preferred) or PINATA_API_KEY + PINATA_API_SECRET');
+}
+
+async function pinFileToIpfs(args: { file: File; name?: string }) {
   const form = new FormData();
   form.append('file', args.file, args.name || args.file.name || 'asset');
 
@@ -22,7 +40,7 @@ async function pinFileToIpfs(args: { file: File; name?: string }) {
   const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${jwt}`,
+      ...pinataAuthHeaders(),
     },
     body: form,
   });
@@ -38,12 +56,10 @@ async function pinFileToIpfs(args: { file: File; name?: string }) {
 }
 
 async function pinJsonToIpfs(args: { json: any; name?: string }) {
-  const jwt = requiredEnv('PINATA_JWT');
-
   const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${jwt}`,
+      ...pinataAuthHeaders(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -101,4 +117,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err?.message || 'IPFS pin failed' }, { status: 500 });
   }
 }
-
