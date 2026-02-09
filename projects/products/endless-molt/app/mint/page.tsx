@@ -53,7 +53,7 @@ export default function MintPage() {
 
   const [storageMode, setStorageMode] = useState<StorageMode>('ipfs');
   const [file, setFile] = useState<File | null>(null);
-  const [tokenUri, setTokenUri] = useState('');
+  const [tokenUri, setTokenUri] = useState(''); // ipfs://... metadata link
 
   const [inviteCode, setInviteCode] = useState<string>('');
   const [whitelistTarget, setWhitelistTarget] = useState<string>('');
@@ -81,7 +81,7 @@ export default function MintPage() {
     setError(null);
   }, [address, chainId]);
 
-  async function uploadToIpfs() {
+  async function uploadToIpfs(): Promise<string> {
     try {
       setError(null);
       setStatus(null);
@@ -100,11 +100,16 @@ export default function MintPage() {
       const data = await res.json().catch(() => ({} as any));
       if (!res.ok) throw new Error((data && data.error) || `Upload failed (HTTP ${res.status})`);
 
-      setTokenUri(data.tokenUri || '');
+      const uri = String(data.tokenUri || '').trim();
+      if (!uri) throw new Error('IPFS pin succeeded but returned an empty metadata link.');
+
+      setTokenUri(uri);
       setStatus(null);
+      return uri;
     } catch (e: any) {
       setStatus(null);
       setError(e?.message || 'Upload failed');
+      return '';
     }
   }
 
@@ -176,14 +181,24 @@ export default function MintPage() {
 
       const name = title.trim() || 'Untitled';
       const desc = description.trim() || '';
-      const uri =
-        storageMode === 'onchain_minimal'
-          ? makeTinyOnchainTokenUri({ name, description: desc })
-          : tokenUri.trim();
+      let uri = '';
 
-      if (!uri) throw new Error('Token URI is empty. Upload to IPFS or paste a metadata URL.');
+      if (storageMode === 'onchain_minimal') {
+        uri = makeTinyOnchainTokenUri({ name, description: desc });
+      } else if (storageMode === 'ipfs') {
+        // Make mint 1-click: if we have a file but no metadata link yet, pin first.
+        uri = tokenUri.trim();
+        if (!uri) {
+          setStatus('Preparing metadata…');
+          uri = await uploadToIpfs();
+        }
+      } else {
+        uri = tokenUri.trim();
+      }
+
+      if (!uri) throw new Error('Missing metadata link. Upload to IPFS or paste a metadata URL.');
       if (storageMode !== 'onchain_minimal' && !(uri.startsWith('ipfs://') || uri.startsWith('https://') || uri.startsWith('http://'))) {
-        throw new Error('Token URI must be ipfs:// or https://');
+        throw new Error('Metadata link must be ipfs:// or https://');
       }
 
       const hash = await writeContractAsync({
@@ -384,11 +399,11 @@ export default function MintPage() {
                       <span aria-hidden="true">→</span>
                     </button>
                     <p className="mt-3 text-[12px] text-black/50">
-                      Requires `PINATA_JWT` set in Vercel. This pins the image + metadata JSON, then sets `ipfs://...` as the token URI.
+                      This pins the image plus metadata JSON to IPFS and creates a metadata link for minting.
                     </p>
                     {tokenUri ? (
                       <div className="mt-4">
-                        <p className="text-[12px] font-medium text-black/70">Token URI</p>
+                        <p className="text-[12px] font-medium text-black/70">Metadata link (IPFS)</p>
                         <div className="mt-2 border border-black/10 bg-white px-4 py-3 font-mono text-[12px] text-black break-all">
                           {tokenUri}
                         </div>
@@ -403,7 +418,7 @@ export default function MintPage() {
                       className="w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
                       placeholder="ipfs://... or https://.../metadata.json"
                     />
-                    <p className="mt-2 text-[12px] text-black/50">Keep it short. This is stored in contract storage.</p>
+                    <p className="mt-2 text-[12px] text-black/50">This is the metadata link wallets read to display your NFT.</p>
                   </div>
                 ) : (
                   <div className="mt-2">
