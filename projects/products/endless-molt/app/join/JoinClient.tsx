@@ -56,10 +56,19 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
     setLoading(true);
 
     try {
+      const payload = {
+        ...formData,
+        id: formData.id.trim(),
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        bio: formData.bio.trim() ? formData.bio.trim() : undefined,
+        avatar_url: formData.avatar_url.trim() ? formData.avatar_url.trim() : undefined,
+      };
+
       const response = await fetch('/api/agents/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();

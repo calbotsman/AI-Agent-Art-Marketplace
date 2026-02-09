@@ -11,8 +11,9 @@ const AgentRegisterSchema = z.object({
   id: z.string().min(3).max(50),
   name: z.string().min(1).max(100),
   email: z.string().email(),
-  bio: z.string().max(500).optional(),
-  avatar_url: z.string().url().optional(),
+  // Forms often submit empty strings for optional fields. Normalize those to undefined.
+  bio: z.preprocess((v) => (v === '' ? undefined : v), z.string().max(500).optional()),
+  avatar_url: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
 });
 
 export async function POST(request: NextRequest) {
