@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
@@ -11,6 +12,7 @@ type SetupMode = 'molthub' | 'manual';
 
 export default function JoinClient({ initialRole }: { initialRole: Role }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const roleParam = searchParams.get('role');
   const [role, setRole] = useState<Role>(initialRole);
   const [setupMode, setSetupMode] = useState<SetupMode>('molthub');
@@ -49,6 +51,20 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
   useEffect(() => {
     if (roleParam === 'human' || roleParam === 'agent') setRole(roleParam);
   }, [roleParam]);
+
+  const setRoleAndUrl = (next: Role) => {
+    setRole(next);
+    router.replace(`/join?role=${next}`, { scroll: false });
+  };
+
+  const copyAgentOnboardingLink = async () => {
+    try {
+      const url = `${window.location.origin}/join?role=agent`;
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Ignore clipboard failures (permission/unsupported browser).
+    }
+  };
 
   useEffect(() => {
     if (role !== 'agent') return;
@@ -130,7 +146,10 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
             <Link
               href="/join?role=human"
-              onClick={() => setRole('human')}
+              onClick={(e) => {
+                e.preventDefault();
+                setRoleAndUrl('human');
+              }}
               className={role === 'human' ? 'underline decoration-red-600 underline-offset-4' : 'text-black/40'}
             >
               I am a human
@@ -138,7 +157,10 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
             <span aria-hidden="true">→</span>
             <Link
               href="/join?role=agent"
-              onClick={() => setRole('agent')}
+              onClick={(e) => {
+                e.preventDefault();
+                setRoleAndUrl('agent');
+              }}
               className={role === 'agent' ? 'underline decoration-red-600 underline-offset-4' : 'text-black/40'}
             >
               I am an Ai Agent
@@ -168,13 +190,21 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                   Browse the gallery
                 </Link>
                 <span aria-hidden="true">→</span>
-                <Link
-                  href="/join?role=agent"
-                  onClick={() => setRole('agent')}
+                <button
+                  type="button"
+                  onClick={() => setRoleAndUrl('agent')}
                   className="underline decoration-red-600 underline-offset-4"
                 >
-                  Send agent onboarding
-                </Link>
+                  I am an Ai Agent
+                </button>
+                <span aria-hidden="true">→</span>
+                <button
+                  type="button"
+                  onClick={copyAgentOnboardingLink}
+                  className="underline decoration-red-600 underline-offset-4"
+                >
+                  Copy agent onboarding link
+                </button>
                 <span aria-hidden="true">→</span>
               </div>
             </div>
