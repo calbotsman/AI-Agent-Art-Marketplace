@@ -105,6 +105,16 @@ const btnImportHub = document.getElementById('btnImportHub')
 const btnPasteHub = document.getElementById('btnPasteHub')
 const hubFileEl = document.getElementById('hubFile')
 
+// OpenClaw Ops
+const opsSummaryEl = document.getElementById('opsSummary')
+const opsGatewayLineEl = document.getElementById('opsGatewayLine')
+const opsSessionsPathEl = document.getElementById('opsSessionsPath')
+const opsSessionsEl = document.getElementById('opsSessions')
+const opsModelsEl = document.getElementById('opsModels')
+const btnOpsRefresh = document.getElementById('btnOpsRefresh')
+const btnOpsRestartGateway = document.getElementById('btnOpsRestartGateway')
+const btnOpsPullToken = document.getElementById('btnOpsPullToken')
+
 const state = {
   mode: 'talk', // 'talk' | 'ops'
   room: 'velvet', // 'velvet' | 'chrome'
@@ -158,6 +168,101 @@ const state = {
   reconnectTimer: null,
 }
 
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts)
+  const text = await res.text()
+  let json = null
+  try { json = JSON.parse(text) } catch {}
+  return { ok: res.ok, status: res.status, json, text }
+}
+
+function fmtAge(ms) {
+  if (!ms) return '—'
+  const s = Math.max(0, Math.round(ms / 1000))
+  if (s < 60) return `${s}s`
+  const m = Math.round(s / 60)
+  return `${m}m`
+}
+
+function renderOpsStatus(payload) {
+  if (!payload || payload.ok !== true) {
+    if (opsSummaryEl) opsSummaryEl.textContent = '(offline)'
+    if (opsGatewayLineEl) opsGatewayLineEl.textContent = 'Gateway: offline'
+    if (opsSessionsEl) opsSessionsEl.textContent = 'No data.'
+    return
+  }
+
+  const gw = payload.gateway || { ok: false }
+  const sessions = Array.isArray(payload.sessions) ? payload.sessions : []
+  const active = sessions.filter((s) => s.active).length
+  const total = sessions.length
+
+  if (opsSummaryEl) opsSummaryEl.textContent = `(${active} active / ${total})`
+  if (opsGatewayLineEl) opsGatewayLineEl.textContent = gw.ok ? `Gateway: OK (${gw.status})` : `Gateway: FAIL`
+  if (opsSessionsPathEl) opsSessionsPathEl.textContent = payload.sessionsPath ? `Sessions: ${payload.sessionsPath}` : ''
+
+  if (opsSessionsEl) {
+    if (sessions.length === 0) {
+      opsSessionsEl.textContent = 'No sessions found.'
+    } else {
+      const now = Date.now()
+      opsSessionsEl.innerHTML = sessions.slice(0, 20).map((s) => {
+        const age = s.updatedMs ? fmtAge(now - s.updatedMs) : '—'
+        const badge = s.active ? '<span style="color:#7CFFB2">active</span>' : '<span style="opacity:.6">idle</span>'
+        const model = (s.modelProvider && s.model) ? `${s.modelProvider}/${s.model}` : (s.model || '—')
+        const channel = s.channel || s.key || '—'
+        return `
+          <div style="display:flex; gap:10px; align-items:baseline; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="min-width:0; flex:1;">
+              <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${channel}</div>
+              <div style="opacity:.7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${model}</div>
+            </div>
+            <div style="flex:none; text-align:right; white-space:nowrap;">
+              <div>${badge}</div>
+              <div style="opacity:.7;">${age}</div>
+            </div>
+          </div>
+        `
+      }).join('')
+    }
+  }
+}
+
+async function refreshOps() {
+  if (!opsGatewayLineEl && !opsSessionsEl) return
+
+  const st = await fetchJson('/ops/status')
+  if (st.ok && st.json) renderOpsStatus(st.json)
+  else renderOpsStatus({ ok: false })
+
+  // Models are optional; don't block status rendering on it.
+  if (opsModelsEl) {
+    const m = await fetchJson('/ops/models')
+    if (m.ok && m.json) {
+      const out = (m.json.stdout || m.text || '').trim()
+      opsModelsEl.textContent = out || '(no output)'
+    } else {
+      opsModelsEl.textContent = '(models unavailable)'
+    }
+  }
+}
+
+async function restartGateway() {
+  const r = await fetchJson('/ops/gateway/restart', { method: 'POST' })
+  await refreshOps()
+  return r.ok
+}
+
+async function pullTokenFromOpenclaw() {
+  const r = await fetchJson('/ops/gateway-token')
+  if (!r.ok || !r.json?.token) return false
+  state.gatewayToken = r.json.token
+  try { localStorage.setItem('cal.gatewayToken', state.gatewayToken) } catch {}
+  if (gatewayTokenEl) gatewayTokenEl.value = state.gatewayToken
+  renderStatusBar()
+  return true
+}
+
 function setStatus(text) {
   elStatus.textContent = text
   renderPresence()
@@ -207,6 +312,9 @@ function renderMode() {
   document.body.classList.toggle('mode-ops', state.mode === 'ops')
   btnModeTalk?.classList.toggle('primary', state.mode === 'talk')
   btnModeOps?.classList.toggle('primary', state.mode === 'ops')
+
+  // Only poll ops when it's visible.
+  if (state.mode === 'ops') refreshOps()
 }
 
 function renderStatusBar() {
@@ -261,6 +369,14 @@ function derivePresence() {
   if (state.speaking) return 'speaking'
   return 'idle'
 }
+
+// Wire OpenClaw ops controls
+btnOpsRefresh?.addEventListener('click', () => refreshOps())
+btnOpsRestartGateway?.addEventListener('click', () => restartGateway())
+btnOpsPullToken?.addEventListener('click', async () => {
+  const ok = await pullTokenFromOpenclaw()
+  if (!ok) alert('Could not read token from ~/.openclaw/openclaw.json')
+})
 
 function renderPresence() {
   const p = derivePresence()

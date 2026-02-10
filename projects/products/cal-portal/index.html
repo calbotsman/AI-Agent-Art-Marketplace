@@ -189,6 +189,33 @@
 
         <hr class="divider"/>
 
+        <details id="openclawOps" open style="margin-top:12px;">
+          <summary>
+            <span class="laneTag"><span class="laneDot" aria-hidden="true"></span> OpenClaw Ops</span>
+            <span class="mini" id="opsSummary"></span>
+          </summary>
+          <div class="small" style="margin:8px 0;">
+            Local-only visibility into what is running. This reads from <code>~/.openclaw</code>.
+          </div>
+
+          <div style="display:grid; gap:10px;">
+            <div class="row">
+              <button id="btnOpsRefresh" class="primary">Refresh</button>
+              <button id="btnOpsRestartGateway">Restart gateway</button>
+              <button id="btnOpsPullToken">Use local token</button>
+            </div>
+
+            <div class="small" id="opsGatewayLine">Gateway: unknown</div>
+            <div class="small" id="opsSessionsPath"></div>
+
+            <div class="small" style="opacity:.8;">Active sessions</div>
+            <div id="opsSessions" class="small"></div>
+
+            <div class="small" style="opacity:.8;">Models</div>
+            <pre id="opsModels" class="small" style="white-space:pre-wrap; word-break:break-word; border:1px solid rgba(255,255,255,0.10); padding:10px; border-radius:12px; background:rgba(255,255,255,0.04); max-height:220px; overflow:auto;"></pre>
+          </div>
+        </details>
+
         <label class="small">You</label>
         <textarea id="input" placeholder="Type or use mic… (try /help)" ></textarea>
 
