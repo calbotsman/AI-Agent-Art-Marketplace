@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="960" viewBox="0 0 1120 960">
+  <rect width="1120" height="960" fill="#ffffff"/>
+
+  <!-- Minimal hero placeholder (never 404). -->
+  <rect x="2" y="2" width="1116" height="956" fill="none" stroke="#0a0a0a" stroke-width="4"/>
+
+  <!-- Subtle “photo field” -->
+  <g opacity="0.08" fill="#0a0a0a">
+    <rect x="80" y="120" width="960" height="720"/>
+  </g>
+
+  <!-- Abstract linework: hinting at a figure + machine without claiming a real photo. -->
+  <g fill="none" stroke="#0a0a0a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
+    <path d="M240 700 C340 560, 420 540, 520 520 C650 495, 730 410, 880 300"/>
+    <path d="M260 250 C390 340, 450 380, 560 420 C650 455, 770 470, 880 520"/>
+    <path d="M340 760 C420 700, 510 670, 600 640 C690 610, 780 560, 860 490"/>
+    <path d="M320 340 L420 320 L520 360 L620 330 L720 360"/>
+    <path d="M420 560 C470 520, 520 500, 570 480"/>
+    <path d="M585 478 C640 490, 700 520, 750 565"/>
+  </g>
+
+  <!-- Caption inside image (not the page caption). -->
+  <g fill="#0a0a0a">
+    <text x="80" y="106" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="18" letter-spacing="3" font-weight="700">
+      HAROLD COHEN / AARON
+    </text>
+    <text x="80" y="132" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14" opacity="0.7">
+      Placeholder. Replace with a verified public-domain photo.
+    </text>
+  </g>
+</svg>
+

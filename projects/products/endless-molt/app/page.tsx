@@ -18,11 +18,11 @@ export default function HomePage() {
 
   // Public-domain image with a caption tag under the image.
   const hero: DuoImage = {
-    src: '/duos/eniac-programmers.jpg',
-    alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
-    caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day (Betty Jennings and Frances Bilas)',
-    year: 'February 1946',
-    source: 'Public domain',
+    // Placeholder until we add a verified public-domain Harold Cohen + AARON image.
+    // The hero must never 404; keep it local.
+    src: '/duos/harold-cohen-aaron.svg',
+    alt: 'Harold Cohen and AARON (placeholder)',
+    caption: 'Harold Cohen and AARON',
   };
 
   // Public-domain images with metadata captions.
@@ -58,15 +58,15 @@ export default function HomePage() {
         </p>
 
         {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
-        <div className="mt-[108px] flex flex-col gap-y-10 md:flex-row md:items-end md:gap-x-[clamp(120px,14vw,360px)]">
-          <div className="w-full max-w-[560px] md:flex-none md:mr-auto">
+        <div className="mt-[108px] flex flex-col gap-y-10 md:flex-row md:items-end md:justify-between md:gap-x-10">
+          <div className="w-full max-w-[560px] md:flex-none">
             <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
             <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col md:ml-auto md:w-[320px] md:items-end md:text-right">
+          <div className="flex flex-col md:w-[320px] md:items-end md:text-right">
             <p className="max-w-full text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
               economy.
