@@ -1,0 +1,25 @@
+export const STATIONS = [
+  { id: 'whiteboard', label: 'Planner', kind: 'plan', x: 140, y: 120 },
+  { id: 'devdesk', label: 'Dev', kind: 'implement', x: 520, y: 150 },
+  { id: 'verifybench', label: 'Verify', kind: 'verify', x: 860, y: 140 },
+  { id: 'testrig', label: 'Test', kind: 'test', x: 260, y: 420 },
+  { id: 'prkiosk', label: 'PR', kind: 'pr', x: 640, y: 430 },
+  { id: 'reviewtable', label: 'Review', kind: 'review', x: 900, y: 420 },
+]
+
+export const LOUNGE = { id: 'lounge', label: 'Lounge', x: 140, y: 520 }
+export const PORTAL = { id: 'portal', label: 'Spawn', x: 520, y: 520 }
+
+export function stationForStepKind(kind) {
+  const k = String(kind || '').toLowerCase()
+  if (!k) return null
+  if (k.includes('plan')) return 'whiteboard'
+  if (k.includes('impl') || k.includes('build') || k.includes('dev')) return 'devdesk'
+  if (k.includes('verify') || k.includes('qa')) return 'verifybench'
+  if (k.includes('test')) return 'testrig'
+  if (k.includes('pr')) return 'prkiosk'
+  if (k.includes('review')) return 'reviewtable'
+  if (k.includes('deploy')) return 'prkiosk'
+  return 'devdesk'
+}
+

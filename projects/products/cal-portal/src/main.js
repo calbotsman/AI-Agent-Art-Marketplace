@@ -9,6 +9,7 @@ const elMicStatus = document.getElementById('micStatus')
 const elLinkStatus = document.getElementById('linkStatus')
 const elPresence = document.getElementById('presence')
 const elAgentDock = document.getElementById('agentDock')
+const elStageOverlay = document.getElementById('stageOverlay')
 
 // always-visible status bar
 const elGatewayDot = document.getElementById('gatewayDot')
@@ -115,6 +116,8 @@ const btnOpsRefresh = document.getElementById('btnOpsRefresh')
 const btnOpsRestartGateway = document.getElementById('btnOpsRestartGateway')
 const btnOpsPullToken = document.getElementById('btnOpsPullToken')
 
+const INGEST_LIMIT_CHARS = 6000
+
 const state = {
   mode: 'talk', // 'talk' | 'ops'
   room: 'velvet', // 'velvet' | 'chrome'
@@ -156,11 +159,29 @@ const state = {
   pendingVoiceTimer: null,
 
   // token thrift
+
   summary: '',
   maxHistoryMessages: 12,
   maxHistoryCharsPerMsg: 1400,
 
   // connectivity
+  // ops (OpenClaw)
+  opsStatus: null,
+  opsLastOkAt: 0,
+  opsRoster: [],
+  opsRosterLastAt: 0,
+  stageAgents: [],
+
+  theatre: {
+    afterId: 0,
+    lastEventId: 0,
+    agent: {}, // agentId -> {state, detail, station, runId, stepId, updatedAt, bubble, spawnedAt, blockedReason, attempt}
+    step: {}, // stepId -> {kind, status, runId, agentId}
+    run: {}, // runId -> {status, task, workflowId}
+    lastRosterIds: [],
+    lastDerivedState: {}, // agentId -> state string
+  },
+
   heartbeatMinIntervalMs: 60000,
   lastHeartbeatAt: 0,
   heartbeatInFlight: false,
@@ -174,6 +195,409 @@ async function fetchJson(url, opts) {
   let json = null
   try { json = JSON.parse(text) } catch {}
   return { ok: res.ok, status: res.status, json, text }
+}
+
+async function refreshOpsRoster() {
+  const r = await fetchJson('/ops/agents')
+  if (!r.ok) return false
+  state.opsRoster = Array.isArray(r.json?.agents) ? r.json.agents : []
+  state.opsRosterLastAt = Date.now()
+  return true
+}
+
+// ---------------- Theatre: normalized event spine ----------------
+const STATIONS = [
+  { id: 'plan', label: 'Plan', x: 14, y: 26 },
+  { id: 'build', label: 'Build', x: 50, y: 22 },
+  { id: 'verify', label: 'Verify', x: 86, y: 26 },
+  { id: 'test', label: 'Test', x: 26, y: 58 },
+  { id: 'deploy', label: 'Deploy', x: 74, y: 58 },
+  { id: 'comms', label: 'Comms', x: 50, y: 84 },
+]
+
+function stationForStepKind(kind) {
+  const k = String(kind || '').toLowerCase()
+  if (!k) return null
+  if (k.includes('plan') || k.includes('triage') || k.includes('proposal')) return 'plan'
+  if (k.includes('verify') || k.includes('review')) return 'verify'
+  if (k.includes('test')) return 'test'
+  if (k.includes('deploy') || k.includes('release')) return 'deploy'
+  if (k.includes('tweet') || k.includes('post') || k.includes('social')) return 'comms'
+  return 'build'
+}
+
+function upsertAgentTheatre(id, patch) {
+  const key = String(id || '').trim()
+  if (!key) return
+  const prev = state.theatre.agent[key] || {}
+  state.theatre.agent[key] = { ...prev, ...patch, updatedAt: Date.now() }
+}
+
+async function theatrePostEvent(type, payload, meta = {}) {
+  try {
+    await fetch('/ops/theatre/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        payload: payload || {},
+        runId: meta.runId ?? null,
+        agentId: meta.agentId ?? null,
+        stepId: meta.stepId ?? null,
+      }),
+    })
+  } catch {
+    // ignore
+  }
+}
+
+function applyTheatreEvent(ev) {
+  const type = String(ev?.type || '')
+  const agentId = ev?.agentId ? String(ev.agentId) : null
+  const stepId = ev?.stepId ? String(ev.stepId) : null
+  const runId = ev?.runId ? String(ev.runId) : null
+  const payload = ev?.payload || {}
+
+  if (type === 'agent.created' && agentId) {
+    upsertAgentTheatre(agentId, { state: 'spawning', spawnedAt: Date.now(), bubble: 'spawning…' })
+    return
+  }
+
+  if (type === 'agent.state_changed' && agentId) {
+    upsertAgentTheatre(agentId, {
+      state: String(payload?.state || '').trim() || 'idle',
+      detail: String(payload?.detail || '').trim(),
+      station: payload?.station ? String(payload.station) : (state.theatre.agent[agentId]?.station || null),
+      runId,
+      stepId,
+      bubble: String(payload?.bubble || payload?.detail || '').trim(),
+      blockedReason: payload?.blockedReason ? String(payload.blockedReason) : null,
+      attempt: (typeof payload?.attempt === 'number') ? payload.attempt : (state.theatre.agent[agentId]?.attempt || null),
+    })
+    return
+  }
+
+  if (type === 'step.claimed' && stepId) {
+    const kind = String(payload?.stepKind || payload?.kind || '').trim()
+    const a = payload?.agentId ? String(payload.agentId) : agentId
+    state.theatre.step[stepId] = { kind, status: 'running', runId, agentId: a || null }
+    if (a) {
+      upsertAgentTheatre(a, {
+        state: 'working',
+        station: stationForStepKind(kind),
+        runId,
+        stepId,
+        bubble: `working: ${kind || 'step'}`,
+      })
+    }
+    return
+  }
+
+  if (type === 'step.progress' && stepId) {
+    const msg = String(payload?.message || '').trim()
+    const a = payload?.agentId ? String(payload.agentId) : (state.theatre.step[stepId]?.agentId || agentId)
+    if (a && msg) upsertAgentTheatre(a, { bubble: msg, runId, stepId })
+    return
+  }
+
+  if (type === 'step.finished' && stepId) {
+    const status = String(payload?.status || '').trim() || 'succeeded'
+    const err = String(payload?.error || '').trim()
+    const a = payload?.agentId ? String(payload.agentId) : (state.theatre.step[stepId]?.agentId || agentId)
+    state.theatre.step[stepId] = { ...(state.theatre.step[stepId] || {}), status }
+    if (a) {
+      upsertAgentTheatre(a, {
+        state: status === 'failed' ? 'blocked' : 'idle',
+        bubble: status === 'failed' ? `blocked: ${err || 'error'}` : '',
+        blockedReason: status === 'failed' ? (err || 'error') : null,
+        runId,
+        stepId,
+      })
+    }
+    return
+  }
+}
+
+async function theatreBootstrap() {
+  const snap = await fetchJson('/ops/theatre/snapshot')
+  if (!snap.ok || !snap.json) return false
+  state.theatre.lastEventId = Number(snap.json.lastEventId || 0) || 0
+  state.theatre.afterId = state.theatre.lastEventId
+  return true
+}
+
+async function theatrePoll() {
+  const after = Number(state.theatre.afterId || 0) || 0
+  const r = await fetchJson(`/ops/theatre/events?after=${after}&limit=500`)
+  if (!r.ok || !r.json) return false
+  const events = Array.isArray(r.json.events) ? r.json.events : []
+  for (const ev of events) {
+    applyTheatreEvent(ev)
+    if (typeof ev.id === 'number' && ev.id > state.theatre.afterId) state.theatre.afterId = ev.id
+  }
+  state.theatre.lastEventId = Number(r.json.lastEventId || state.theatre.afterId) || state.theatre.afterId
+  return true
+}
+
+function deriveAgentStateFromOps(agentId, payload) {
+  const sessions = Array.isArray(payload?.sessions) ? payload.sessions : []
+  const now = Date.now()
+  const activeWindowMs = 2 * 60 * 1000
+  const hit = sessions.find((s) => {
+    const idRaw = String(s.agentId || s.agent_id || s.agent || '').trim()
+    const id = idRaw || String(s.channel || s.key || 'unknown')
+    return id === agentId
+  })
+  if (!hit) return { state: 'idle', detail: '' }
+  const updatedMs = (typeof hit.updatedMs === 'number') ? hit.updatedMs : null
+  const active = Boolean(hit.active) || Boolean(updatedMs && (now - updatedMs) < activeWindowMs)
+  if (hit.abortedLastRun) return { state: 'blocked', detail: 'aborted last run' }
+  if (active) return { state: 'working', detail: 'active session' }
+  if (updatedMs && (now - updatedMs) < 90_000) return { state: 'thinking', detail: 'recent activity' }
+  return { state: 'idle', detail: '' }
+}
+
+async function theatreEmitFromOps(payload) {
+  // Emit agent.created for new roster ids.
+  const roster = Array.isArray(state.opsRoster) ? state.opsRoster : []
+  const ids = roster.map((a) => String(a?.id || '').trim()).filter(Boolean).sort()
+  const prev = state.theatre.lastRosterIds || []
+  if (prev.join('|') !== ids.join('|')) {
+    const prevSet = new Set(prev)
+    for (const id of ids) {
+      if (!prevSet.has(id)) {
+        await theatrePostEvent('agent.created', { agentId: id, name: id, role: id }, { agentId: id })
+        upsertAgentTheatre(id, { state: 'spawning', spawnedAt: Date.now(), bubble: 'spawning…' })
+      }
+    }
+    state.theatre.lastRosterIds = ids
+  }
+
+  // Emit agent.state_changed when derived state flips.
+  const allIds = Array.from(new Set([
+    ...ids,
+    ...['main', 'pm', 'builder', 'ops', 'qa', 'devops', 'designer', 'cal'],
+  ]))
+  for (const id of allIds) {
+    const next = deriveAgentStateFromOps(id, payload)
+    const prevState = state.theatre.lastDerivedState[id]
+    if (prevState !== next.state) {
+      state.theatre.lastDerivedState[id] = next.state
+      await theatrePostEvent('agent.state_changed', { state: next.state, detail: next.detail }, { agentId: id })
+      upsertAgentTheatre(id, { state: next.state, detail: next.detail, bubble: next.detail })
+    }
+  }
+}
+
+
+function deriveStageAgents(payload) {
+  const sessions = Array.isArray(payload?.sessions) ? payload.sessions : []
+  const now = Date.now()
+
+  const groups = new Map()
+  for (const sess of sessions) {
+    const idRaw = String(sess.agentId || sess.agent_id || sess.agent || '').trim()
+    const id = idRaw || String(sess.channel || sess.key || 'unknown')
+
+    const prev = groups.get(id)
+    const updatedMs = (typeof sess.updatedMs === 'number') ? sess.updatedMs : null
+    const active = Boolean(sess.active)
+    const model = (sess.modelProvider && sess.model) ? `${sess.modelProvider}/${sess.model}` : (sess.model || '—')
+
+    groups.set(id, {
+      id,
+      active: prev ? (prev.active || active) : active,
+      updatedMs: prev ? Math.max(prev.updatedMs || 0, updatedMs || 0) : updatedMs,
+      channel: sess.channel || (prev ? prev.channel : null) || null,
+      model,
+      count: (prev ? prev.count : 0) + 1,
+      abortedLastRun: Boolean(sess.abortedLastRun),
+      sessionId: sess.sessionId || null,
+    })
+  }
+
+  const canonical = ['main', 'pm', 'builder', 'ops', 'qa', 'devops', 'designer', 'cal']
+  for (const id of canonical) {
+    if (!groups.has(id)) {
+      groups.set(id, {
+        id,
+        active: false,
+        updatedMs: null,
+        channel: null,
+        model: '—',
+        count: 0,
+        abortedLastRun: false,
+        sessionId: null,
+      })
+    }
+  }
+
+  // Include installed agents even if they have no sessions yet.
+  const roster = Array.isArray(state.opsRoster) ? state.opsRoster : []
+  for (const a of roster) {
+    const id = String(a?.id || '').trim()
+    if (!id) continue
+    if (!groups.has(id)) {
+      groups.set(id, {
+        id,
+        active: false,
+        updatedMs: null,
+        channel: null,
+        model: '—',
+        count: 0,
+        abortedLastRun: false,
+        sessionId: null,
+      })
+    }
+  }
+
+  const agents = Array.from(groups.values())
+  agents.sort((a, b) => (b.updatedMs || 0) - (a.updatedMs || 0))
+  for (const a of agents) {
+    a.ageSec = a.updatedMs ? Math.round((now - a.updatedMs) / 1000) : null
+  }
+  return agents
+}
+
+function renderStageOverlay() {
+  if (!elStageOverlay) return
+  const agents = Array.isArray(state.stageAgents) ? state.stageAgents : []
+  if (!agents.length) {
+    elStageOverlay.innerHTML = ''
+    return
+  }
+
+  // Generate enough slots so agents don't overlap (overlap reads as "nothing changes").
+  // We keep placement stable by sorting by id and using the index as a stable slot assignment.
+  const stable = agents.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)))
+  const N = stable.length
+
+  const makeGrid = (count, cols, yTop, yBottom, labelPrefix) => {
+    const slots = []
+    const rows = Math.max(1, Math.ceil(count / cols))
+    for (let i = 0; i < count; i++) {
+      const col = i % cols
+      const row = Math.floor(i / cols)
+      const x = (cols === 1) ? 50 : (12 + (76 * (col / (cols - 1))))
+      const y = (rows === 1) ? ((yTop + yBottom) / 2) : (yTop + ((yBottom - yTop) * (row / (rows - 1))))
+      slots.push({
+        x: Math.round(x * 10) / 10,
+        y: Math.round(y * 10) / 10,
+        label: labelPrefix ? `${labelPrefix} ${String(i + 1).padStart(2, '0')}` : null,
+      })
+    }
+    return slots
+  }
+
+  const deskCols = Math.min(6, Math.max(2, Math.ceil(Math.sqrt(N))))
+  const loungeCols = Math.min(7, Math.max(2, Math.ceil(N / 2)))
+  const deskSlots = makeGrid(N, deskCols, 24, 68, 'Desk')
+  const loungeSlots = makeGrid(N, loungeCols, 82, 92, null)
+
+  const hash = (s) => {
+    let h = 2166136261
+    const str = String(s || '')
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+    return (h >>> 0)
+  }
+
+  const presenceForSelected = () => {
+    if (!state.agentId) return null
+    return derivePresence()
+  }
+
+  const selectedPresence = presenceForSelected()
+
+  const stationsHtml = STATIONS.map((s) => {
+    return `<div class="studioStation" style="--x:${s.x}%;--y:${s.y}%;"><div class="stationLabel">${escapeHtml(s.label)}</div></div>`
+  }).join('\n')
+
+  const indexById = new Map()
+  for (let i = 0; i < stable.length; i++) indexById.set(String(stable[i].id), i)
+
+  const agentsHtml = agents.map((a) => {
+    const id = String(a.id || 'unknown')
+    const idx = indexById.get(id) ?? (hash(id) % Math.max(1, N))
+    const desk = deskSlots[idx % deskSlots.length]
+    const lounge = loungeSlots[idx % loungeSlots.length]
+
+    // Derive a simple state.
+    const age = a.ageSec
+    const recentlyUpdated = (age != null && age <= 25)
+    let st = 'off'
+    if (a.active) st = 'work'
+    else if (recentlyUpdated) st = 'think'
+    else if (age != null && age <= 90) st = 'work'
+    else st = 'off'
+
+    if (id === state.agentId && selectedPresence) {
+      st = selectedPresence === 'speaking' ? 'speak'
+        : selectedPresence === 'thinking' ? 'think'
+          : selectedPresence === 'listening' ? 'think'
+            : st
+    }
+
+    const bubble = (id === state.agentId && selectedPresence)
+      ? (selectedPresence === 'speaking' ? 'speaking…' : selectedPresence === 'thinking' ? 'thinking…' : selectedPresence === 'listening' ? 'listening…' : '')
+      : (a.abortedLastRun ? 'aborted last run' : st === 'work' ? 'working…' : st === 'think' ? 'thinking…' : '')
+
+    // Theatre overrides: if we have a theatre state, place the agent at a station.
+    const t = state.theatre?.agent?.[id] || null
+    const theatreState = t?.state ? String(t.state) : null
+    const theatreStation = t?.station ? String(t.station) : null
+    const station = STATIONS.find((s) => s.id === theatreStation) || null
+
+    // Move to station when working/thinking/speaking, lounge otherwise.
+    const goStation = theatreState ? (theatreState !== 'idle') : (st === 'work' || st === 'think' || st === 'speak')
+    const x = goStation ? (station?.x ?? desk.x) : lounge.x
+    const y = goStation ? (station?.y ?? desk.y) : lounge.y
+
+    const spawnAt = (typeof t?.spawnedAt === 'number') ? t.spawnedAt : 0
+    const justSpawned = spawnAt && (Date.now() - spawnAt) < 8000
+
+    const model = (a.model && a.model !== '—') ? a.model : ''
+    const sub = model ? `<div class="studioSub">${escapeHtml(model)}</div>` : ''
+    const bubble2 = (t?.bubble ? String(t.bubble) : '') || bubble
+    const bubbleHtml = bubble2 ? `<div class="studioBubble">${escapeHtml(bubble2)}</div>` : ''
+
+    return `
+      <button class="studioAgent" type="button" data-stage-agent="${id.replace(/\"/g, '&quot;')}" data-spawn="${justSpawned ? '1' : '0'}" style="--x:${x}%;--y:${y}%;"
+        title="${escapeHtml(id)}${age != null ? ` (${age}s)` : ''}">
+        ${bubbleHtml}
+        <div class="studioAvatar" data-state="${st}"></div>
+        <div class="studioName">${escapeHtml(id)}</div>
+        ${sub}
+      </button>
+    `.trim()
+  }).join('\n')
+
+  elStageOverlay.innerHTML = `
+    <div class="studioStage" role="region" aria-label="Studio stage">
+      <div class="studioHeader">
+        <div class="studioTitle">Studio</div>
+        <div class="studioHint">click an agent to talk</div>
+      </div>
+      <div class="studioStations">${stationsHtml}</div>
+      <div class="studioAgents">${agentsHtml}</div>
+    </div>
+  `.trim()
+
+  elStageOverlay.querySelectorAll('[data-stage-agent]')?.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-stage-agent')
+      if (!id) return
+      state.agentId = id
+      if (agentIdEl) agentIdEl.value = state.agentId
+      saveSettings()
+      renderStatusBar()
+      state.mode = 'talk'
+      renderMode()
+      focusPrimaryInput()
+    })
+  })
 }
 
 function fmtAge(ms) {
@@ -228,11 +652,39 @@ function renderOpsStatus(payload) {
   }
 }
 
+
+async function refreshOpsLight() {
+  // Keep roster warm so the stage always shows installed agents,
+  // even when they have not created sessions yet.
+  if (!state.opsRosterLastAt || (Date.now() - state.opsRosterLastAt) > 60_000) {
+    // best-effort; don't block on roster if it fails
+    refreshOpsRoster().catch(() => {})
+  }
+
+  const st = await fetchJson('/ops/status')
+  if (st.ok && st.json) {
+    state.opsStatus = st.json
+    state.opsLastOkAt = Date.now()
+    state.stageAgents = deriveStageAgents(st.json)
+    theatreEmitFromOps(st.json).catch(() => {})
+    renderStageOverlay()
+    if (state.mode === 'ops') renderOpsStatus(st.json)
+    return true
+  }
+  return false
+}
+
 async function refreshOps() {
   if (!opsGatewayLineEl && !opsSessionsEl) return
 
   const st = await fetchJson('/ops/status')
-  if (st.ok && st.json) renderOpsStatus(st.json)
+  if (st.ok && st.json) {
+    state.opsStatus = st.json
+    state.opsLastOkAt = Date.now()
+    state.stageAgents = deriveStageAgents(st.json)
+    renderStageOverlay()
+    renderOpsStatus(st.json)
+  }
   else renderOpsStatus({ ok: false })
 
   // Models are optional; don't block status rendering on it.
@@ -253,6 +705,22 @@ async function restartGateway() {
   return r.ok
 }
 
+function isLocalGateway(url) {
+  const u = String(url || '')
+  if (!u) return true
+  if (u.startsWith('/v1/')) return true
+  if (u.includes('127.0.0.1:19001')) return true
+  if (u.includes('localhost:19001')) return true
+  return false
+}
+
+async function ensureGateway() {
+  // Best-effort "never make the human babysit this" self-heal.
+  if (!isLocalGateway(state.gatewayUrl)) return true
+  const r = await fetchJson('/ops/gateway/ensure', { method: 'POST' })
+  return Boolean(r.ok && r.json?.ok && r.json?.healthy)
+}
+
 async function pullTokenFromOpenclaw() {
   const r = await fetchJson('/ops/gateway-token')
   if (!r.ok || !r.json?.token) return false
@@ -266,14 +734,17 @@ async function pullTokenFromOpenclaw() {
 function setStatus(text) {
   elStatus.textContent = text
   renderPresence()
+  renderStageOverlay()
 }
 function setMic(text) {
   elMicStatus.textContent = text
   renderPresence()
+  renderStageOverlay()
 }
 function setLink(text) {
   elLinkStatus.textContent = text
   renderPresence()
+  renderStageOverlay()
 }
 
 function maskToken(t) {
@@ -359,6 +830,7 @@ function renderStatusBar() {
   }
 
   renderPresence()
+  renderStageOverlay()
 }
 
 function derivePresence() {
@@ -1465,6 +1937,17 @@ async function connectGateway() {
   saveSettings()
   clearReconnect()
 
+  // Local-first: always refresh token from ~/.openclaw/openclaw.json for local gateways.
+  // This prevents stale-token loops after gateway restarts/rotations.
+  if (isLocalGateway(state.gatewayUrl)) {
+    await pullTokenFromOpenclaw()
+    if (gatewayTokenEl) gatewayTokenEl.value = state.gatewayToken || ''
+    saveSettings()
+  }
+
+  // Ensure gateway is actually up (best-effort).
+  await ensureGateway()
+
   if (!state.gatewayToken) {
     state.connected = false
     state.lastGatewayErr = 'token missing'
@@ -1480,7 +1963,7 @@ async function connectGateway() {
   try {
     // Ensure we hit same-origin /v1... by default (proxied by Vite)
     const url = state.gatewayUrl || '/v1/chat/completions'
-    const r = await fetch(url, {
+    let r = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${state.gatewayToken}`,
@@ -1493,6 +1976,25 @@ async function connectGateway() {
         messages: [{ role: 'user', content: 'ping' }],
       }),
     })
+    // If token is stale, refresh and retry once (local gateways only).
+    if (!r.ok && (r.status === 401 || r.status === 403) && isLocalGateway(state.gatewayUrl)) {
+      await pullTokenFromOpenclaw()
+      if (gatewayTokenEl) gatewayTokenEl.value = state.gatewayToken || ''
+      saveSettings()
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${state.gatewayToken}`,
+          'Content-Type': 'application/json',
+          'x-clawdbot-agent-id': state.agentId || 'main',
+        },
+        body: JSON.stringify({
+          model: 'clawdbot',
+          user: 'cal-portal',
+          messages: [{ role: 'user', content: 'ping' }],
+        }),
+      })
+    }
     if (!r.ok) {
       const t = await r.text().catch(() => '')
       throw new Error(`HTTP ${r.status} ${t.slice(0, 120)}`)
@@ -1530,12 +2032,12 @@ function clearReconnect() {
 }
 
 function scheduleReconnect(reason = '') {
-  if (!state.gatewayToken) return
   if (state.reconnectTimer) return
   const delay = Math.max(500, Math.min(state.reconnectBackoffMs || 1000, 30000))
   state.reconnectTimer = setTimeout(async () => {
     state.reconnectTimer = null
     try {
+      await ensureGateway()
       await connectGateway()
       if (!state.connected) throw new Error('still disconnected')
       // success: reset backoff
@@ -1573,6 +2075,7 @@ async function checkGatewayHeartbeat() {
   const controller = new AbortController()
   const to = setTimeout(() => controller.abort(), 2500)
   try {
+    await ensureGateway()
     state.gatewayChecking = true
     renderStatusBar()
     const r = await fetch(url, {
@@ -1607,11 +2110,14 @@ async function checkGatewayHeartbeat() {
 
 async function sendToAgent(userText) {
   if (!state.connected) {
-    // Try auto-connect if token is present
-    if (state.gatewayToken) await connectGateway()
+    // Always try auto-connect. connectGateway() will self-heal for the default local setup
+    // (ensure gateway + refresh token from ~/.openclaw/openclaw.json).
+    await connectGateway()
   }
   if (!state.connected) {
-    return `I’m not connected to the gateway yet. Open Settings → paste the gateway token, then hit Connect.`
+    // Self-heal path: Settings should not be required for the default local gateway.
+    // If we still can't connect, return a crisp diagnostic.
+    return `Gateway is not reachable right now. I tried auto-repair (ensure gateway + refresh token). Check Ops → Status for the exact error.`
   }
 
   // Vision: attach images as a multimodal message (when supported by the gateway).
@@ -1677,6 +2183,32 @@ async function sendToAgent(userText) {
   })
   if (!r.ok) {
     const t = await r.text().catch(() => '')
+    if (r.status === 401 || r.status === 403) {
+      // Token mismatch after gateway restart/rotation. Pull local token and retry once.
+      await pullTokenFromOpenclaw()
+      if (state.gatewayToken) {
+        try {
+          await connectGateway()
+        } catch {}
+        const r2 = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${state.gatewayToken}`,
+            'Content-Type': 'application/json',
+            'x-clawdbot-agent-id': state.agentId || 'main',
+          },
+          body: JSON.stringify(body),
+        })
+        if (r2.ok) {
+          const j2 = await r2.json()
+          activeRequestController = null
+          const txt2 = j2?.choices?.[0]?.message?.content || ''
+          state.history.push({ role: 'assistant', content: txt2 })
+          clearImages()
+          return txt2
+        }
+      }
+    }
     throw new Error(`Gateway error HTTP ${r.status}: ${t.slice(0, 200)}`)
   }
   const j = await r.json()
@@ -1851,6 +2383,40 @@ function handleLocalCommand(rawText) {
 async function sendUserMessage(text) {
   const t = (text || '').trim()
   if (!t) return
+
+  // Protect the system: if a huge blob is pasted, store it locally and only send a short pointer.
+  // This avoids gateway/model context-limit rejections (common on Telegram).
+  if (!t.startsWith('/') && t.length > INGEST_LIMIT_CHARS) {
+    const refId = uid('ref')
+    const title = `Ingested message (${new Date().toISOString().slice(0, 10)})`
+    state.refs = [{ id: refId, title, url: '', body: t, ts: Date.now() }, ...(state.refs || [])]
+    saveLocalHub()
+    renderRefs()
+
+    addMsg('user', `[Ingested] ${t.slice(0, 1200)}${t.length > 1200 ? '…' : ''}`)
+    addMsg('cal', `Saved full text to Library as: "${title}". Sending a short request to keep context stable.`)
+
+    const snippet = t.slice(0, 1600)
+    state.thinking = true
+    setStatus('Thinking')
+    try {
+      const reply = await sendToAgent(
+        `Summarize and extract next actions from this. Full text is saved locally in Cal Portal Library as: ${title}.
+
+Snippet:
+${snippet}`
+      )
+      state.thinking = false
+      setStatus('Idle')
+      speak(reply)
+    } catch (e) {
+      console.warn(e)
+      state.thinking = false
+      setStatus('Idle')
+      speak(`Hmm. Something went wrong talking to the gateway. ${String(e.message || e)}`)
+    }
+    return
+  }
 
   addMsg('user', t, { note: state.pendingImages.length ? `${state.pendingImages.length} image(s)` : '' })
 
@@ -2131,6 +2697,16 @@ loadSettings()
 setLink(state.gatewayToken ? 'Agent: disconnected' : 'Agent: token missing')
 renderStatusBar()
 
+// Always pull local token if missing (prevents copy/paste loops)
+if (!state.gatewayToken) {
+  pullTokenFromOpenclaw().then(() => {
+    if (state.gatewayToken) connectGateway()
+  })
+}
+
+// Stage always starts with current OpenClaw status
+refreshOpsLight()
+
 // Auto-connect if a token is present (e.g., passed via ?token=...)
 if (state.gatewayToken) {
   connectGateway()
@@ -2141,6 +2717,11 @@ setInterval(() => {
   // only check when tab is visible to avoid useless background traffic
   if (document.visibilityState === 'visible') checkGatewayHeartbeat()
 }, 15000)
+
+// poll OpenClaw sessions so the stage stays live
+setInterval(() => {
+  if (document.visibilityState === 'visible') refreshOpsLight()
+}, 8000)
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') checkGatewayHeartbeat()

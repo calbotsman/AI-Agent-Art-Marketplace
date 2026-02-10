@@ -4,15 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --port 5174 --configLoader native",
+    "dev:ws": "node server/theatre-ws.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint:quick": "node scripts/validate-events.mjs"
   },
   "devDependencies": {
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "@pixiv/three-vrm": "^3.4.5",
-    "three": "^0.182.0"
+    "pixi.js": "^8.8.2",
+    "ws": "^8.18.0"
   }
 }

@@ -1,0 +1,55 @@
+{"type":"agent.created","payload":{"agentId":"minion","name":"Minion","role":"decision"}}
+{"type":"agent.created","payload":{"agentId":"sage","name":"Sage","role":"strategy"}}
+{"type":"agent.created","payload":{"agentId":"quill","name":"Quill","role":"writer"}}
+{"type":"agent.created","payload":{"agentId":"scout","name":"Scout","role":"intel"}}
+{"type":"agent.created","payload":{"agentId":"observer","name":"Observer","role":"qa"}}
+
+{"type":"run.created","payload":{"runId":"run-0001","workflowId":"feature-dev","task":"Ship a minimal agent theatre MVP"}}
+{"type":"run.status_changed","payload":{"runId":"run-0001","status":"running"}}
+
+{"type":"agent.state_changed","payload":{"agentId":"minion","state":"spawning","detail":"boot"}}
+{"type":"agent.state_changed","payload":{"agentId":"sage","state":"spawning","detail":"boot"}}
+{"type":"agent.state_changed","payload":{"agentId":"quill","state":"spawning","detail":"boot"}}
+{"type":"agent.state_changed","payload":{"agentId":"scout","state":"spawning","detail":"boot"}}
+{"type":"agent.state_changed","payload":{"agentId":"observer","state":"spawning","detail":"boot"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-plan","stepKind":"plan","agentRole":"decision"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-plan","agentId":"minion"}}
+{"type":"agent.state_changed","payload":{"agentId":"minion","state":"thinking","detail":"mapping stations + reducer","runId":"run-0001","stepId":"step-plan"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-plan","done":1,"total":3,"message":"Define event schema"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-plan","done":2,"total":3,"message":"Implement reducer"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-plan","done":3,"total":3,"message":"Scene mapping"}}
+{"type":"step.finished","payload":{"runId":"run-0001","stepId":"step-plan","status":"succeeded"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-impl","stepKind":"implement","agentRole":"writer"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-impl","agentId":"quill"}}
+{"type":"agent.state_changed","payload":{"agentId":"quill","state":"working","detail":"render office scene","runId":"run-0001","stepId":"step-impl"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-impl","done":2,"total":10,"message":"Draw stations"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-impl","done":6,"total":10,"message":"Animate agents"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-impl","done":9,"total":10,"message":"Particles"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-verify","stepKind":"verify","agentRole":"qa"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-verify","agentId":"observer"}}
+{"type":"agent.state_changed","payload":{"agentId":"observer","state":"collaborating","detail":"reviewing output","runId":"run-0001","stepId":"step-verify"}}
+
+{"type":"step.finished","payload":{"runId":"run-0001","stepId":"step-impl","status":"failed","error":"Pixi loader race: asset not ready"}}
+{"type":"agent.state_changed","payload":{"agentId":"quill","state":"blocked","detail":"retrying after failure","runId":"run-0001","stepId":"step-impl"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-impl-retry","stepKind":"implement","agentRole":"writer"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-impl-retry","agentId":"quill"}}
+{"type":"agent.state_changed","payload":{"agentId":"quill","state":"working","detail":"retry implement with guardrails","runId":"run-0001","stepId":"step-impl-retry"}}
+{"type":"step.progress","payload":{"runId":"run-0001","stepId":"step-impl-retry","done":10,"total":10,"message":"All green"}}
+{"type":"step.finished","payload":{"runId":"run-0001","stepId":"step-impl-retry","status":"succeeded"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-pr","stepKind":"pr","agentRole":"decision"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-pr","agentId":"minion"}}
+{"type":"agent.state_changed","payload":{"agentId":"minion","state":"working","detail":"prepare PR","runId":"run-0001","stepId":"step-pr"}}
+{"type":"step.finished","payload":{"runId":"run-0001","stepId":"step-pr","status":"succeeded"}}
+
+{"type":"step.queued","payload":{"runId":"run-0001","stepId":"step-review","stepKind":"review","agentRole":"strategy"}}
+{"type":"step.claimed","payload":{"runId":"run-0001","stepId":"step-review","agentId":"sage"}}
+{"type":"agent.state_changed","payload":{"agentId":"sage","state":"collaborating","detail":"final review","runId":"run-0001","stepId":"step-review"}}
+{"type":"step.finished","payload":{"runId":"run-0001","stepId":"step-review","status":"succeeded"}}
+
+{"type":"run.status_changed","payload":{"runId":"run-0001","status":"succeeded"}}
+
