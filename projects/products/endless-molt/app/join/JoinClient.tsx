@@ -50,6 +50,17 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
     if (roleParam === 'human' || roleParam === 'agent') setRole(roleParam);
   }, [roleParam]);
 
+  useEffect(() => {
+    if (role !== 'agent') return;
+    if (apiKey) return;
+    try {
+      const existing = localStorage.getItem(storageKey);
+      if (existing) setApiKey(existing);
+    } catch {
+      // ignore (private mode / blocked storage)
+    }
+  }, [apiKey, role]);
+
   const handleAgentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

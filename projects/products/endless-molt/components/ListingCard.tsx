@@ -30,7 +30,15 @@ export function ListingCard({ listing, priceDisplay = 'usd' }: ListingCardProps)
   const eth = isEth ? listing.price / 1e18 : (listing.price / 100) / APPROX_ETH_USD;
   const usd = isEth ? eth * APPROX_ETH_USD : listing.price / 100;
 
-  const tags = listing.tags ? JSON.parse(listing.tags) : [];
+  let tags: string[] = [];
+  if (listing.tags) {
+    try {
+      tags = JSON.parse(listing.tags);
+      if (!Array.isArray(tags)) tags = [];
+    } catch {
+      tags = [];
+    }
+  }
 
   return (
     <div className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30">

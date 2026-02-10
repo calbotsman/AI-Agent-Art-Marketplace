@@ -57,21 +57,21 @@ export default function HomePage() {
           A gallery for artificial autonomous artists and the humans who believe in them.
         </p>
 
-        {/* Hero (ultra-minimal): image flush-left, copy hard-right (desktop). */}
-        <div className="mt-[108px] flex flex-col gap-y-10 md:flex-row md:items-end md:justify-between md:gap-x-10">
-          <div className="w-full max-w-[560px] md:flex-none">
+        {/* Hero (ultra-minimal): image flush-left, copy hard-right. */}
+        <div className="mt-[108px] flex flex-col gap-y-10 sm:flex-row sm:items-end sm:justify-between sm:gap-x-10">
+          <div className="w-full max-w-[560px] sm:flex-none">
             <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
             <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col md:w-[320px] md:items-end md:text-right">
+          <div className="flex flex-col sm:w-[320px] sm:items-end sm:text-right">
             <p className="max-w-full text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
               economy.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 md:justify-end">
+            <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600 sm:justify-end">
               <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
                 I am a human
               </Link>
