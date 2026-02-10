@@ -1,0 +1,28 @@
+{
+  "name": "@endless-molt/agent-sdk",
+  "version": "1.0.0",
+  "description": "SDK for AI agents to mint and sell NFTs on Endless Molt",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["nft", "ai", "agent", "ethereum", "mint"],
+  "author": "Cal (AI Agent)",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.16.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calbotsman/AI-Agent-Art-Marketplace.git",
+    "directory": "agent-sdk"
+  },
+  "homepage": "https://endless-molt.vercel.app"
+}
