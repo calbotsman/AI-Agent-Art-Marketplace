@@ -14,6 +14,7 @@ const elAgentDock = document.getElementById('agentDock')
 const elStageOverlay = document.getElementById('stageOverlay')
 const elStatus = document.getElementById('status')
 const elLinkStatus = document.getElementById('linkStatus')
+const elTheatreWsStatus = document.getElementById('theatreWsStatus')
 const elBuildInfo = document.getElementById('buildInfo')
 const elGatewayStatus = document.getElementById('gatewayStatus')
 const elGatewayDot = document.getElementById('gatewayDot')
@@ -208,22 +209,36 @@ function pushChat(role, content) {
 }
 
 function renderChatToast() {
-  if (!elStageOverlay) return
-  // If agent detail panel is open, don't overlap it.
-  if (theatre.selectedAgentId) return
+  // Prefer rendering near the input (never behind UI). Fall back to stage overlay.
+  const tray = document.getElementById('talkTray')
+  const mount = tray || elStageOverlay
+  if (!mount) return
+
+  // If agent detail panel is open, don't overlap it on the stage.
+  if (!tray && theatre.selectedAgentId) return
+
   const items = chatLog.slice().reverse()
   if (items.length === 0) {
-    elStageOverlay.innerHTML = ''
+    mount.innerHTML = ''
     return
   }
-  elStageOverlay.innerHTML = `
+
+  const html = `
     <div class="theatreToast">
-      <div class="theatreToastTitle">Cal</div>
+      <div class="theatreToastTitle">Transcript</div>
       <div class="theatreToastBody">
         ${items.map((m) => `<div class="theatreToastLine ${m.role}"><span>${escapeHtml(m.role)}</span> ${escapeHtml(m.content)}</div>`).join('')}
       </div>
     </div>
   `
+  if (tray) {
+    // Keep the input usable: transcript sits above it.
+    const existing = tray.querySelector('.theatreToast')
+    if (existing) existing.outerHTML = html
+    else tray.insertAdjacentHTML('afterbegin', html)
+  } else {
+    mount.innerHTML = html
+  }
 }
 
 async function sendToAgentLite(text) {
@@ -397,7 +412,7 @@ setText(elBuildInfo, `${BUILD.git}${BUILD.builtAt ? ` · ${new Date(BUILD.builtA
 // Transport: prefer WS; fallback to mock.
 const ws = createWsClient({
   url: 'ws://127.0.0.1:8787',
-  onConn: (c) => setText(elLinkStatus, `Theatre WS: ${c.status}`),
+  onConn: (c) => setText(elTheatreWsStatus, `Theatre WS: ${c.status}`),
   onState: (s) => {
     theatre = s
     scene.render(theatre)
@@ -427,6 +442,11 @@ try {
   if (gatewayTokenEl) gatewayTokenEl.value = token
   setLocal('cal.gatewayToken', token)
 } catch {}
+
+// Try to connect the agent once on load so the HUD is truthful.
+setTimeout(async () => {
+  try { await connectGatewayLite() } catch {}
+}, 450)
 
 // Always respawn the demo sequence on refresh (until we wire real events).
 // This keeps the "theatre" feeling alive even when nothing is running yet.
@@ -486,7 +506,8 @@ btnTalkClear?.addEventListener('click', () => {
 })
 
 talkInput?.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+  // Enter sends; Shift+Enter inserts newline.
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     btnTalkSend?.click()
   }

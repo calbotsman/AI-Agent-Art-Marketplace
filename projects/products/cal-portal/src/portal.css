@@ -379,6 +379,52 @@ body[data-app="theatre"] .talkTray {
   pointer-events: auto;
 }
 
+/* Make the transcript readable and never "behind" the UI. */
+body[data-app="theatre"] .talkTray .theatreToast {
+  position: relative;
+  margin: 0 0 10px 0;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(10, 14, 26, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.42);
+  padding: 10px 12px;
+  max-width: 860px;
+}
+
+body[data-app="theatre"] .talkTray .theatreToastTitle {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  font-size: 12px;
+  color: rgba(226,232,240,0.82);
+  margin-bottom: 8px;
+}
+
+body[data-app="theatre"] .talkTray .theatreToastBody {
+  display: grid;
+  gap: 6px;
+  max-height: 140px;
+  overflow: auto;
+}
+
+body[data-app="theatre"] .talkTray .theatreToastLine {
+  font-size: 12px;
+  line-height: 1.25;
+  color: rgba(226,232,240,0.86);
+}
+
+body[data-app="theatre"] .talkTray .theatreToastLine span {
+  display: inline-block;
+  min-width: 70px;
+  color: rgba(226,232,240,0.60);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+body[data-app="theatre"] .talkTray textarea {
+  background: rgba(0,0,0,0.44);
+}
+
 .theatreDetailHeader {
   display: flex;
   align-items: center;
