@@ -6,6 +6,9 @@ import { TheatreScene } from './theatre/scene.js'
 import { createMockRunner } from './theatre/mock.js'
 import { createWsClient } from './theatre/ws-client.js'
 
+// Theatre-first layout and styling.
+document.body.dataset.app = 'theatre'
+
 // Existing Cal Portal HTML has these anchors.
 const elAgentDock = document.getElementById('agentDock')
 const elStageOverlay = document.getElementById('stageOverlay')
@@ -14,6 +17,17 @@ const elLinkStatus = document.getElementById('linkStatus')
 const elBuildInfo = document.getElementById('buildInfo')
 const elGatewayStatus = document.getElementById('gatewayStatus')
 const elGatewayDot = document.getElementById('gatewayDot')
+
+// Talk tray (keep a minimal ability to message Cal without the legacy portal JS).
+const talkInput = document.getElementById('talkInput')
+const btnTalkSend = document.getElementById('btnTalkSend')
+const btnTalkClear = document.getElementById('btnTalkClear')
+const btnCall = document.getElementById('btnCall')
+const btnConnect = document.getElementById('btnConnect')
+
+const gatewayUrlEl = document.getElementById('gatewayUrl')
+const gatewayTokenEl = document.getElementById('gatewayToken')
+const agentIdEl = document.getElementById('agentId')
 
 const btnModeTalk = document.getElementById('btnModeTalk')
 const btnModeOps = document.getElementById('btnModeOps')
@@ -39,6 +53,62 @@ function setDot(el, ok) {
   el.style.opacity = '0.95'
 }
 
+function humanizeState(state) {
+  const s = String(state || 'idle')
+  switch (s) {
+    case 'idle': return 'waiting'
+    case 'thinking': return 'planning'
+    case 'working': return 'building'
+    case 'collaborating': return 'pairing'
+    case 'spawning': return 'arriving'
+    case 'blocked': return 'stuck'
+    default: return s
+  }
+}
+
+function jobTitleForRole(role, agentId) {
+  const r = String(role || '').toLowerCase().trim()
+  const id = String(agentId || '').toLowerCase().trim()
+  const k = r || id
+  if (!k) return ''
+  if (k === 'main' || k.includes('cal')) return 'Director'
+  if (k === 'pm' || k.includes('product')) return 'Producer'
+  if (k === 'builder' || k.includes('dev') || k.includes('engineer')) return 'Engineer'
+  if (k === 'ops' || k.includes('operator')) return 'Operator'
+  if (k.includes('qa') || k.includes('verify')) return 'Verifier'
+  if (k.includes('test')) return 'Tester'
+  if (k.includes('design')) return 'Designer'
+  if (k.includes('research')) return 'Researcher'
+  return role ? role : agentId
+}
+
+function humanizeStepKind(kind) {
+  const k = String(kind || '').toLowerCase()
+  if (!k) return ''
+  if (k.includes('plan')) return 'planning'
+  if (k.includes('impl') || k.includes('build') || k.includes('dev')) return 'writing code'
+  if (k.includes('verify') || k.includes('qa')) return 'checking work'
+  if (k.includes('test')) return 'running tests'
+  if (k.includes('pr')) return 'packaging a PR'
+  if (k.includes('review')) return 'reviewing'
+  if (k.includes('deploy')) return 'shipping'
+  return k
+}
+
+function humanizeDoing(agent) {
+  const st = String(agent?.state || 'idle')
+  const step = humanizeStepKind(agent?.lastStepKind)
+  const detail = String(agent?.detail || '').trim()
+
+  if (st === 'blocked') return detail ? `blocked: ${detail}` : 'blocked'
+  if (st === 'spawning') return 'joining the studio'
+  if (st === 'idle') return 'hanging in the lounge'
+  if (st === 'thinking') return step ? `thinking about ${step}` : (detail || 'thinking')
+  if (st === 'collaborating') return detail || 'syncing with another agent'
+  if (st === 'working') return step ? step : (detail || 'working')
+  return detail || humanizeState(st)
+}
+
 function setMode(mode) {
   document.body.classList.toggle('mode-talk', mode === 'talk')
   document.body.classList.toggle('mode-ops', mode === 'ops')
@@ -46,12 +116,182 @@ function setMode(mode) {
   btnModeOps?.classList.toggle('active', mode === 'ops')
 }
 
+// Default: theatre mode (no big Ops panel). `O` toggles Ops panel.
+setMode('talk')
+window.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return
+  if (e.key === 'o' || e.key === 'O') {
+    setMode(document.body.classList.contains('mode-ops') ? 'talk' : 'ops')
+  }
+})
+
+function getLocal(k, fallback = '') {
+  try { return localStorage.getItem(k) || fallback } catch { return fallback }
+}
+
+function setLocal(k, v) {
+  try { localStorage.setItem(k, String(v || '')) } catch {}
+}
+
+function normalizeGatewayUrl(s) {
+  const raw = String(s || '').trim()
+  if (!raw) return '/v1/chat/completions'
+  if (raw.startsWith('/v1/')) return raw
+  // allow pasting host only
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw.replace(/\/+$/, '') + '/v1/chat/completions'
+  return raw
+}
+
+async function pullTokenFromOpenclaw() {
+  // Local-only endpoint served by Vite middleware (reads ~/.openclaw/openclaw.json).
+  const r = await fetch('/ops/gateway-token', { method: 'GET' })
+  if (!r.ok) throw new Error(`token fetch failed (${r.status})`)
+  const j = await r.json().catch(() => null)
+  if (!j?.token) throw new Error('token missing in response')
+  return String(j.token)
+}
+
+async function connectGatewayLite() {
+  // Keep the same localStorage keys as the legacy portal.
+  const agentId = String(agentIdEl?.value || getLocal('cal.agentId', 'main') || 'main').trim() || 'main'
+  const url = normalizeGatewayUrl(gatewayUrlEl?.value || getLocal('cal.gatewayUrl', '/v1/chat/completions') || '/v1/chat/completions')
+
+  // Always refresh token for local gateways so we never get into stale-token loops.
+  let token = String(gatewayTokenEl?.value || getLocal('cal.gatewayToken', '') || '').trim()
+  try {
+    token = await pullTokenFromOpenclaw()
+  } catch {
+    // keep existing token (maybe remote gateway). If missing, connect will fail with a crisp error.
+  }
+
+  if (gatewayUrlEl) gatewayUrlEl.value = url
+  if (gatewayTokenEl) gatewayTokenEl.value = token
+  if (agentIdEl) agentIdEl.value = agentId
+
+  setLocal('cal.agentId', agentId)
+  setLocal('cal.gatewayUrl', url)
+  setLocal('cal.gatewayToken', token)
+
+  if (!token) {
+    setText(elLinkStatus, 'Agent: token missing')
+    return { ok: false, error: 'token missing' }
+  }
+
+  setText(elLinkStatus, 'Agent: connecting…')
+  const r = await fetch(url || '/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'x-clawdbot-agent-id': agentId,
+    },
+    body: JSON.stringify({
+      model: 'clawdbot',
+      user: 'cal-studio',
+      messages: [{ role: 'user', content: 'ping' }],
+    }),
+  })
+  if (!r.ok) {
+    const t = await r.text().catch(() => '')
+    setText(elLinkStatus, 'Agent: disconnected')
+    return { ok: false, error: `HTTP ${r.status} ${t.slice(0, 160)}` }
+  }
+  setText(elLinkStatus, 'Agent: connected')
+  return { ok: true }
+}
+
+const chatLog = []
+function pushChat(role, content) {
+  chatLog.push({ role, content: String(content || ''), ts: Date.now() })
+  while (chatLog.length > 8) chatLog.shift()
+  renderChatToast()
+}
+
+function renderChatToast() {
+  if (!elStageOverlay) return
+  // If agent detail panel is open, don't overlap it.
+  if (theatre.selectedAgentId) return
+  const items = chatLog.slice().reverse()
+  if (items.length === 0) {
+    elStageOverlay.innerHTML = ''
+    return
+  }
+  elStageOverlay.innerHTML = `
+    <div class="theatreToast">
+      <div class="theatreToastTitle">Cal</div>
+      <div class="theatreToastBody">
+        ${items.map((m) => `<div class="theatreToastLine ${m.role}"><span>${escapeHtml(m.role)}</span> ${escapeHtml(m.content)}</div>`).join('')}
+      </div>
+    </div>
+  `
+}
+
+async function sendToAgentLite(text) {
+  const t = String(text || '').trim()
+  if (!t) return
+  pushChat('user', t)
+  setText(elStatus, 'thinking')
+
+  const ok = await ensureGateway()
+  if (!ok) {
+    pushChat('system', 'gateway down (auto-repair failed)')
+    setText(elStatus, 'Idle')
+    return
+  }
+
+  const c = await connectGatewayLite()
+  if (!c.ok) {
+    pushChat('system', c.error || 'connect failed')
+    setText(elStatus, 'Idle')
+    return
+  }
+
+  const agentId = String(agentIdEl?.value || getLocal('cal.agentId', 'main') || 'main').trim() || 'main'
+  const url = normalizeGatewayUrl(gatewayUrlEl?.value || getLocal('cal.gatewayUrl', '/v1/chat/completions') || '/v1/chat/completions')
+  const token = String(gatewayTokenEl?.value || getLocal('cal.gatewayToken', '') || '').trim()
+
+  const r = await fetch(url || '/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'x-clawdbot-agent-id': agentId,
+    },
+    body: JSON.stringify({
+      model: 'clawdbot',
+      user: 'cal-studio',
+      messages: [{ role: 'user', content: t }],
+    }),
+  })
+
+  if (!r.ok) {
+    const err = await r.text().catch(() => '')
+    pushChat('system', `HTTP ${r.status} ${err.slice(0, 160)}`)
+    setText(elStatus, 'Idle')
+    return
+  }
+  const j = await r.json().catch(() => null)
+  const out = j?.choices?.[0]?.message?.content || ''
+  pushChat('assistant', out || '(no content)')
+  setText(elStatus, 'Idle')
+}
+
 function renderAgentList(s) {
   if (!elAgentDock) return
   const agents = Object.values(s.agents || {}).slice().sort((a, b) => a.id.localeCompare(b.id))
-  elAgentDock.innerHTML = agents.map((a) => {
+  elAgentDock.innerHTML = [
+    `
+      <div class="dockHead">
+        <div class="dockTitle">Agents</div>
+        <div class="dockHint">Press <span class="kbd">O</span> for Ops</div>
+      </div>
+    `,
+    ...agents.map((a) => {
     const st = String(a.state || 'idle')
-    const role = a.role ? `<div class="tiny">${escapeHtml(a.role)}</div>` : ''
+    const stHuman = humanizeState(st)
+    const doing = humanizeDoing(a)
+    const title = jobTitleForRole(a.role, a.id)
+    const role = title ? `<div class="tiny">${escapeHtml(title)}</div>` : ''
     const line = a.detail ? `<div class="tiny muted">${escapeHtml(a.detail)}</div>` : ''
     return `
       <button class="agentChip" data-agent="${escapeHtml(a.id)}" title="${escapeHtml(a.id)}">
@@ -59,12 +299,14 @@ function renderAgentList(s) {
           <span class="agentDot ${st}"></span>
           <span class="agentName">${escapeHtml(a.name || a.id)}</span>
         </div>
-        <div class="agentMeta">${escapeHtml(st)}${a.lastStepKind ? ` · ${escapeHtml(a.lastStepKind)}` : ''}</div>
+        <div class="agentMeta">${escapeHtml(stHuman)}${a.lastStepKind ? ` · ${escapeHtml(humanizeStepKind(a.lastStepKind))}` : ''}</div>
+        <div class="tiny muted">${escapeHtml(doing)}</div>
         ${role}
         ${line}
       </button>
     `
-  }).join('')
+    }),
+  ].join('')
 
   for (const b of elAgentDock.querySelectorAll('button[data-agent]')) {
     b.addEventListener('click', () => {
@@ -79,7 +321,7 @@ function renderOverlayDetail(s) {
   if (!elStageOverlay) return
   const id = s.selectedAgentId
   if (!id || !s.agents[id]) {
-    elStageOverlay.innerHTML = ''
+    renderChatToast()
     return
   }
   const a = s.agents[id]
@@ -93,9 +335,10 @@ function renderOverlayDetail(s) {
       <div class="theatreDetailBody">
         <div class="tiny muted">${escapeHtml(id)}${a.role ? ` · ${escapeHtml(a.role)}` : ''}</div>
         <div class="theatreBadgeRow">
-          <span class="theatreBadge">${escapeHtml(String(a.state || 'idle'))}</span>
-          ${a.lastStepKind ? `<span class="theatreBadge">${escapeHtml(a.lastStepKind)}</span>` : ''}
+          <span class="theatreBadge">${escapeHtml(humanizeState(String(a.state || 'idle')))}</span>
+          ${a.lastStepKind ? `<span class="theatreBadge">${escapeHtml(humanizeStepKind(a.lastStepKind))}</span>` : ''}
         </div>
+        <div class="tiny muted" style="margin-top:8px;">${escapeHtml(humanizeDoing(a))}</div>
         <div class="theatreEvents">
           ${tail.map((e) => `<div class="theatreEvent"><span class="theatreEventType">${escapeHtml(e.type)}</span><span class="theatreEventTs">${new Date(e.ts).toLocaleTimeString()}</span></div>`).join('')}
         </div>
@@ -176,14 +419,22 @@ const mock = createMockRunner({
 
 ws.connect()
 await ensureGateway()
+try {
+  // Keep settings fields in sync (optional).
+  if (gatewayUrlEl) gatewayUrlEl.value = normalizeGatewayUrl(getLocal('cal.gatewayUrl', '/v1/chat/completions'))
+  if (agentIdEl) agentIdEl.value = getLocal('cal.agentId', 'main') || 'main'
+  const token = await pullTokenFromOpenclaw()
+  if (gatewayTokenEl) gatewayTokenEl.value = token
+  setLocal('cal.gatewayToken', token)
+} catch {}
 
-// Kick mock if WS is absent (optional)
+// Always respawn the demo sequence on refresh (until we wire real events).
+// This keeps the "theatre" feeling alive even when nothing is running yet.
 setTimeout(() => {
-  // If no agents have been created yet, show the demo.
-  if (Object.keys(theatre.agents || {}).length === 0) {
-    mock.start().catch(() => {})
-  }
-}, 900)
+  ws.startMock(520)
+  // If WS isn't available, local mock still drives the reducer.
+  if (Object.keys(theatre.agents || {}).length === 0) mock.start().catch(() => {})
+}, 250)
 
 // Controls (reuse existing buttons)
 btnNewThread?.addEventListener('click', () => {
@@ -209,9 +460,41 @@ window.addEventListener('keydown', (e) => {
   }
 })
 
+btnCall?.addEventListener('click', async () => {
+  await ensureGateway()
+  const c = await connectGatewayLite()
+  if (!c.ok) pushChat('system', c.error || 'connect failed')
+})
+
+btnConnect?.addEventListener('click', async () => {
+  await ensureGateway()
+  const c = await connectGatewayLite()
+  if (!c.ok) pushChat('system', c.error || 'connect failed')
+})
+
+btnTalkSend?.addEventListener('click', async () => {
+  const t = String(talkInput?.value || '').trim()
+  if (!t) return
+  if (talkInput) talkInput.value = ''
+  await sendToAgentLite(t)
+})
+
+btnTalkClear?.addEventListener('click', () => {
+  if (talkInput) talkInput.value = ''
+  chatLog.length = 0
+  renderChatToast()
+})
+
+talkInput?.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault()
+    btnTalkSend?.click()
+  }
+})
+
 // Expose mock start via console for quick demos.
 window.__CAL_STUDIO__ = {
   mockStart: () => mock.start(),
   wsMockStart: () => ws.startMock(520),
+  send: (t) => sendToAgentLite(t),
 }
-

@@ -241,8 +241,60 @@ textarea { min-height: 96px; resize: vertical; }
 
 /* --- Theatre MVP (Deekay-ish) --- */
 
+/* In theatre mode we treat the stage as the whole app. The big Ops panel becomes optional. */
+body[data-app="theatre"] #app { grid-template-columns: 1fr; }
+body[data-app="theatre"] .panel { display: none; }
+body[data-app="theatre"].mode-ops .panel { display: block; }
+body[data-app="theatre"].mode-ops #app { grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr); }
+
+/* Deekay-ish: lighter, cleaner chrome and more negative space. */
+body[data-app="theatre"] {
+  background:
+    radial-gradient(1100px 700px at 10% 0%, rgba(34, 211, 238, 0.10), transparent 58%),
+    radial-gradient(900px 650px at 88% 15%, rgba(167, 139, 250, 0.10), transparent 60%),
+    radial-gradient(1100px 900px at 55% 115%, rgba(245, 158, 11, 0.06), transparent 65%),
+    linear-gradient(180deg, #050813, #070c18);
+}
+
+body[data-app="theatre"] .hud { left: 18px; right: 18px; top: 18px; }
+body[data-app="theatre"] .hud button { padding: 9px 11px; border-radius: 14px; }
+body[data-app="theatre"] .hud .badge { border-radius: 999px; }
+body[data-app="theatre"] .hud { z-index: 90; }
+
+/* Agent list becomes a vertical dock on the left. */
+body[data-app="theatre"] .agentDock {
+  left: 18px;
+  top: 86px;
+  bottom: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  max-height: calc(100vh - 190px);
+  overflow: auto;
+  padding-right: 6px;
+}
+body[data-app="theatre"] .agentDock { z-index: 80; }
+
+body[data-app="theatre"] .agentDock::-webkit-scrollbar { width: 10px; }
+body[data-app="theatre"] .agentDock::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.20); border-radius: 999px; }
+
+.dockHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(10, 14, 26, 0.65);
+  backdrop-filter: blur(16px);
+}
+
+.dockTitle { font-weight: 950; letter-spacing: -0.02em; font-size: 13px; }
+.dockHint { font-size: 12px; color: rgba(226,232,240,0.62); }
+
 .agentChip {
-  width: 110px;
+  width: 188px;
   min-height: 86px;
   padding: 10px 10px 9px;
   text-align: left;
@@ -253,6 +305,8 @@ textarea { min-height: 96px; resize: vertical; }
   box-shadow: 0 14px 48px rgba(0,0,0,0.38);
 }
 
+.agentChip .tiny.muted { margin-top: 2px; }
+
 .agentChip:hover {
   border-color: rgba(34,211,238,0.35);
 }
@@ -262,6 +316,8 @@ textarea { min-height: 96px; resize: vertical; }
   align-items: center;
   gap: 8px;
 }
+
+.agentChip:active { transform: translateY(0px); }
 
 .agentDot {
   width: 10px;
@@ -305,6 +361,22 @@ textarea { min-height: 96px; resize: vertical; }
   backdrop-filter: blur(18px);
   box-shadow: 0 18px 60px rgba(0,0,0,0.52);
   padding: 12px 12px 10px;
+  pointer-events: auto; /* stageOverlay is pointer-events:none */
+}
+
+/* Ensure Pixi canvas never covers interactive UI. */
+body[data-app="theatre"] canvas#c {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+body[data-app="theatre"] .stageOverlay { z-index: 70; }
+
+/* Talk tray must always be typeable/clickable. */
+body[data-app="theatre"] .talkTray {
+  z-index: 110;
+  pointer-events: auto;
 }
 
 .theatreDetailHeader {

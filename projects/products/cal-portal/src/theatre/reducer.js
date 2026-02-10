@@ -136,6 +136,8 @@ export function reduceEvent(prev, ev) {
       const st = ensureStep(s, payload.runId, payload.stepId)
       if (!st) break
       st.runId = safeStr(payload.runId) || st.runId
+      // Some emitters send claimed before queued; keep kind populated so the UI stays readable.
+      st.kind = safeStr(payload.stepKind) || st.kind
       st.status = 'claimed'
       st.agentId = safeStr(payload.agentId) || st.agentId
       const a = ensureAgent(s, st.agentId)
@@ -186,4 +188,3 @@ export function reduceEvent(prev, ev) {
 
   return s
 }
-

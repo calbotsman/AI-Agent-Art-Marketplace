@@ -5,6 +5,11 @@ function run(cmd, args, opts = {}) {
   p.on('exit', (code) => {
     if (code && code !== 0) process.exitCode = code
   })
+  p.on('error', (err) => {
+    // Keep dev loop alive even if one side can't start (most commonly EADDRINUSE).
+    console.error(`[dev] failed to start: ${cmd} ${args.join(' ')}`)
+    console.error(err?.message || err)
+  })
   return p
 }
 
@@ -21,4 +26,3 @@ const shutdown = () => {
 
 process.on('SIGINT', () => { shutdown(); process.exit(0) })
 process.on('SIGTERM', () => { shutdown(); process.exit(0) })
-

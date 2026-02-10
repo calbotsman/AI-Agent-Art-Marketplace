@@ -16,6 +16,17 @@ const COLORS = {
   bad: 0xef4444,
 }
 
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)) }
+
+function colorFromString(s) {
+  // stable hash -> hue palette
+  const str = String(s || 'x')
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) h = (h ^ str.charCodeAt(i)) * 16777619
+  const n = Math.abs(h >>> 0) % 6
+  return [COLORS.cyan, COLORS.lilac, COLORS.mint, COLORS.amber, 0x60a5fa, 0xf472b6][n]
+}
+
 function labelStyle(size = 14, weight = '700', color = COLORS.ink, alpha = 0.95) {
   return new PIXI.TextStyle({
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial',
@@ -38,7 +49,7 @@ export class TheatreScene {
     this.world.sortableChildren = true
 
     this.stationNodes = new Map() // stationId -> {c, monitorBar, alarm}
-    this.agentNodes = new Map() // agentId -> {c, body, head, face, bubble, target:{x,y}, state, home:{x,y}}
+    this.agentNodes = new Map() // agentId -> {c, body, head, face, bubble, target, state, home, vel}
     this.handoff = new PIXI.Graphics()
     this.handoff.zIndex = 30
 
@@ -115,11 +126,27 @@ export class TheatreScene {
     c.y = st.y
     c.zIndex = 10
 
+    const accent = (() => {
+      if (st.kind === 'plan') return COLORS.cyan
+      if (st.kind === 'implement') return COLORS.mint
+      if (st.kind === 'verify') return COLORS.lilac
+      if (st.kind === 'test') return 0x60a5fa
+      if (st.kind === 'pr') return COLORS.amber
+      if (st.kind === 'review') return 0xf472b6
+      return COLORS.muted
+    })()
+
     const base = new PIXI.Graphics()
     base.roundRect(-90, -46, 180, 92, 20)
       .fill({ color: 0x0d1426, alpha: 0.98 })
       .stroke({ color: 0x3b4a6a, alpha: 0.22, width: 1 })
     c.addChild(base)
+
+    // soft shadow under base
+    const shadow = new PIXI.Graphics()
+    shadow.ellipse(0, 50, 86, 16).fill({ color: 0x000000, alpha: 0.25 })
+    shadow.zIndex = -1
+    c.addChildAt(shadow, 0)
 
     // monitor
     const monitor = new PIXI.Graphics()
@@ -127,6 +154,12 @@ export class TheatreScene {
       .fill({ color: 0x0b1020, alpha: 0.9 })
       .stroke({ color: 0x4b5563, alpha: 0.18, width: 1 })
     c.addChild(monitor)
+
+    // monitor glow (accent)
+    const glow = new PIXI.Graphics()
+    glow.roundRect(-56, -22, 112, 44, 12)
+      .stroke({ color: accent, alpha: 0.14, width: 3 })
+    c.addChild(glow)
 
     const monitorBar = new PIXI.Graphics()
     monitorBar.x = -52
@@ -198,15 +231,38 @@ export class TheatreScene {
     const c = new PIXI.Container()
     c.zIndex = 20
 
+    const accent = colorFromString(a.id || a.name || '')
+    const outline = 0x0a1020
+
+    // feet shadow
+    const sh = new PIXI.Graphics()
+    sh.ellipse(0, 18, 18, 8).fill({ color: 0x000000, alpha: 0.28 })
+    c.addChild(sh)
+
     // body
     const body = new PIXI.Graphics()
-    body.roundRect(-16, -10, 32, 30, 10).fill({ color: 0x111a2e, alpha: 1 })
+    // Deekay-ish: bright fill + bold outline + soft accent ring.
+    body.roundRect(-18, -10, 36, 32, 14)
+      .fill({ color: 0xf1f5f9, alpha: 0.98 })
+      .stroke({ color: outline, alpha: 0.85, width: 3 })
+    body.roundRect(-18, -10, 36, 32, 14)
+      .stroke({ color: accent, alpha: 0.22, width: 6 })
     c.addChild(body)
 
     // head
     const head = new PIXI.Graphics()
-    head.circle(0, -22, 16).fill({ color: 0x1b2541, alpha: 1 })
+    head.circle(0, -24, 18)
+      .fill({ color: 0xffffff, alpha: 0.98 })
+      .stroke({ color: outline, alpha: 0.85, width: 3 })
+    head.circle(0, -24, 18)
+      .stroke({ color: accent, alpha: 0.18, width: 6 })
     c.addChild(head)
+
+    // simple arms (pose cues)
+    const arms = new PIXI.Graphics()
+    arms.roundRect(-26, -4, 11, 22, 8).fill({ color: 0xf1f5f9, alpha: 0.98 }).stroke({ color: outline, alpha: 0.7, width: 2 })
+    arms.roundRect(15, -4, 11, 22, 8).fill({ color: 0xf1f5f9, alpha: 0.98 }).stroke({ color: outline, alpha: 0.7, width: 2 })
+    c.addChild(arms)
 
     const face = new PIXI.Graphics()
     c.addChild(face)
@@ -242,6 +298,10 @@ export class TheatreScene {
       lastState: 'spawning',
       bob: Math.random() * Math.PI * 2,
       shake: 0,
+      vel: { x: 0, y: 0 },
+      spawnT: 0,
+      accent,
+      outline,
     }
 
     this.agentNodes.set(a.id, node)
@@ -256,8 +316,8 @@ export class TheatreScene {
     const bg = new PIXI.Graphics()
     const w = Math.min(220, 10 + text.length * 6.8)
     bg.roundRect(-w / 2, -72, w, 34, 12)
-      .fill({ color: 0x0b1020, alpha: 0.85 })
-      .stroke({ color: 0x4b5563, alpha: 0.22, width: 1 })
+      .fill({ color: 0x0b1020, alpha: 0.78 })
+      .stroke({ color: node.outline || 0x0a1020, alpha: 0.45, width: 2 })
     node.bubble.addChild(bg)
 
     const t = new PIXI.Text(text, labelStyle(12, '700', COLORS.ink))
@@ -278,20 +338,20 @@ export class TheatreScene {
     const mood = String(state || 'idle')
 
     // eyes
-    node.face.circle(-6, -26, 2).fill({ color: COLORS.ink, alpha: 0.85 })
-    node.face.circle(6, -26, 2).fill({ color: COLORS.ink, alpha: 0.85 })
+    node.face.circle(-6.5, -28, 2.3).fill({ color: node.outline || 0x0a1020, alpha: 0.9 })
+    node.face.circle(6.5, -28, 2.3).fill({ color: node.outline || 0x0a1020, alpha: 0.9 })
 
     // mouth
     if (mood === 'blocked') {
-      node.face.moveTo(-6, -18).lineTo(6, -18).stroke({ color: COLORS.bad, alpha: 0.7, width: 2 })
+      node.face.moveTo(-7, -20).lineTo(7, -20).stroke({ color: COLORS.bad, alpha: 0.75, width: 2.5 })
     } else if (mood === 'thinking') {
-      node.face.arc(0, -18, 6, Math.PI, Math.PI * 1.65).stroke({ color: COLORS.cyan, alpha: 0.75, width: 2 })
+      node.face.arc(0, -20, 6.5, Math.PI, Math.PI * 1.65).stroke({ color: COLORS.cyan, alpha: 0.7, width: 2.5 })
     } else if (mood === 'working') {
-      node.face.arc(0, -18, 6, 0, Math.PI).stroke({ color: COLORS.mint, alpha: 0.75, width: 2 })
+      node.face.arc(0, -20, 6.5, 0, Math.PI).stroke({ color: COLORS.mint, alpha: 0.7, width: 2.5 })
     } else if (mood === 'collaborating') {
-      node.face.arc(0, -18, 6, 0, Math.PI).stroke({ color: COLORS.lilac, alpha: 0.75, width: 2 })
+      node.face.arc(0, -20, 6.5, 0, Math.PI).stroke({ color: COLORS.lilac, alpha: 0.7, width: 2.5 })
     } else {
-      node.face.arc(0, -18, 5, 0, Math.PI).stroke({ color: COLORS.muted, alpha: 0.55, width: 2 })
+      node.face.arc(0, -20, 5.8, 0, Math.PI).stroke({ color: node.outline || 0x0a1020, alpha: 0.6, width: 2.4 })
     }
   }
 
@@ -339,6 +399,7 @@ export class TheatreScene {
       if (node.lastState !== node.state) {
         node.lastState = node.state
         node.shake = (node.state === 'blocked') ? 1 : 0
+        if (node.state === 'spawning') node.spawnT = 0
       }
       node.target = this.applyStateToTarget(a)
 
@@ -364,6 +425,16 @@ export class TheatreScene {
         return sid === stationId
       })
 
+      const failed = Object.values(s.steps || {}).find((st) => {
+        if (st.status !== 'failed') return false
+        const sid = stationForStepKind(st.kind)
+        return sid === stationId
+      })
+
+      if (failed) {
+        node.alarm.alpha = 0.45 + 0.35 * Math.sin(performance.now() / 180)
+      }
+
       if (!active) continue
 
       const done = (active.progress?.done == null) ? null : Number(active.progress.done)
@@ -372,7 +443,7 @@ export class TheatreScene {
       if (done != null && total != null && total > 0) p = Math.max(0.05, Math.min(1, done / total))
 
       node.monitorBar.roundRect(0, 0, 104, 6, 4).fill({ color: 0x111827, alpha: 0.7 })
-      node.monitorBar.roundRect(0, 0, 104 * p, 6, 4).fill({ color: COLORS.cyan, alpha: 0.9 })
+      node.monitorBar.roundRect(0, 0, 104 * p, 6, 4).fill({ color: COLORS.cyan, alpha: 0.92 })
     }
 
     // simple handoff effect: if any agent is collaborating, draw link to nearest other agent
@@ -406,8 +477,17 @@ export class TheatreScene {
       const tx = node.target?.x ?? node.home.x
       const ty = node.target?.y ?? node.home.y
 
-      node.c.x = damp(node.c.x, tx, 7.5, deltaSec)
-      node.c.y = damp(node.c.y, ty + bobY, 7.5, deltaSec)
+      // Springy movement (Deekay-ish): acceleration toward target, plus damping.
+      const k = 40.0
+      const d = 12.5
+      const ax = (tx - node.c.x) * k
+      const ay = ((ty + bobY) - node.c.y) * k
+      node.vel.x += ax * deltaSec
+      node.vel.y += ay * deltaSec
+      node.vel.x *= Math.exp(-d * deltaSec)
+      node.vel.y *= Math.exp(-d * deltaSec)
+      node.c.x += node.vel.x * deltaSec
+      node.c.y += node.vel.y * deltaSec
 
       // blocked wobble
       if (node.state === 'blocked') {
@@ -415,6 +495,19 @@ export class TheatreScene {
         node.c.y += 4
       } else {
         node.c.rotation = damp(node.c.rotation, 0, 10.0, deltaSec)
+      }
+
+      // spawning pop-in
+      if (node.state === 'spawning') {
+        node.spawnT = clamp(node.spawnT + deltaSec * 1.8, 0, 1)
+        const t = node.spawnT
+        // easeOutBack-ish
+        const c1 = 1.70158
+        const c3 = c1 + 1
+        const e = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+        node.c.scale.set(0.2 + 0.8 * e)
+      } else {
+        node.c.scale.set(damp(node.c.scale.x, 1, 9.0, deltaSec))
       }
     }
   }
