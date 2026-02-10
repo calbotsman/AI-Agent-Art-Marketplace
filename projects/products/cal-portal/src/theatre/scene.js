@@ -49,9 +49,13 @@ export class TheatreScene {
     this.world.sortableChildren = true
 
     this.stationNodes = new Map() // stationId -> {c, monitorBar, alarm}
-    this.agentNodes = new Map() // agentId -> {c, body, head, face, bubble, target, state, home, vel}
+    this.agentNodes = new Map() // agentId -> {c, body, head, face, bubble, target, state, home, vel, limbs...}
     this.handoff = new PIXI.Graphics()
     this.handoff.zIndex = 30
+    this.fx = new PIXI.Container()
+    this.fx.zIndex = 26
+    this.particles = [] // {g, x,y,vx,vy,life,maxLife,alpha0,scale0}
+    this.particlePool = []
 
     this.tick = this.tick.bind(this)
   }
@@ -71,6 +75,7 @@ export class TheatreScene {
     this.drawRoom()
     this.drawStations()
     this.world.addChild(this.handoff)
+    this.world.addChild(this.fx)
 
     this.app.ticker.add(this.tick)
     this.ready = true
@@ -154,6 +159,67 @@ export class TheatreScene {
       .fill({ color: 0x0b1020, alpha: 0.9 })
       .stroke({ color: 0x4b5563, alpha: 0.18, width: 1 })
     c.addChild(monitor)
+
+    // Deekay-ish props per station (simple shapes, readable silhouettes).
+    // Keep them subtle so the room reads as a "stage", not clutter.
+    const props = new PIXI.Container()
+    props.zIndex = 1
+    c.addChild(props)
+
+    const addPlant = (x, y, s = 1) => {
+      const pot = new PIXI.Graphics()
+      pot.roundRect(x - 10 * s, y + 6 * s, 20 * s, 14 * s, 6 * s)
+        .fill({ color: 0x111827, alpha: 0.85 })
+        .stroke({ color: 0xffffff, alpha: 0.08, width: 1 })
+      const leaf = new PIXI.Graphics()
+      leaf.moveTo(x, y)
+      leaf.bezierCurveTo(x - 10 * s, y - 14 * s, x - 4 * s, y - 28 * s, x + 2 * s, y - 18 * s)
+      leaf.bezierCurveTo(x + 10 * s, y - 8 * s, x + 8 * s, y + 2 * s, x, y)
+      leaf.fill({ color: 0x22c55e, alpha: 0.8 })
+      props.addChild(pot, leaf)
+    }
+
+    const addPapers = (x, y) => {
+      const p = new PIXI.Graphics()
+      p.roundRect(x, y, 18, 12, 3).fill({ color: 0xe2e8f0, alpha: 0.5 })
+      p.roundRect(x + 6, y + 4, 18, 12, 3).fill({ color: 0xe2e8f0, alpha: 0.35 })
+      props.addChild(p)
+    }
+
+    const addLamp = (x, y) => {
+      const l = new PIXI.Graphics()
+      l.roundRect(x, y, 6, 26, 3).fill({ color: 0x0b1020, alpha: 0.8 })
+      l.roundRect(x - 8, y - 10, 22, 12, 6).fill({ color: 0xf59e0b, alpha: 0.25 })
+      props.addChild(l)
+    }
+
+    if (st.id === 'devdesk') {
+      addPlant(-78, -2, 0.9)
+      addPapers(-38, 10)
+      addLamp(74, 4)
+    } else if (st.id === 'whiteboard') {
+      addPapers(-12, 12)
+    } else if (st.id === 'verifybench') {
+      addPapers(-20, 10)
+      addPlant(78, 0, 0.75)
+    } else if (st.id === 'testrig') {
+      // little "beaker"
+      const b = new PIXI.Graphics()
+      b.roundRect(76, 8, 12, 18, 4).fill({ color: 0x60a5fa, alpha: 0.22 })
+      b.roundRect(76, 8, 12, 18, 4).stroke({ color: 0xffffff, alpha: 0.10, width: 1 })
+      props.addChild(b)
+    } else if (st.id === 'prkiosk') {
+      // printer tray
+      const pr = new PIXI.Graphics()
+      pr.roundRect(-84, 12, 26, 10, 4).fill({ color: 0x0b1020, alpha: 0.75 })
+      props.addChild(pr)
+    } else if (st.id === 'reviewtable') {
+      // coffee cups
+      const cup = new PIXI.Graphics()
+      cup.roundRect(70, 12, 10, 10, 3).fill({ color: 0x111827, alpha: 0.8 })
+      cup.roundRect(84, 12, 10, 10, 3).fill({ color: 0x111827, alpha: 0.7 })
+      props.addChild(cup)
+    }
 
     // monitor glow (accent)
     const glow = new PIXI.Graphics()
@@ -258,11 +324,29 @@ export class TheatreScene {
       .stroke({ color: accent, alpha: 0.18, width: 6 })
     c.addChild(head)
 
-    // simple arms (pose cues)
-    const arms = new PIXI.Graphics()
-    arms.roundRect(-26, -4, 11, 22, 8).fill({ color: 0xf1f5f9, alpha: 0.98 }).stroke({ color: outline, alpha: 0.7, width: 2 })
-    arms.roundRect(15, -4, 11, 22, 8).fill({ color: 0xf1f5f9, alpha: 0.98 }).stroke({ color: outline, alpha: 0.7, width: 2 })
-    c.addChild(arms)
+    // Limbs as containers so we can animate (walk cycle + working poses).
+    const limbs = new PIXI.Container()
+    limbs.zIndex = 19
+    c.addChild(limbs)
+
+    const mkLimb = (x, y, w, h, r = 8) => {
+      const k = new PIXI.Container()
+      k.x = x
+      k.y = y
+      k.pivot.set(w / 2, 0)
+      const g = new PIXI.Graphics()
+      g.roundRect(0, 0, w, h, r)
+        .fill({ color: 0xf1f5f9, alpha: 0.98 })
+        .stroke({ color: outline, alpha: 0.7, width: 2 })
+      k.addChild(g)
+      return k
+    }
+
+    const legL = mkLimb(-10, 6, 10, 18, 7)
+    const legR = mkLimb(0, 6, 10, 18, 7)
+    const armL = mkLimb(-26, -4, 11, 22, 8)
+    const armR = mkLimb(15, -4, 11, 22, 8)
+    limbs.addChild(legL, legR, armL, armR)
 
     const face = new PIXI.Graphics()
     c.addChild(face)
@@ -292,11 +376,17 @@ export class TheatreScene {
       head,
       face,
       bubble,
+      limbs,
+      armL,
+      armR,
+      legL,
+      legR,
       target: { x: home.x, y: home.y },
       home,
       state: 'spawning',
       lastState: 'spawning',
       bob: Math.random() * Math.PI * 2,
+      walk: Math.random() * Math.PI * 2,
       shake: 0,
       vel: { x: 0, y: 0 },
       spawnT: 0,
@@ -470,6 +560,26 @@ export class TheatreScene {
     if (!this.ready) return
     const deltaSec = (dt?.deltaTime || 1) / 60
 
+    // Particles: update + cull.
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i]
+      p.life -= deltaSec
+      if (p.life <= 0) {
+        try { this.fx.removeChild(p.g) } catch {}
+        this.particlePool.push(p.g)
+        this.particles.splice(i, 1)
+        continue
+      }
+      p.x += p.vx * deltaSec
+      p.y += p.vy * deltaSec
+      const t = 1 - (p.life / p.maxLife)
+      p.g.x = p.x
+      p.g.y = p.y
+      p.g.alpha = (p.alpha0 ?? 1) * (1 - t)
+      const s = (p.scale0 ?? 1) * (1 - 0.2 * t)
+      p.g.scale.set(s)
+    }
+
     for (const node of this.agentNodes.values()) {
       node.bob += deltaSec * 2.2
       const bobY = Math.sin(node.bob) * 1.8
@@ -488,6 +598,45 @@ export class TheatreScene {
       node.vel.y *= Math.exp(-d * deltaSec)
       node.c.x += node.vel.x * deltaSec
       node.c.y += node.vel.y * deltaSec
+
+      // Walk cycle (based on speed) + state poses.
+      const speed = Math.hypot(node.vel.x, node.vel.y)
+      const walking = speed > 36
+      node.walk += deltaSec * (walking ? Math.min(10, 3 + speed / 30) : 1.6)
+      const phase = Math.sin(node.walk)
+      const swing = walking ? phase : 0
+
+      // Default pose.
+      const armBase = 0
+      const legBase = 0
+
+      // Pose based on state: working = subtle typing, thinking = hand-to-chin-ish, blocked = slumped.
+      const st = String(node.state || 'idle')
+      if (st === 'working') {
+        node.armL.rotation = damp(node.armL.rotation, -0.35 + 0.08 * Math.sin(node.walk * 2.6), 14.0, deltaSec)
+        node.armR.rotation = damp(node.armR.rotation, 0.35 + 0.08 * Math.sin(node.walk * 2.2), 14.0, deltaSec)
+        node.legL.rotation = damp(node.legL.rotation, 0.05 * swing, 14.0, deltaSec)
+        node.legR.rotation = damp(node.legR.rotation, -0.05 * swing, 14.0, deltaSec)
+      } else if (st === 'thinking') {
+        node.armL.rotation = damp(node.armL.rotation, -0.55, 12.0, deltaSec)
+        node.armR.rotation = damp(node.armR.rotation, 0.10, 12.0, deltaSec)
+        node.legL.rotation = damp(node.legL.rotation, 0.06 * swing, 12.0, deltaSec)
+        node.legR.rotation = damp(node.legR.rotation, -0.06 * swing, 12.0, deltaSec)
+      } else if (st === 'blocked') {
+        node.armL.rotation = damp(node.armL.rotation, -0.15, 10.0, deltaSec)
+        node.armR.rotation = damp(node.armR.rotation, 0.15, 10.0, deltaSec)
+        node.legL.rotation = damp(node.legL.rotation, -0.10, 10.0, deltaSec)
+        node.legR.rotation = damp(node.legR.rotation, 0.10, 10.0, deltaSec)
+      } else {
+        node.armL.rotation = damp(node.armL.rotation, armBase + 0.35 * swing, 10.0, deltaSec)
+        node.armR.rotation = damp(node.armR.rotation, -armBase - 0.35 * swing, 10.0, deltaSec)
+        node.legL.rotation = damp(node.legL.rotation, legBase - 0.45 * swing, 10.0, deltaSec)
+        node.legR.rotation = damp(node.legR.rotation, legBase + 0.45 * swing, 10.0, deltaSec)
+      }
+
+      // Tiny squash/stretch so characters feel alive.
+      const sxy = 1 + (walking ? 0.02 * Math.sin(node.walk * 2) : 0.01 * Math.sin(node.bob * 2))
+      node.limbs.scale.set(1, sxy)
 
       // blocked wobble
       if (node.state === 'blocked') {
@@ -509,6 +658,42 @@ export class TheatreScene {
       } else {
         node.c.scale.set(damp(node.c.scale.x, 1, 9.0, deltaSec))
       }
+
+      // Emit small particles (low rate, readable).
+      // Working: typing sparks near head.
+      if (st === 'working' && Math.random() < 0.14 * deltaSec * 60) {
+        this.emitParticle(node.c.x + 8, node.c.y - 8, 30 * (Math.random() - 0.5), -40 - 20 * Math.random(), COLORS.cyan, 0.6, 0.55)
+      }
+      // Thinking: bubble dots above head.
+      if (st === 'thinking' && Math.random() < 0.10 * deltaSec * 60) {
+        this.emitParticle(node.c.x - 10 + 20 * Math.random(), node.c.y - 56, 6 * (Math.random() - 0.5), -16 - 10 * Math.random(), COLORS.amber, 0.45, 0.85)
+      }
+      // Blocked: alert pings.
+      if (st === 'blocked' && Math.random() < 0.08 * deltaSec * 60) {
+        this.emitParticle(node.c.x + 18 * (Math.random() - 0.5), node.c.y - 52, 10 * (Math.random() - 0.5), -24 - 10 * Math.random(), COLORS.bad, 0.55, 0.9)
+      }
     }
+  }
+
+  emitParticle(x, y, vx, vy, color, radius = 0.6, life = 0.6) {
+    const g = this.particlePool.pop() || new PIXI.Graphics()
+    g.clear()
+    g.circle(0, 0, 6 * radius).fill({ color, alpha: 0.95 })
+    g.x = x
+    g.y = y
+    g.alpha = 1
+    g.scale.set(1)
+    this.fx.addChild(g)
+    this.particles.push({
+      g,
+      x,
+      y,
+      vx,
+      vy,
+      life,
+      maxLife: life,
+      alpha0: 0.9,
+      scale0: 1,
+    })
   }
 }
