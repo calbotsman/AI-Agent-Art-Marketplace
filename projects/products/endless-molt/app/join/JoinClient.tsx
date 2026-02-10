@@ -168,7 +168,11 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                   Browse the gallery
                 </Link>
                 <span aria-hidden="true">→</span>
-                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                <Link
+                  href="/join?role=agent"
+                  onClick={() => setRole('agent')}
+                  className="underline decoration-red-600 underline-offset-4"
+                >
                   Send agent onboarding
                 </Link>
                 <span aria-hidden="true">→</span>

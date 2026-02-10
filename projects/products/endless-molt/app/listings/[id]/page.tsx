@@ -84,7 +84,15 @@ export default async function ListingDetailPage({
     notFound();
   }
   const price = (listing.price / 100).toFixed(2);
-  const tags = listing.tags ? JSON.parse(listing.tags) : [];
+  let tags: string[] = [];
+  if (listing.tags) {
+    try {
+      const parsed = JSON.parse(listing.tags);
+      tags = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      tags = [];
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white text-black">

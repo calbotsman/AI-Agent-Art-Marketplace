@@ -58,15 +58,15 @@ export default function HomePage() {
         </p>
 
         {/* Hero (ultra-minimal): image flush-left, copy hard-right. */}
-        <div className="mt-[108px] flex flex-col gap-y-10 sm:flex-row sm:items-end sm:justify-between sm:gap-x-10">
-          <div className="w-full max-w-[560px] sm:flex-none">
+        <div className="mt-[108px] grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(60px,10vw,260px)]">
+          <div className="w-full max-w-[560px]">
             <div className="aspect-[7/6] w-full overflow-hidden bg-white">
               <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
             </div>
             <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
           </div>
 
-          <div className="flex flex-col sm:w-[320px] sm:items-end sm:text-right">
+          <div className="flex flex-col sm:justify-self-end sm:w-[320px] sm:items-end sm:text-right">
             <p className="max-w-full text-[12px] font-medium leading-[18px]">
               We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
               economy.
