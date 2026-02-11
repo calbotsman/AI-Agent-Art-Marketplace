@@ -24,23 +24,28 @@
           <div class="right">
             <button id="btnMic" title="Hold Space for push‑to‑talk">Start mic</button>
             <button id="btnVoiceHud">Voice: on</button>
-            <button id="btnOpenChrome" title="SpeechRecognition works best in Chrome">Open in Chrome</button>
             <button class="primary" id="btnCall" title="Connect + start mic">Call Cal</button>
           </div>
         </div>
 
-        <div class="agentDock" id="agentDock" aria-label="Agents"></div>
+        <div class="stageGrid" aria-label="Studio Layout">
+          <aside class="leftRail" aria-label="Agents Rail">
+            <div class="agentDock" id="agentDock" aria-label="Agents"></div>
+          </aside>
 
-        <div class="stageOverlay" id="stageOverlay" aria-label="Stage"></div>
+          <div class="stageCanvasWrap" aria-label="Studio Stage">
+            <div class="stageOverlay" id="stageOverlay" aria-label="Stage"></div>
 
-        <canvas id="c"></canvas>
+            <canvas id="c"></canvas>
 
-        <!-- Talk mode: keep chat controls reachable even when the Ops panel is hidden -->
-        <div class="talkTray" id="talkTray">
-          <textarea id="talkInput" placeholder="Talk mode: type here (⌘/Ctrl+Enter to send). Try /help for local commands…"></textarea>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <button class="primary" id="btnTalkSend">Send</button>
-            <button id="btnTalkClear">Clear</button>
+            <!-- Talk mode: keep chat controls reachable even when the Ops panel is hidden -->
+            <div class="talkTray" id="talkTray">
+              <textarea id="talkInput" placeholder="Talk mode: type here (⌘/Ctrl+Enter to send). Try /help for local commands…"></textarea>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="primary" id="btnTalkSend">Send</button>
+                <button id="btnTalkClear">Clear</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -53,10 +58,6 @@
               <p class="brandSubtitle">Studio cockpit: talk, collect refs, and keep Josh’s lane clean. Best in <strong>Chrome</strong> (SpeechRecognition).</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-              <div class="pill tight" title="Room look">
-                <span class="mini" style="opacity:.85;">Room</span>
-                <span class="mini" id="roomLabel" style="opacity:.9;">Velvet</span>
-              </div>
               <div class="small" style="text-align:right;">
                 <span class="kbd">⌘/Ctrl+K</span> focus • <span class="kbd">⌘/Ctrl+,</span> settings
               </div>
@@ -272,11 +273,6 @@
         </span>
         <span class="pill" style="gap:8px;">
           <span class="mini" id="agentStatus">Agent: main</span>
-        </span>
-        <span class="pill" style="gap:6px;" title="Room look">
-          <span class="mini" style="opacity:.85;">Room</span>
-          <button class="ghost" id="btnRoomVelvet" type="button">Velvet</button>
-          <button class="ghost" id="btnRoomChrome" type="button">Chrome</button>
         </span>
         <button id="btnNewThread" title="Clear chat + start a fresh gateway thread">New thread</button>
         <button id="btnOpenSettings">Settings</button>

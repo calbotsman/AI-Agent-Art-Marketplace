@@ -2,18 +2,27 @@ import * as PIXI from 'pixi.js'
 import { STATIONS, LOUNGE, PORTAL, stationForStepKind } from './stations.js'
 import { damp } from './easing.js'
 
+// Deekay-ish: bright fills, thick clean outlines, 2-tone shading, restrained accents.
 const COLORS = {
-  bg0: 0x0b0f1a,
-  bg1: 0x0f1526,
-  ink: 0xe6edf7,
-  muted: 0xa9b4c5,
-  accent: 0xff3b3b,
-  mint: 0x2dd4bf,
-  lilac: 0xa78bfa,
-  cyan: 0x22d3ee,
-  amber: 0xf59e0b,
-  ok: 0x34d399,
+  outline: 0x152235,      // deep blue-gray (linework)
+  outlineSoft: 0x20314a,  // softer line for secondary strokes
+  ink: 0x0b1220,          // text/ink when needed
+  paper: 0xffffff,        // main fill
+  shade: 0xe8eef8,        // subtle shadow fill
+  stageNight: 0x0b1020,   // wall
+  stageNight2: 0x0a1428,  // floor
+  stageDay: 0xf6f7fb,     // wall
+  stageDay2: 0xecf0f7,    // floor
+
+  cyan: 0x2dd4ff,
+  lilac: 0xb7a6ff,
+  mint: 0x34d399,
+  amber: 0xfbbf24,
+  pink: 0xfb7185,
+
+  ok: 0x22c55e,
   bad: 0xef4444,
+  muted: 0x7b8aa4,
 }
 
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)) }
@@ -25,6 +34,13 @@ function colorFromString(s) {
   for (let i = 0; i < str.length; i++) h = (h ^ str.charCodeAt(i)) * 16777619
   const n = Math.abs(h >>> 0) % 6
   return [COLORS.cyan, COLORS.lilac, COLORS.mint, COLORS.amber, 0x60a5fa, 0xf472b6][n]
+}
+
+function hashNum(s) {
+  const str = String(s || 'x')
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) h = (h ^ str.charCodeAt(i)) * 16777619
+  return (h >>> 0)
 }
 
 function labelStyle(size = 14, weight = '700', color = COLORS.ink, alpha = 0.95) {
@@ -48,6 +64,10 @@ export class TheatreScene {
     this.world = new PIXI.Container()
     this.world.sortableChildren = true
 
+    this.theme = 'night' // 'day' | 'night'
+    this.roomLayer = new PIXI.Container()
+    this.roomLayer.zIndex = 0
+
     this.stationNodes = new Map() // stationId -> {c, monitorBar, alarm}
     this.agentNodes = new Map() // agentId -> {c, body, head, face, bubble, target, state, home, vel, limbs...}
     this.handoff = new PIXI.Graphics()
@@ -56,6 +76,15 @@ export class TheatreScene {
     this.fx.zIndex = 26
     this.particles = [] // {g, x,y,vx,vy,life,maxLife,alpha0,scale0}
     this.particlePool = []
+
+    // Kenney character skins (idle/run/work). This gives us true walk cycles today.
+    // Each skin: { idle: [tex], run: [tex...], work: [tex...] }
+    this.skins = []
+    this.propTex = {} // { [name: string]: PIXI.Texture }
+
+    // Player avatar (you). View-layer only, not part of the reducer.
+    this.player = null
+    this.playerKeys = { x: 0, y: 0 }
 
     this.tick = this.tick.bind(this)
   }
@@ -72,13 +101,72 @@ export class TheatreScene {
     if (!this.canvas) this.mount.appendChild(this.app.canvas)
     this.app.stage.addChild(this.world)
 
+    await this.loadKenneySkins()
+    await this.loadPropTextures()
+    this.world.addChild(this.roomLayer)
     this.drawRoom()
     this.drawStations()
     this.world.addChild(this.handoff)
     this.world.addChild(this.fx)
+    this.createPlayer()
 
     this.app.ticker.add(this.tick)
     this.ready = true
+  }
+
+  async loadKenneySkins() {
+    // Kenney Isometric Prototype Tiles includes multiple human variants with:
+    // - Human_X_Idle0.png
+    // - Human_X_Run0..Run9.png
+    // - Human_X_Pickup0..Pickup9.png  (good enough for "working")
+    try {
+      const skins = []
+      for (let skin = 0; skin < 8; skin++) {
+        const idleTex = await PIXI.Assets.load(`/src/assets/kenney/Characters/Human/Human_${skin}_Idle0.png`)
+        if (!idleTex) continue
+
+        const run = []
+        for (let i = 0; i < 10; i++) {
+          const t = await PIXI.Assets.load(`/src/assets/kenney/Characters/Human/Human_${skin}_Run${i}.png`)
+          if (t) run.push(t)
+        }
+
+        const work = []
+        for (let i = 0; i < 10; i++) {
+          const t = await PIXI.Assets.load(`/src/assets/kenney/Characters/Human/Human_${skin}_Pickup${i}.png`)
+          if (t) work.push(t)
+        }
+
+        skins.push({ idle: [idleTex], run, work })
+      }
+      this.skins = skins
+    } catch {
+      this.skins = []
+    }
+  }
+
+  async loadPropTextures() {
+    // Quick way to add "desk detail" without hand-drawing everything: use Kenney preview sprites
+    // as small props. We'll keep alpha low so they read as set dressing, not a style clash.
+    try {
+      const wanted = [
+        ['chair', '/src/assets/kenney/Previews/chair.png'],
+        ['computer', '/src/assets/kenney/Previews/computer.png'],
+        ['computerSystem', '/src/assets/kenney/Previews/computer-system.png'],
+        ['computerWide', '/src/assets/kenney/Previews/computer-wide.png'],
+        ['computerScreen', '/src/assets/kenney/Previews/computer-screen.png'],
+        ['table', '/src/assets/kenney/Previews/table.png'],
+        ['tableLarge', '/src/assets/kenney/Previews/table-large.png'],
+      ]
+      const out = {}
+      for (const [k, url] of wanted) {
+        const tex = await PIXI.Assets.load(url)
+        if (tex) out[k] = tex
+      }
+      this.propTex = out
+    } catch {
+      this.propTex = {}
+    }
   }
 
   destroy() {
@@ -86,28 +174,147 @@ export class TheatreScene {
   }
 
   drawRoom() {
+    this.roomLayer.removeChildren()
+
     const g = new PIXI.Graphics()
     const w = 1200
     const h = 720
+    // Deekay-ish room: readable shapes, bold-ish strokes, "studio" dressing.
+    const isDay = this.theme === 'day'
+    const stroke = { color: COLORS.outline, alpha: isDay ? 0.28 : 0.42, width: 4 }
+    const wall = isDay ? COLORS.stageDay : COLORS.stageNight
+    const floor = isDay ? COLORS.stageDay2 : COLORS.stageNight2
     g.roundRect(24, 24, w - 48, h - 48, 28)
-      .fill({ color: COLORS.bg1, alpha: 0.9 })
-      .stroke({ color: 0x2a3550, alpha: 0.35, width: 1 })
+      .fill({ color: wall, alpha: isDay ? 0.86 : 0.92 })
+      .stroke(stroke)
 
     // floor slab (2.5D)
     g.roundRect(70, 90, w - 140, h - 160, 26)
-      .fill({ color: 0x0a1020, alpha: 0.95 })
-      .stroke({ color: 0x334155, alpha: 0.18, width: 1 })
+      .fill({ color: floor, alpha: isDay ? 0.92 : 0.95 })
+      .stroke({ color: COLORS.outline, alpha: isDay ? 0.18 : 0.26, width: 3 })
 
-    // subtle grid
-    for (let x = 90; x < w - 90; x += 64) {
-      g.moveTo(x, 92).lineTo(x, h - 72).stroke({ color: 0xffffff, alpha: 0.02, width: 1 })
-    }
-    for (let y = 110; y < h - 72; y += 64) {
-      g.moveTo(72, y).lineTo(w - 72, y).stroke({ color: 0xffffff, alpha: 0.018, width: 1 })
+    // Deekay-ish “paper texture”: sparse dots (keeps it lively, not noisy).
+    const dotAlpha = isDay ? 0.06 : 0.10
+    for (let i = 0; i < 140; i++) {
+      const x = 90 + Math.random() * (w - 180)
+      const y = 110 + Math.random() * (h - 220)
+      g.circle(x, y, 1.2 + Math.random() * 1.2).fill({ color: COLORS.outline, alpha: dotAlpha * (0.4 + Math.random() * 0.8) })
     }
 
     g.zIndex = 0
-    this.world.addChild(g)
+    this.roomLayer.addChild(g)
+
+    // Studio dressing: window, clock, shelves, posters. Still simple shapes but more character.
+    const deco = new PIXI.Container()
+    deco.zIndex = 2
+    this.roomLayer.addChild(deco)
+
+    const win = new PIXI.Graphics()
+    win.roundRect(90, 48, 260, 120, 22)
+      .fill({ color: isDay ? 0xffffff : 0x0b1020, alpha: isDay ? 0.55 : 0.60 })
+      .stroke({ color: COLORS.outline, alpha: isDay ? 0.22 : 0.26, width: 3 })
+    win.roundRect(102, 60, 236, 96, 18).fill({ color: isDay ? 0x93c5fd : 0x60a5fa, alpha: isDay ? 0.18 : 0.12 })
+    // simple blinds lines
+    for (let y = 72; y < 148; y += 14) {
+      win.moveTo(110, y).lineTo(330, y).stroke({ color: COLORS.outline, alpha: isDay ? 0.06 : 0.10, width: 2 })
+    }
+    deco.addChild(win)
+
+    const clock = new PIXI.Graphics()
+    const cx = 600, cy = 66
+    clock.circle(cx, cy, 26).fill({ color: isDay ? 0xffffff : 0x0b1020, alpha: isDay ? 0.65 : 0.75 }).stroke({ color: COLORS.outline, alpha: 0.22, width: 3 })
+    clock.moveTo(cx, cy).lineTo(cx, cy - 12).stroke({ color: COLORS.outline, alpha: 0.55, width: 2 })
+    clock.moveTo(cx, cy).lineTo(cx + 10, cy + 6).stroke({ color: COLORS.outline, alpha: 0.45, width: 2 })
+    deco.addChild(clock)
+
+    const shelf = new PIXI.Graphics()
+    shelf.roundRect(860, 56, 250, 18, 10).fill({ color: isDay ? 0xffffff : 0x0b1020, alpha: isDay ? 0.45 : 0.65 }).stroke({ color: COLORS.outline, alpha: 0.18, width: 2 })
+    // books
+    for (let i = 0; i < 8; i++) {
+      const bx = 878 + i * 26
+      const bh = 26 + (i % 3) * 8
+      shelf.roundRect(bx, 30 + (34 - bh), 18, bh, 6).fill({ color: [0xa78bfa, 0x22d3ee, 0x2dd4bf, 0xf59e0b][i % 4], alpha: 0.28 })
+    }
+    // small plant
+    shelf.roundRect(1094, 36, 18, 14, 6).fill({ color: 0x111827, alpha: 0.8 })
+    shelf.circle(1103, 32, 10).fill({ color: 0x22c55e, alpha: 0.25 })
+    deco.addChild(shelf)
+
+    // Tiny "sun/moon" indicator so it feels alive.
+    const orb = new PIXI.Graphics()
+    orb.circle(1120, 72, 10).fill({ color: isDay ? COLORS.amber : 0x93c5fd, alpha: 0.55 })
+    deco.addChild(orb)
+  }
+
+  setTheme(theme) {
+    const t = (theme === 'day') ? 'day' : 'night'
+    if (this.theme === t) return
+    this.theme = t
+    this.drawRoom()
+  }
+
+  createPlayer() {
+    if (this.player) return
+    const c = new PIXI.Container()
+    c.zIndex = 21
+    const outline = 0x0a1020
+
+    // shadow
+    const sh = new PIXI.Graphics()
+    sh.ellipse(0, 18, 18, 8).fill({ color: 0x000000, alpha: 0.22 })
+    c.addChild(sh)
+
+    // Player uses the same Kenney skin system.
+    const skinIdx = 0
+    const skin = this.skins?.[skinIdx]
+    let anim = null
+    if (skin?.idle?.length) {
+      anim = new PIXI.AnimatedSprite(skin.idle)
+      anim.anchor.set(0.5, 1.0)
+      anim.x = 0
+      anim.y = 18
+      const targetH = 120
+      const s = targetH / Math.max(1, anim.height)
+      anim.scale.set(s)
+      anim.loop = true
+      anim.gotoAndStop(0)
+      anim.alpha = 0.98
+      c.addChild(anim)
+    } else {
+      const fallback = new PIXI.Graphics()
+      fallback.roundRect(-18, -10, 36, 44, 16)
+        .fill({ color: 0xf1f5f9, alpha: 0.98 })
+        .stroke({ color: outline, alpha: 0.85, width: 3 })
+      c.addChild(fallback)
+    }
+
+    const name = new PIXI.Text('You', labelStyle(11, '900', COLORS.ink))
+    name.anchor.set(0.5, 0)
+    name.y = 26
+    name.alpha = 0.92
+    c.addChild(name)
+
+    c.x = 980
+    c.y = 560
+
+    this.player = {
+      c,
+      skinIdx,
+      skin,
+      anim,
+      animMode: 'idle',
+      animBaseScale: anim ? Math.abs(anim.scale.x || 1) : 1,
+      facing: 1,
+      vel: { x: 0, y: 0 },
+      walk: Math.random() * Math.PI * 2,
+      bob: Math.random() * Math.PI * 2,
+    }
+    this.world.addChild(c)
+  }
+
+  setPlayerIntent(dx, dy) {
+    this.playerKeys.x = clamp(dx, -1, 1)
+    this.playerKeys.y = clamp(dy, -1, 1)
   }
 
   drawStations() {
@@ -137,14 +344,14 @@ export class TheatreScene {
       if (st.kind === 'verify') return COLORS.lilac
       if (st.kind === 'test') return 0x60a5fa
       if (st.kind === 'pr') return COLORS.amber
-      if (st.kind === 'review') return 0xf472b6
+      if (st.kind === 'review') return COLORS.pink
       return COLORS.muted
     })()
 
     const base = new PIXI.Graphics()
     base.roundRect(-90, -46, 180, 92, 20)
-      .fill({ color: 0x0d1426, alpha: 0.98 })
-      .stroke({ color: 0x3b4a6a, alpha: 0.22, width: 1 })
+      .fill({ color: (this.theme === 'day') ? 0xffffff : 0x0d1426, alpha: (this.theme === 'day') ? 0.35 : 0.98 })
+      .stroke({ color: COLORS.outline, alpha: 0.20, width: 3 })
     c.addChild(base)
 
     // soft shadow under base
@@ -156,8 +363,8 @@ export class TheatreScene {
     // monitor
     const monitor = new PIXI.Graphics()
     monitor.roundRect(-56, -22, 112, 44, 12)
-      .fill({ color: 0x0b1020, alpha: 0.9 })
-      .stroke({ color: 0x4b5563, alpha: 0.18, width: 1 })
+      .fill({ color: 0x0b1020, alpha: 0.85 })
+      .stroke({ color: COLORS.outline, alpha: 0.22, width: 2 })
     c.addChild(monitor)
 
     // Deekay-ish props per station (simple shapes, readable silhouettes).
@@ -165,6 +372,22 @@ export class TheatreScene {
     const props = new PIXI.Container()
     props.zIndex = 1
     c.addChild(props)
+
+    const addKenneyProp = (key, x, y, scale, alpha = 0.42, tint = null) => {
+      const tex = this.propTex?.[key]
+      if (!tex) return null
+      const sp = new PIXI.Sprite(tex)
+      sp.anchor.set(0.5, 1)
+      sp.x = x
+      sp.y = y
+      sp.scale.set(scale)
+      sp.alpha = alpha
+      if (tint != null) sp.tint = tint
+      // ensure props stay behind the monitor stroke/glow
+      sp.zIndex = 0
+      props.addChild(sp)
+      return sp
+    }
 
     const addPlant = (x, y, s = 1) => {
       const pot = new PIXI.Graphics()
@@ -194,12 +417,15 @@ export class TheatreScene {
     }
 
     if (st.id === 'devdesk') {
+      addKenneyProp('computerSystem', -18, 44, 0.20, 0.34)
+      addKenneyProp('chair', 70, 46, 0.20, 0.28)
       addPlant(-78, -2, 0.9)
       addPapers(-38, 10)
       addLamp(74, 4)
     } else if (st.id === 'whiteboard') {
       addPapers(-12, 12)
     } else if (st.id === 'verifybench') {
+      addKenneyProp('computerWide', -18, 44, 0.19, 0.30)
       addPapers(-20, 10)
       addPlant(78, 0, 0.75)
     } else if (st.id === 'testrig') {
@@ -209,11 +435,13 @@ export class TheatreScene {
       b.roundRect(76, 8, 12, 18, 4).stroke({ color: 0xffffff, alpha: 0.10, width: 1 })
       props.addChild(b)
     } else if (st.id === 'prkiosk') {
+      addKenneyProp('computer', 6, 44, 0.18, 0.26)
       // printer tray
       const pr = new PIXI.Graphics()
       pr.roundRect(-84, 12, 26, 10, 4).fill({ color: 0x0b1020, alpha: 0.75 })
       props.addChild(pr)
     } else if (st.id === 'reviewtable') {
+      addKenneyProp('tableLarge', 4, 52, 0.22, 0.22)
       // coffee cups
       const cup = new PIXI.Graphics()
       cup.roundRect(70, 12, 10, 10, 3).fill({ color: 0x111827, alpha: 0.8 })
@@ -224,7 +452,7 @@ export class TheatreScene {
     // monitor glow (accent)
     const glow = new PIXI.Graphics()
     glow.roundRect(-56, -22, 112, 44, 12)
-      .stroke({ color: accent, alpha: 0.14, width: 3 })
+      .stroke({ color: accent, alpha: 0.20, width: 4 })
     c.addChild(glow)
 
     const monitorBar = new PIXI.Graphics()
@@ -252,8 +480,8 @@ export class TheatreScene {
 
     const g = new PIXI.Graphics()
     g.roundRect(-120, -44, 240, 88, 28)
-      .fill({ color: 0x101827, alpha: 0.95 })
-      .stroke({ color: 0x3b4a6a, alpha: 0.18, width: 1 })
+      .fill({ color: (this.theme === 'day') ? 0xffffff : 0x101827, alpha: (this.theme === 'day') ? 0.22 : 0.95 })
+      .stroke({ color: COLORS.outline, alpha: 0.18, width: 3 })
     // couch cushions
     g.roundRect(-98, -22, 72, 44, 18).fill({ color: 0x0f1a2d, alpha: 0.95 })
     g.roundRect(-20, -22, 72, 44, 18).fill({ color: 0x0f1a2d, alpha: 0.95 })
@@ -277,7 +505,7 @@ export class TheatreScene {
     const g = new PIXI.Graphics()
     g.roundRect(-72, -42, 144, 84, 22)
       .fill({ color: 0x0b1224, alpha: 0.92 })
-      .stroke({ color: 0x3b4a6a, alpha: 0.18, width: 1 })
+      .stroke({ color: COLORS.outline, alpha: 0.18, width: 3 })
     // portal ring
     g.circle(0, -6, 26).stroke({ color: COLORS.lilac, alpha: 0.35, width: 3 })
     g.circle(0, -6, 16).stroke({ color: COLORS.cyan, alpha: 0.22, width: 3 })
@@ -298,62 +526,44 @@ export class TheatreScene {
     c.zIndex = 20
 
     const accent = colorFromString(a.id || a.name || '')
-    const outline = 0x0a1020
+    const outline = COLORS.outline
 
     // feet shadow
     const sh = new PIXI.Graphics()
     sh.ellipse(0, 18, 18, 8).fill({ color: 0x000000, alpha: 0.28 })
     c.addChild(sh)
 
-    // body
-    const body = new PIXI.Graphics()
-    // Deekay-ish: bright fill + bold outline + soft accent ring.
-    body.roundRect(-18, -10, 36, 32, 14)
-      .fill({ color: 0xf1f5f9, alpha: 0.98 })
-      .stroke({ color: outline, alpha: 0.85, width: 3 })
-    body.roundRect(-18, -10, 36, 32, 14)
-      .stroke({ color: accent, alpha: 0.22, width: 6 })
-    c.addChild(body)
+    // Kenney character (true frame animation).
+    const skinIdx = this.skins.length
+      ? (Math.abs(hashNum(a.id || a.name || 'x')) % this.skins.length)
+      : 0
+    const skin = this.skins[skinIdx]
 
-    // head
-    const head = new PIXI.Graphics()
-    head.circle(0, -24, 18)
-      .fill({ color: 0xffffff, alpha: 0.98 })
-      .stroke({ color: outline, alpha: 0.85, width: 3 })
-    head.circle(0, -24, 18)
-      .stroke({ color: accent, alpha: 0.18, width: 6 })
-    c.addChild(head)
-
-    // Limbs as containers so we can animate (walk cycle + working poses).
-    const limbs = new PIXI.Container()
-    limbs.zIndex = 19
-    c.addChild(limbs)
-
-    const mkLimb = (x, y, w, h, r = 8) => {
-      const k = new PIXI.Container()
-      k.x = x
-      k.y = y
-      k.pivot.set(w / 2, 0)
-      const g = new PIXI.Graphics()
-      g.roundRect(0, 0, w, h, r)
-        .fill({ color: 0xf1f5f9, alpha: 0.98 })
-        .stroke({ color: outline, alpha: 0.7, width: 2 })
-      k.addChild(g)
-      return k
+    let anim = null
+    if (skin?.idle?.length) {
+      anim = new PIXI.AnimatedSprite(skin.idle)
+      anim.anchor.set(0.5, 1.0) // feet on the floor
+      anim.x = 0
+      anim.y = 18
+      const targetH = 110
+      const s = targetH / Math.max(1, anim.height)
+      anim.scale.set(s)
+      anim.loop = true
+      anim.gotoAndStop(0)
+      anim.alpha = 0.98
+      c.addChild(anim)
+    } else {
+      // Fallback: simple paper blob if assets aren't available.
+      const fallback = new PIXI.Graphics()
+      fallback.roundRect(-18, -10, 36, 44, 16)
+        .fill({ color: COLORS.paper, alpha: 0.98 })
+        .stroke({ color: outline, alpha: 0.85, width: 3 })
+      c.addChild(fallback)
     }
-
-    const legL = mkLimb(-10, 6, 10, 18, 7)
-    const legR = mkLimb(0, 6, 10, 18, 7)
-    const armL = mkLimb(-26, -4, 11, 22, 8)
-    const armR = mkLimb(15, -4, 11, 22, 8)
-    limbs.addChild(legL, legR, armL, armR)
-
-    const face = new PIXI.Graphics()
-    c.addChild(face)
 
     const name = new PIXI.Text(a.name || a.id, labelStyle(11, '800', COLORS.ink))
     name.anchor.set(0.5, 0)
-    name.y = 26
+    name.y = 36
     name.alpha = 0.9
     c.addChild(name)
 
@@ -372,15 +582,13 @@ export class TheatreScene {
 
     const node = {
       c,
-      body,
-      head,
-      face,
       bubble,
-      limbs,
-      armL,
-      armR,
-      legL,
-      legR,
+      skinIdx,
+      skin,
+      anim,
+      animMode: 'idle', // 'idle' | 'run' | 'work'
+      animBaseScale: anim ? Math.abs(anim.scale.x || 1) : 1,
+      facing: 1, // -1 = left, +1 = right
       target: { x: home.x, y: home.y },
       home,
       state: 'spawning',
@@ -389,6 +597,7 @@ export class TheatreScene {
       walk: Math.random() * Math.PI * 2,
       shake: 0,
       vel: { x: 0, y: 0 },
+      stepClock: 0, // used for footstep dust pacing
       spawnT: 0,
       accent,
       outline,
@@ -424,25 +633,7 @@ export class TheatreScene {
   }
 
   drawFace(node, state) {
-    node.face.clear()
-    const mood = String(state || 'idle')
-
-    // eyes
-    node.face.circle(-6.5, -28, 2.3).fill({ color: node.outline || 0x0a1020, alpha: 0.9 })
-    node.face.circle(6.5, -28, 2.3).fill({ color: node.outline || 0x0a1020, alpha: 0.9 })
-
-    // mouth
-    if (mood === 'blocked') {
-      node.face.moveTo(-7, -20).lineTo(7, -20).stroke({ color: COLORS.bad, alpha: 0.75, width: 2.5 })
-    } else if (mood === 'thinking') {
-      node.face.arc(0, -20, 6.5, Math.PI, Math.PI * 1.65).stroke({ color: COLORS.cyan, alpha: 0.7, width: 2.5 })
-    } else if (mood === 'working') {
-      node.face.arc(0, -20, 6.5, 0, Math.PI).stroke({ color: COLORS.mint, alpha: 0.7, width: 2.5 })
-    } else if (mood === 'collaborating') {
-      node.face.arc(0, -20, 6.5, 0, Math.PI).stroke({ color: COLORS.lilac, alpha: 0.7, width: 2.5 })
-    } else {
-      node.face.arc(0, -20, 5.8, 0, Math.PI).stroke({ color: node.outline || 0x0a1020, alpha: 0.6, width: 2.4 })
-    }
+    // No-op: faces are baked into the Deekay sprites.
   }
 
   applyStateToTarget(a) {
@@ -599,51 +790,71 @@ export class TheatreScene {
       node.c.x += node.vel.x * deltaSec
       node.c.y += node.vel.y * deltaSec
 
-      // Walk cycle (based on speed) + state poses.
+      // Walk cycle (based on speed) + state poses (sprite-based).
       const speed = Math.hypot(node.vel.x, node.vel.y)
       const walking = speed > 36
       node.walk += deltaSec * (walking ? Math.min(10, 3 + speed / 30) : 1.6)
       const phase = Math.sin(node.walk)
       const swing = walking ? phase : 0
-
-      // Default pose.
-      const armBase = 0
-      const legBase = 0
-
-      // Pose based on state: working = subtle typing, thinking = hand-to-chin-ish, blocked = slumped.
       const st = String(node.state || 'idle')
-      if (st === 'working') {
-        node.armL.rotation = damp(node.armL.rotation, -0.35 + 0.08 * Math.sin(node.walk * 2.6), 14.0, deltaSec)
-        node.armR.rotation = damp(node.armR.rotation, 0.35 + 0.08 * Math.sin(node.walk * 2.2), 14.0, deltaSec)
-        node.legL.rotation = damp(node.legL.rotation, 0.05 * swing, 14.0, deltaSec)
-        node.legR.rotation = damp(node.legR.rotation, -0.05 * swing, 14.0, deltaSec)
-      } else if (st === 'thinking') {
-        node.armL.rotation = damp(node.armL.rotation, -0.55, 12.0, deltaSec)
-        node.armR.rotation = damp(node.armR.rotation, 0.10, 12.0, deltaSec)
-        node.legL.rotation = damp(node.legL.rotation, 0.06 * swing, 12.0, deltaSec)
-        node.legR.rotation = damp(node.legR.rotation, -0.06 * swing, 12.0, deltaSec)
-      } else if (st === 'blocked') {
-        node.armL.rotation = damp(node.armL.rotation, -0.15, 10.0, deltaSec)
-        node.armR.rotation = damp(node.armR.rotation, 0.15, 10.0, deltaSec)
-        node.legL.rotation = damp(node.legL.rotation, -0.10, 10.0, deltaSec)
-        node.legR.rotation = damp(node.legR.rotation, 0.10, 10.0, deltaSec)
-      } else {
-        node.armL.rotation = damp(node.armL.rotation, armBase + 0.35 * swing, 10.0, deltaSec)
-        node.armR.rotation = damp(node.armR.rotation, -armBase - 0.35 * swing, 10.0, deltaSec)
-        node.legL.rotation = damp(node.legL.rotation, legBase - 0.45 * swing, 10.0, deltaSec)
-        node.legR.rotation = damp(node.legR.rotation, legBase + 0.45 * swing, 10.0, deltaSec)
+
+      // Kenney animation modes (idle/run/work). Keeps it readable and "gamey".
+      const setAnimMode = (mode) => {
+        if (!node.anim || node.animMode === mode) return
+        const skin = node.skin
+        if (!skin) return
+
+        if (mode === 'run' && skin.run?.length) {
+          node.anim.textures = skin.run
+          node.anim.loop = true
+          node.anim.animationSpeed = clamp(speed / 360, 0.14, 0.34)
+          node.anim.play()
+        } else if (mode === 'work' && skin.work?.length) {
+          node.anim.textures = skin.work
+          node.anim.loop = true
+          node.anim.animationSpeed = 0.18
+          node.anim.play()
+        } else {
+          node.anim.textures = skin.idle?.length ? skin.idle : node.anim.textures
+          node.anim.gotoAndStop(0)
+        }
+        node.animMode = mode
       }
 
-      // Tiny squash/stretch so characters feel alive.
-      const sxy = 1 + (walking ? 0.02 * Math.sin(node.walk * 2) : 0.01 * Math.sin(node.bob * 2))
-      node.limbs.scale.set(1, sxy)
+      const wantMode = (walking && st !== 'spawning' && st !== 'blocked')
+        ? 'run'
+        : ((st === 'working' || st === 'collaborating') ? 'work' : 'idle')
+      setAnimMode(wantMode)
 
-      // blocked wobble
-      if (node.state === 'blocked') {
-        node.c.rotation = damp(node.c.rotation, Math.sin(node.bob * 3) * 0.06, 10.0, deltaSec)
-        node.c.y += 4
-      } else {
-        node.c.rotation = damp(node.c.rotation, 0, 10.0, deltaSec)
+      if (node.anim) {
+        // facing
+        if (dir) node.facing = dir
+        const base = node.animBaseScale || Math.abs(node.anim.scale.x || 1) || 1
+        node.anim.scale.set(base * node.facing, base)
+        // blocked tint
+        node.anim.tint = (st === 'blocked') ? 0xffd1d1 : 0xffffff
+      }
+
+      // Tiny squash/stretch on the whole container. This is the Deekay “bouncy” feel.
+      const squish = walking ? 0.035 * Math.sin(node.walk * 2.0) : 0.018 * Math.sin(node.bob * 2.0)
+      node.c.scale.x = damp(node.c.scale.x, 1 + squish * 0.6, 10.0, deltaSec)
+      node.c.scale.y = damp(node.c.scale.y, 1 - squish, 10.0, deltaSec)
+
+      // Tilt/pose by state. (Keep it subtle; sprites can look like stickers if rotated too far.)
+      const dir = (Math.abs(node.vel.x) > 12) ? Math.sign(node.vel.x) : 0
+      const wantRot = (st === 'blocked')
+        ? 0.06 * Math.sin(node.bob * 3.2)
+        : (walking ? 0.02 * swing + 0.012 * dir : 0)
+      node.c.rotation = damp(node.c.rotation, wantRot, 10.0, deltaSec)
+      if (st === 'blocked') node.c.y += 4
+
+      // Extra micro-motion so the sprite doesn't feel like a sticker.
+      if (node.anim) {
+        const s = node.anim
+        const sway = walking ? 1.2 * swing : 0.4 * Math.sin(node.bob * 1.4)
+        s.x = damp(s.x, 0.7 * sway, 12.0, deltaSec)
+        s.y = damp(s.y, 18 + (walking ? 0.7 * Math.abs(swing) : 0.3 * Math.sin(node.bob * 2.0)), 12.0, deltaSec)
+        s.skew.x = damp(s.skew.x, (walking ? 0.03 * dir : 0), 10.0, deltaSec)
       }
 
       // spawning pop-in
@@ -656,7 +867,9 @@ export class TheatreScene {
         const e = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
         node.c.scale.set(0.2 + 0.8 * e)
       } else {
-        node.c.scale.set(damp(node.c.scale.x, 1, 9.0, deltaSec))
+        // keep whatever squash/stretch is doing; just damp toward 1 slowly
+        node.c.scale.x = damp(node.c.scale.x, node.c.scale.x, 1.0, deltaSec)
+        node.c.scale.y = damp(node.c.scale.y, node.c.scale.y, 1.0, deltaSec)
       }
 
       // Emit small particles (low rate, readable).
@@ -671,6 +884,68 @@ export class TheatreScene {
       // Blocked: alert pings.
       if (st === 'blocked' && Math.random() < 0.08 * deltaSec * 60) {
         this.emitParticle(node.c.x + 18 * (Math.random() - 0.5), node.c.y - 52, 10 * (Math.random() - 0.5), -24 - 10 * Math.random(), COLORS.bad, 0.55, 0.9)
+      }
+
+      // Footstep dust (only when moving). This is a big readability win.
+      if (walking && st !== 'spawning') {
+        node.stepClock += deltaSec * (1.2 + Math.min(2.2, speed / 160))
+        if (node.stepClock >= 1) {
+          node.stepClock = 0
+          const dustX = node.c.x + (dir * 6) + 8 * (Math.random() - 0.5)
+          const dustY = node.c.y + 18
+          const dustVx = 18 * (Math.random() - 0.5)
+          const dustVy = -12 - 10 * Math.random()
+          const dustCol = (this.theme === 'day') ? 0x94a3b8 : 0x64748b
+          this.emitParticle(dustX, dustY, dustVx, dustVy, dustCol, 0.55, 0.45)
+        }
+      } else {
+        node.stepClock = 0
+      }
+    }
+
+    // Player movement (arrow keys): keep in-bounds, never blocks typing UI because key handling is in theatre-main.
+    if (this.player) {
+      const p = this.player
+      p.bob += deltaSec * 2.0
+      const wantX = this.playerKeys.x
+      const wantY = this.playerKeys.y
+      const speed = 340
+      const ax = wantX * speed
+      const ay = wantY * speed
+      p.vel.x = damp(p.vel.x, ax, 10.0, deltaSec)
+      p.vel.y = damp(p.vel.y, ay, 10.0, deltaSec)
+      p.c.x += p.vel.x * deltaSec
+      p.c.y += p.vel.y * deltaSec
+
+      // Floor bounds (match slab area roughly)
+      p.c.x = clamp(p.c.x, 92, 1108)
+      p.c.y = clamp(p.c.y, 120, 640)
+
+      const sp = Math.hypot(p.vel.x, p.vel.y)
+      const walking = sp > 24
+      p.walk += deltaSec * (walking ? Math.min(10, 3 + sp / 60) : 1.2)
+
+      // Player anim mode
+      if (p.anim && p.skin) {
+        const setMode = (mode) => {
+          if (!p.anim || p.animMode === mode) return
+          if (mode === 'run' && p.skin.run?.length) {
+            p.anim.textures = p.skin.run
+            p.anim.loop = true
+            p.anim.animationSpeed = clamp(sp / 360, 0.14, 0.34)
+            p.anim.play()
+          } else {
+            p.anim.textures = p.skin.idle?.length ? p.skin.idle : p.anim.textures
+            p.anim.gotoAndStop(0)
+          }
+          p.animMode = mode
+        }
+
+        setMode(walking ? 'run' : 'idle')
+        const dir = (Math.abs(p.vel.x) > 12) ? Math.sign(p.vel.x) : 0
+        if (dir) p.facing = dir
+        const base = p.animBaseScale || Math.abs(p.anim.scale.x || 1) || 1
+        p.anim.scale.set(base * p.facing, base)
       }
     }
   }

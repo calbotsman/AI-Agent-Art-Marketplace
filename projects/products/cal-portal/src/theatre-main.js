@@ -9,6 +9,13 @@ import { createWsClient } from './theatre/ws-client.js'
 // Theatre-first layout and styling.
 document.body.dataset.app = 'theatre'
 
+function applyTimeTheme() {
+  const h = new Date().getHours()
+  const theme = (h >= 7 && h <= 18) ? 'day' : 'night'
+  document.body.dataset.time = theme
+  try { scene.setTheme(theme) } catch {}
+}
+
 // Existing Cal Portal HTML has these anchors.
 const elAgentDock = document.getElementById('agentDock')
 const elStageOverlay = document.getElementById('stageOverlay')
@@ -18,6 +25,8 @@ const elTheatreWsStatus = document.getElementById('theatreWsStatus')
 const elBuildInfo = document.getElementById('buildInfo')
 const elGatewayStatus = document.getElementById('gatewayStatus')
 const elGatewayDot = document.getElementById('gatewayDot')
+const elTokenStatus = document.getElementById('tokenStatus')
+const elAgentStatus = document.getElementById('agentStatus')
 
 // Talk tray (keep a minimal ability to message Cal without the legacy portal JS).
 const talkInput = document.getElementById('talkInput')
@@ -52,6 +61,13 @@ function setDot(el, ok) {
   if (!el) return
   el.style.background = ok ? '#34d399' : '#ef4444'
   el.style.opacity = '0.95'
+}
+
+function renderStatusBarLite() {
+  const token = String(gatewayTokenEl?.value || getLocal('cal.gatewayToken', '') || '').trim()
+  const agentId = String(agentIdEl?.value || getLocal('cal.agentId', 'main') || 'main').trim() || 'main'
+  setText(elTokenStatus, token ? `Token: set` : 'Token: missing')
+  setText(elAgentStatus, `Agent: ${agentId}`)
 }
 
 function humanizeState(state) {
@@ -117,14 +133,31 @@ function setMode(mode) {
   btnModeOps?.classList.toggle('active', mode === 'ops')
 }
 
+renderStatusBarLite()
+
 // Default: theatre mode (no big Ops panel). `O` toggles Ops panel.
 setMode('talk')
 window.addEventListener('keydown', (e) => {
   if (e.defaultPrevented) return
+  const ae = /** @type {any} */ (document.activeElement)
+  const typing = !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)
+  if (typing) return
   if (e.key === 'o' || e.key === 'O') {
     setMode(document.body.classList.contains('mode-ops') ? 'talk' : 'ops')
   }
 })
+
+// Pull local gateway token proactively so "Token: missing" doesn't lie on first paint.
+setTimeout(async () => {
+  try {
+    const token = await pullTokenFromOpenclaw()
+    if (gatewayTokenEl) gatewayTokenEl.value = token
+    setLocal('cal.gatewayToken', token)
+    renderStatusBarLite()
+  } catch {
+    // ignore; token may be remote or not available
+  }
+}, 220)
 
 function getLocal(k, fallback = '') {
   try { return localStorage.getItem(k) || fallback } catch { return fallback }
@@ -172,6 +205,7 @@ async function connectGatewayLite() {
   setLocal('cal.agentId', agentId)
   setLocal('cal.gatewayUrl', url)
   setLocal('cal.gatewayToken', token)
+  renderStatusBarLite()
 
   if (!token) {
     setText(elLinkStatus, 'Agent: token missing')
@@ -198,6 +232,7 @@ async function connectGatewayLite() {
     return { ok: false, error: `HTTP ${r.status} ${t.slice(0, 160)}` }
   }
   setText(elLinkStatus, 'Agent: connected')
+  renderStatusBarLite()
   return { ok: true }
 }
 
@@ -341,6 +376,7 @@ function renderOverlayDetail(s) {
   }
   const a = s.agents[id]
   const tail = (s.lastEventsByAgent[id] || []).slice().reverse()
+  const tailWithPayload = tail.map((e, idx) => ({ e, idx }))
   elStageOverlay.innerHTML = `
     <div class="theatreDetail">
       <div class="theatreDetailHeader">
@@ -354,9 +390,11 @@ function renderOverlayDetail(s) {
           ${a.lastStepKind ? `<span class="theatreBadge">${escapeHtml(humanizeStepKind(a.lastStepKind))}</span>` : ''}
         </div>
         <div class="tiny muted" style="margin-top:8px;">${escapeHtml(humanizeDoing(a))}</div>
+        <div class="tiny muted" style="margin-top:10px; opacity:.7;">Click an event to inspect payload (URLs, errors, etc.).</div>
         <div class="theatreEvents">
-          ${tail.map((e) => `<div class="theatreEvent"><span class="theatreEventType">${escapeHtml(e.type)}</span><span class="theatreEventTs">${new Date(e.ts).toLocaleTimeString()}</span></div>`).join('')}
+          ${tailWithPayload.map(({ e, idx }) => `<button class="theatreEvent" type="button" data-ev-idx="${idx}" title="Inspect payload"><span class="theatreEventType">${escapeHtml(e.type)}</span><span class="theatreEventTs">${new Date(e.ts).toLocaleTimeString()}</span></button>`).join('')}
         </div>
+        <pre class="theatrePayload" id="theatrePayload" style="display:none;"></pre>
       </div>
     </div>
   `
@@ -365,6 +403,19 @@ function renderOverlayDetail(s) {
     theatre.selectedAgentId = null
     renderOverlayDetail(theatre)
   })
+
+  const payloadEl = document.getElementById('theatrePayload')
+  for (const b of elStageOverlay.querySelectorAll('button[data-ev-idx]')) {
+    b.addEventListener('click', () => {
+      const idx = Number(b.getAttribute('data-ev-idx') || '0')
+      const ev = tail[idx]
+      if (!payloadEl) return
+      const payload = ev?.payload ?? null
+      const pretty = JSON.stringify(payload, null, 2)
+      payloadEl.textContent = pretty || '(no payload)'
+      payloadEl.style.display = 'block'
+    })
+  }
 }
 
 function escapeHtml(s) {
@@ -406,8 +457,49 @@ const stageEl = document.querySelector('.stage')
 const canvasEl = document.getElementById('c')
 const scene = new TheatreScene({ mount: stageEl, canvas: canvasEl })
 await scene.init()
+applyTimeTheme()
+setInterval(applyTimeTheme, 60_000)
 
 setText(elBuildInfo, `${BUILD.git}${BUILD.builtAt ? ` · ${new Date(BUILD.builtAt).toLocaleString()}` : ''}`)
+
+// Player controls (You): arrow keys (and WASD). Never hijack keys while typing in inputs.
+const playerKeys = { left: false, right: false, up: false, down: false }
+function typingNow() {
+  const ae = /** @type {any} */ (document.activeElement)
+  return !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)
+}
+function applyPlayerIntent() {
+  const dx = (playerKeys.right ? 1 : 0) - (playerKeys.left ? 1 : 0)
+  const dy = (playerKeys.down ? 1 : 0) - (playerKeys.up ? 1 : 0)
+  scene.setPlayerIntent(dx, dy)
+}
+window.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return
+  if (typingNow()) return
+
+  let changed = false
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { if (!playerKeys.left) { playerKeys.left = true; changed = true } }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { if (!playerKeys.right) { playerKeys.right = true; changed = true } }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { if (!playerKeys.up) { playerKeys.up = true; changed = true } }
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { if (!playerKeys.down) { playerKeys.down = true; changed = true } }
+  if (!changed) return
+
+  // Prevent browser scroll defaults.
+  e.preventDefault()
+  applyPlayerIntent()
+}, { passive: false })
+
+window.addEventListener('keyup', (e) => {
+  if (typingNow()) return
+
+  let changed = false
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { if (playerKeys.left) { playerKeys.left = false; changed = true } }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { if (playerKeys.right) { playerKeys.right = false; changed = true } }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { if (playerKeys.up) { playerKeys.up = false; changed = true } }
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { if (playerKeys.down) { playerKeys.down = false; changed = true } }
+  if (!changed) return
+  applyPlayerIntent()
+})
 
 // Transport: prefer WS; fallback to mock.
 const ws = createWsClient({
@@ -474,6 +566,9 @@ btnModeOps?.addEventListener('click', () => setMode('ops'))
 
 // Add small keyboard helpers.
 window.addEventListener('keydown', (e) => {
+  const ae = /** @type {any} */ (document.activeElement)
+  const typing = !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)
+  if (typing) return
   if ((e.ctrlKey || e.metaKey) && e.key === ',') {
     e.preventDefault()
     setMode('ops')

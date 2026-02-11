@@ -88,6 +88,8 @@ body::before {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr);
   height: 100vh;
+  position: relative; /* establish a predictable stacking context for stage vs panel */
+  z-index: 0;
 }
 
 body.mode-talk #app { grid-template-columns: 1fr; }
@@ -98,9 +100,36 @@ body.mode-ops .stage { display: block; }
 .stage {
   position: relative;
   padding-bottom: 66px; /* for statusbar */
+  z-index: 1;
 }
 
 canvas { display: block; width: 100%; height: 100%; }
+
+/* Studio layout: left rail + stage canvas. Prevents UI from covering the theatre. */
+.stageGrid {
+  position: absolute;
+  inset: 0;
+  padding-bottom: 66px; /* for statusbar */
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.leftRail {
+  z-index: 70;
+  pointer-events: auto;
+  min-height: 0; /* allow scrolling children */
+}
+
+.stageCanvasWrap {
+  position: relative;
+  min-width: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(6, 10, 19, 0.10);
+}
 
 /* Stage chrome: top HUD */
 .hud {
@@ -130,6 +159,8 @@ canvas { display: block; width: 100%; height: 100%; }
   border-left: 1px solid var(--line);
   overflow: auto;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 120px);
+  position: relative;
+  z-index: 200; /* always above Pixi canvas + stage overlays */
 }
 
 .panelInner {
@@ -246,6 +277,7 @@ body[data-app="theatre"] #app { grid-template-columns: 1fr; }
 body[data-app="theatre"] .panel { display: none; }
 body[data-app="theatre"].mode-ops .panel { display: block; }
 body[data-app="theatre"].mode-ops #app { grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr); }
+body[data-app="theatre"].mode-ops .panel { z-index: 220; }
 
 /* Deekay-ish: lighter, cleaner chrome and more negative space. */
 body[data-app="theatre"] {
@@ -263,13 +295,18 @@ body[data-app="theatre"] .hud { z-index: 90; }
 
 /* Agent list becomes a vertical dock on the left. */
 body[data-app="theatre"] .agentDock {
-  left: 18px;
-  top: 86px;
+  /* In theatre mode the dock lives in the left rail (layout), not as an overlay. */
+  position: relative;
+  left: auto;
+  top: auto;
+  right: auto;
   bottom: auto;
+  width: 100%;
+
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 220px);
   overflow: auto;
   padding-right: 6px;
 }
@@ -361,7 +398,7 @@ body[data-app="theatre"] .agentDock::-webkit-scrollbar-thumb { background: rgba(
   backdrop-filter: blur(18px);
   box-shadow: 0 18px 60px rgba(0,0,0,0.52);
   padding: 12px 12px 10px;
-  pointer-events: auto; /* stageOverlay is pointer-events:none */
+  pointer-events: auto;
 }
 
 /* Ensure Pixi canvas never covers interactive UI. */
@@ -371,7 +408,30 @@ body[data-app="theatre"] canvas#c {
   z-index: 10;
 }
 
-body[data-app="theatre"] .stageOverlay { z-index: 70; }
+/* In theatre mode, the overlay is a small, clickable UI region (so it doesn't block the stage). */
+body[data-app="theatre"] .stageOverlay {
+  inset: unset;
+  right: 18px;
+  top: 86px;
+  left: auto;
+  bottom: auto;
+  width: min(420px, calc(100vw - 36px));
+  pointer-events: auto;
+  z-index: 160;
+}
+
+/* In theatre mode, our stage is inside the canvas wrap. Position relative to that container. */
+body[data-app="theatre"] .stageCanvasWrap .stageOverlay {
+  right: 18px;
+  top: 86px;
+}
+
+body[data-app="theatre"] .theatreDetail {
+  position: relative;
+  right: auto;
+  top: auto;
+  width: 100%;
+}
 
 /* Talk tray must always be typeable/clickable. */
 body[data-app="theatre"] .talkTray {
@@ -728,6 +788,16 @@ body.mode-talk .talkTray { display: flex; }
   body.mode-ops .panel { display: block; }
   /* On mobile, we still hide the stage in Ops mode to focus on settings. */
   body.mode-ops .stage { display: none; }
+}
+
+@media (max-width: 980px) {
+  .stageGrid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .leftRail {
+    order: 2;
+  }
 }
 
 

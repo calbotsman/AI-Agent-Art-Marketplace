@@ -27,14 +27,8 @@ const btnModeOps = document.getElementById('btnModeOps')
 const btnOpenSettings = document.getElementById('btnOpenSettings')
 const btnNewThread = document.getElementById('btnNewThread')
 
-// Room look (Velvet/Chrome)
-const btnRoomVelvet = document.getElementById('btnRoomVelvet')
-const btnRoomChrome = document.getElementById('btnRoomChrome')
-const roomLabel = document.getElementById('roomLabel')
-
 const btnMic = document.getElementById('btnMic')
 const btnVoiceHud = document.getElementById('btnVoiceHud')
-const btnOpenChrome = document.getElementById('btnOpenChrome')
 const btnCall = document.getElementById('btnCall')
 const btnSend = document.getElementById('btnSend')
 const btnClear = document.getElementById('btnClear')
@@ -120,7 +114,6 @@ const INGEST_LIMIT_CHARS = 6000
 
 const state = {
   mode: 'talk', // 'talk' | 'ops'
-  room: 'velvet', // 'velvet' | 'chrome'
   listening: false,
   micWanted: false,
   speaking: false,
@@ -1827,7 +1820,6 @@ function stopMic() {
 // ---------- Gateway bridge (Clawdbot OpenAI-compatible endpoint) ----------
 function loadSettings() {
   const m = localStorage.getItem('cal.mode')
-  const room = localStorage.getItem('cal.room')
   const u = localStorage.getItem('cal.gatewayUrl')
   const t = localStorage.getItem('cal.gatewayToken')
   const aId = localStorage.getItem('cal.agentId')
@@ -1838,7 +1830,6 @@ function loadSettings() {
   const barge = localStorage.getItem('cal.interruptOnSpeech')
   const sd = localStorage.getItem('cal.showDoneTasks')
   if (m === 'talk' || m === 'ops') state.mode = m
-  if (room === 'velvet' || room === 'chrome') state.room = room
   if (u) state.gatewayUrl = normalizeGatewayUrl(u)
   if (t) state.gatewayToken = t
   if (aId) state.agentId = String(aId || 'main').trim() || 'main'
@@ -1882,13 +1873,6 @@ function loadSettings() {
   if (notesEl) notesEl.value = state.notes
   if (btnVoiceHud) btnVoiceHud.textContent = state.voiceEnabled ? 'Voice: on' : 'Voice: off'
 
-  // Chrome hint button (SpeechRecognition is best there)
-  if (btnOpenChrome) {
-    const ua = navigator.userAgent || ''
-    const isChrome = /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua)
-    btnOpenChrome.style.display = isChrome ? 'none' : ''
-  }
-
   // local hub data
   loadLocalHub()
   renderRefs()
@@ -1898,27 +1882,14 @@ function loadSettings() {
   // keep talk tray in sync
   if (talkInput && input) talkInput.value = input.value
 
-  // room
-  document.body.dataset.room = state.room || 'velvet'
-  if (roomLabel) roomLabel.textContent = state.room === 'chrome' ? 'Chrome' : 'Velvet'
-  btnRoomVelvet?.classList.toggle('primary', state.room === 'velvet')
-  btnRoomChrome?.classList.toggle('primary', state.room === 'chrome')
-
   renderMode()
   renderStatusBar()
 }
 
 function saveSettings() {
   localStorage.setItem('cal.mode', state.mode)
-  localStorage.setItem('cal.room', state.room)
   localStorage.setItem('cal.gatewayUrl', state.gatewayUrl)
   localStorage.setItem('cal.gatewayToken', state.gatewayToken)
-
-  // apply room immediately
-  document.body.dataset.room = state.room || 'velvet'
-  if (roomLabel) roomLabel.textContent = state.room === 'chrome' ? 'Chrome' : 'Velvet'
-  btnRoomVelvet?.classList.toggle('primary', state.room === 'velvet')
-  btnRoomChrome?.classList.toggle('primary', state.room === 'chrome')
   localStorage.setItem('cal.agentId', String(state.agentId || 'main'))
   localStorage.setItem('cal.voiceEnabled', String(state.voiceEnabled))
   localStorage.setItem('cal.autoSpeak', String(state.autoSpeak))
@@ -2545,24 +2516,6 @@ btnMic?.addEventListener('click', () => {
   else startMic()
 })
 
-btnOpenChrome?.addEventListener('click', async () => {
-  // Best-effort: try to open this same URL in Chrome.
-  const href = window.location.href
-  // iOS supports googlechrome://; on desktop this may no-op, so we also copy the URL.
-  const chromeUrl = 'googlechrome://' + href.replace(/^https?:\/\//, '')
-  try {
-    window.location.href = chromeUrl
-  } catch {
-    // ignore
-  }
-  try {
-    await navigator.clipboard.writeText(href)
-    addMsg('cal', 'Copied this page URL. Paste it into Chrome.')
-  } catch {
-    window.prompt('Copy this URL into Chrome:', href)
-  }
-})
-
 btnCall?.addEventListener('click', async () => {
   // One click: connect (if token present) + start mic (auto-send voice is on by default)
   if (!state.connected && state.gatewayToken) {
@@ -2678,16 +2631,6 @@ notesEl?.addEventListener('input', () => {
 btnClearNotes?.addEventListener('click', () => {
   state.notes = ''
   if (notesEl) notesEl.value = ''
-  saveSettings()
-})
-
-// Room look switch
-btnRoomVelvet?.addEventListener('click', () => {
-  state.room = 'velvet'
-  saveSettings()
-})
-btnRoomChrome?.addEventListener('click', () => {
-  state.room = 'chrome'
   saveSettings()
 })
 

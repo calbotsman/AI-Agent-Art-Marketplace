@@ -54,7 +54,27 @@ function broadcast(wss, msg) {
   }
 }
 
-const wss = new WebSocketServer({ port: PORT })
+let wss = null
+try {
+  wss = new WebSocketServer({ port: PORT })
+} catch (err) {
+  // Very rare (most listen errors are async), but keep dev UX stable.
+  if (err?.code === 'EADDRINUSE') {
+    console.warn(`[theatre-ws] port ${PORT} already in use; assuming theatre-ws is already running`)
+    process.exit(0)
+  }
+  throw err
+}
+
+wss.on('error', (err) => {
+  if (err?.code === 'EADDRINUSE') {
+    console.warn(`[theatre-ws] port ${PORT} already in use; assuming theatre-ws is already running`)
+    process.exit(0)
+  }
+  console.error('[theatre-ws] fatal error:', err?.stack || err)
+  process.exit(1)
+})
+
 console.log(`[theatre-ws] listening on ws://127.0.0.1:${PORT} (events file: ${EVENTS_FILE})`)
 
 wss.on('connection', (ws, req) => {
@@ -86,4 +106,3 @@ wss.on('connection', (ws, req) => {
     }
   })
 })
-
