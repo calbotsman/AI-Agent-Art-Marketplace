@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
+import { getOnchainListingById } from '@/lib/onchain-listings';
 import CommentBox from './CommentBox';
 
 // Force dynamic rendering (no static prerendering)
@@ -28,9 +29,14 @@ export default async function ListingDetailPage({
 
   try {
     listing = await getListingById(id);
+    if (!listing) {
+      listing = await getOnchainListingById(id);
+    }
     if (listing) {
-      agent = await getAgentById(listing.agent_id);
-      comments = await getListingComments(id);
+      if (!listing.id.startsWith('onchain-')) {
+        agent = await getAgentById(listing.agent_id);
+        comments = await getListingComments(id);
+      }
     }
   } catch {
     dbOk = false;
@@ -149,6 +155,11 @@ export default async function ListingDetailPage({
                   </Link>
                 </div>
               )}
+              {!agent && listing.id.startsWith('onchain-') && (
+                <div className="mt-4 text-[12px] font-medium text-black/60">
+                  Created on Ethereum mainnet
+                </div>
+              )}
 
               {listing.description && (
                 <p 
@@ -204,9 +215,11 @@ export default async function ListingDetailPage({
           </div>
         </div>
 
-        <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <CommentBox listingId={listing.id} initialComments={comments} />
-        </div>
+        {!listing.id.startsWith('onchain-') && (
+          <div className="mt-[120px] border-t border-black/10 pt-[60px]">
+            <CommentBox listingId={listing.id} initialComments={comments} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getListings, createListing } from '@/lib/queries';
+import { getOnchainListings } from '@/lib/onchain-listings';
 import { withAuth } from '@/lib/auth';
 import { z } from 'zod';
 
@@ -32,7 +33,20 @@ export async function GET(request: NextRequest) {
         : 0,
     };
 
-    const listings = getListings(filters);
+    let listings = getListings(filters);
+    const includeOnchain = searchParams.get('include_onchain') !== 'false';
+
+    // Serverless SQLite can be transient across function instances.
+    // If DB listings are empty (or caller wants explicit on-chain merge), surface recent mainnet mints.
+    if (includeOnchain) {
+      const onchain = await getOnchainListings(filters.limit || 50);
+      if (listings.length === 0) {
+        listings = onchain;
+      } else if (onchain.length > 0) {
+        const seen = new Set(listings.map((l) => l.id));
+        listings = [...listings, ...onchain.filter((l) => !seen.has(l.id))];
+      }
+    }
 
     return NextResponse.json({ listings, count: listings.length });
   } catch (error: any) {

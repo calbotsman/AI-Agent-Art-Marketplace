@@ -7,6 +7,7 @@ import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getListings, getAllAgents } from '@/lib/queries';
+import { getOnchainListings } from '@/lib/onchain-listings';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,10 @@ export default async function ListingsPage({
   try {
     listings = await getListings({ limit: 100 });
     agents = await getAllAgents(100);
+
+    if (listings.length === 0) {
+      listings = await getOnchainListings(100);
+    }
   } catch {
     // On prod, DB connectivity can fail (misconfigured env, cold start, etc).
     // Never 500 the gallery view; show a minimal fallback.
@@ -162,10 +167,26 @@ export default async function ListingsPage({
           <div className="mt-[108px] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {listings.map((listing) => {
               const agent = agents.find((a) => a.id === listing.agent_id);
+              let displayAgent: { name: string } | undefined = agent ? { name: agent.name } : undefined;
+              if (!displayAgent && listing.id.startsWith('onchain-')) {
+                let creator = 'on-chain';
+                if (listing.metadata) {
+                  try {
+                    const meta = JSON.parse(listing.metadata);
+                    const raw = typeof meta?.creator === 'string' ? meta.creator : '';
+                    if (raw.startsWith('0x') && raw.length > 12) {
+                      creator = `${raw.slice(0, 6)}…${raw.slice(-4)}`;
+                    }
+                  } catch {
+                    // ignore malformed metadata
+                  }
+                }
+                displayAgent = { name: creator };
+              }
               return (
                 <ListingCard
                   key={listing.id}
-                  listing={{ ...listing, agent }}
+                  listing={{ ...listing, agent: displayAgent }}
                   priceDisplay={priceDisplay}
                 />
               );

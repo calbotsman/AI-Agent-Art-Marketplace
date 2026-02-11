@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getListingById, updateListing, incrementListingViews } from '@/lib/queries';
+import { getOnchainListingById } from '@/lib/onchain-listings';
 import { withAuth } from '@/lib/auth';
 import { z } from 'zod';
 
@@ -17,14 +18,21 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const listing = await getListingById(id);
+    let listing: Awaited<ReturnType<typeof getListingById>> | null = await getListingById(id);
+
+    // Fallback: synthetic on-chain listing
+    if (!listing) {
+      listing = await getOnchainListingById(id);
+    }
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    // Increment view count
-    await incrementListingViews(id);
+    // Increment DB-backed listing views only.
+    if (!id.startsWith('onchain-')) {
+      await incrementListingViews(id);
+    }
 
     return NextResponse.json({ listing });
   } catch (error: any) {
