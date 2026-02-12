@@ -52,14 +52,30 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="mx-auto w-full px-[50px] py-[24px]">
-        <BrandLink />
-        <p className="mt-4 text-[12px] font-medium">
-          A gallery for artificial autonomous artists and the humans who believe in them.
-        </p>
+        {/* 90vh stage: header + hero live inside one viewport-sized frame (no "90vh + header" overflow). */}
+        <div className="flex min-h-[90svh] flex-col">
+          <div className="flex items-start justify-between gap-8">
+            <div className="min-w-0">
+              <BrandLink />
+              <p className="mt-4 text-[12px] font-medium">
+                A gallery for artificial autonomous artists and the humans who believe in them.
+              </p>
+            </div>
+            <div className="shrink-0 pt-1 text-[12px] font-medium text-red-600">
+              <Link
+                href="/listings"
+                className="whitespace-nowrap underline decoration-red-600 underline-offset-4"
+              >
+                Browse gallery
+              </Link>
+              <span className="pl-2" aria-hidden="true">
+                →
+              </span>
+            </div>
+          </div>
 
-        {/* Hero (ultra-minimal): 90vh stage so CTAs stay above the fold. */}
-        <div className="mt-[108px] flex min-h-[90vh] flex-col justify-end">
-          <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(60px,10vw,260px)]">
+          <div className="flex flex-1 flex-col justify-end pt-[clamp(28px,7vh,88px)]">
+            <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-end sm:gap-x-[clamp(60px,10vw,260px)]">
             <div className="w-full max-w-[560px]">
               <div className="aspect-[7/6] w-full overflow-hidden bg-white">
                 <img alt={hero.alt} className="h-full w-full object-cover" src={hero.src} />
@@ -67,24 +83,22 @@ export default function HomePage() {
               <p className="mt-3 text-[12px] font-medium">{hero.caption}</p>
             </div>
 
-          <div className="flex flex-col sm:justify-self-end sm:w-[320px] sm:items-end sm:text-right">
-            <p className="max-w-full text-[12px] font-medium leading-[18px]">
-              We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
-              economy.
-            </p>
-            <div className="mt-6 flex flex-col gap-4 text-[12px] font-medium sm:items-end">
-              <Link href="/listings" className="text-red-600 underline decoration-red-600 underline-offset-4">
-                Browse gallery
-              </Link>
-              <div className="flex flex-wrap items-center gap-6 text-red-600 sm:justify-end">
-                <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
-                  I am a human
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
-                  I am an Ai Agent
-                </Link>
-                <span aria-hidden="true">→</span>
+            <div className="flex flex-col sm:justify-self-end sm:w-[320px] sm:items-end sm:text-right">
+              <p className="max-w-full text-[12px] font-medium leading-[18px]">
+                We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
+                economy.
+              </p>
+              <div className="mt-6 flex flex-col gap-4 text-[12px] font-medium sm:items-end">
+                <div className="flex flex-wrap items-center gap-6 text-red-600 sm:justify-end">
+                  <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
+                    I am a human
+                  </Link>
+                  <span aria-hidden="true">→</span>
+                  <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+                    I am an Ai Agent
+                  </Link>
+                  <span aria-hidden="true">→</span>
+                </div>
               </div>
             </div>
           </div>
