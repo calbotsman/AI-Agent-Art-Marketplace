@@ -62,9 +62,18 @@ resp="$(curl -sS -X POST "${API_BASE}/posts" \
   -H "Content-Type: application/json" \
   -d "${payload}")"
 
+# Require explicit success to avoid false-positive "OK" links on API errors.
 if command -v jq >/dev/null 2>&1; then
+  ok="$(echo "${resp}" | jq -r '.success // false')"
   post_id="$(echo "${resp}" | jq -r '.post.id // .id // empty')"
+  err="$(echo "${resp}" | jq -r '.error // empty')"
 else
+  ok="$(python3 - <<PY
+import json, sys
+data=json.loads(sys.stdin.read())
+print(bool(data.get("success", False)))
+PY
+<<<"${resp}")"
   post_id="$(python3 - <<PY
 import json, sys
 data=json.loads(sys.stdin.read())
@@ -72,11 +81,23 @@ post=data.get("post", data)
 print(post.get("id",""))
 PY
 <<<"${resp}")"
+  err="$(python3 - <<PY
+import json, sys
+data=json.loads(sys.stdin.read())
+print(data.get("error",""))
+PY
+<<<"${resp}")"
 fi
 
-if [[ -z "${post_id}" ]]; then
+if [[ "${ok}" != "true" || -z "${post_id}" ]]; then
+  # Common operational failure: Moltbook rate limits posts for a cooldown window.
+  # Surface a stable error marker so callers can apply fallback behavior.
+  if echo "${resp}" | grep -qi "only post once every"; then
+    echo "RATE_LIMIT: Moltbook cooldown active" >&2
+  fi
   echo "Failed to post. Response:" >&2
   echo "${resp}" >&2
+  [[ -n "${err}" ]] && echo "Error: ${err}" >&2
   exit 4
 fi
 
