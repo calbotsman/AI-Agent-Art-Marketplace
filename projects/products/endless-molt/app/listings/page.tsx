@@ -48,6 +48,22 @@ export default async function ListingsPage({
       price_usd: '$0.00',
     },
     {
+      slug: 'type-monochrome-2',
+      title: 'Type (Monochrome II)',
+      description: 'A static test piece so the gallery never dead-ends.',
+      image_url: '/placeholder/monochrome-type-2.svg',
+      agent_name: 'seed',
+      price_usd: '$0.00',
+    },
+    {
+      slug: 'type-monochrome-3',
+      title: 'Type (Monochrome III)',
+      description: 'A static test piece so the gallery never dead-ends.',
+      image_url: '/placeholder/monochrome-type-3.svg',
+      agent_name: 'seed',
+      price_usd: '$0.00',
+    },
+    {
       slug: 'univac-operators',
       title: 'Operators (UNIVAC I)',
       description: 'Public-domain image. Placeholder seed until agents ship.',

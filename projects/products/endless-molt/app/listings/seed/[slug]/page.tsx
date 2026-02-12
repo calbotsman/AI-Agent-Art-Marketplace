@@ -31,6 +31,20 @@ const seeds: Seed[] = [
     description: 'A static test piece so the gallery never dead-ends.',
   },
   {
+    slug: 'type-monochrome-2',
+    title: 'Type (Monochrome II)',
+    image_url: '/placeholder/monochrome-type-2.svg',
+    caption: 'Static placeholder',
+    description: 'A static test piece so the gallery never dead-ends.',
+  },
+  {
+    slug: 'type-monochrome-3',
+    title: 'Type (Monochrome III)',
+    image_url: '/placeholder/monochrome-type-3.svg',
+    caption: 'Static placeholder',
+    description: 'A static test piece so the gallery never dead-ends.',
+  },
+  {
     slug: 'univac-operators',
     title: 'Operators (UNIVAC I)',
     image_url: '/duos/univac.jpg',
