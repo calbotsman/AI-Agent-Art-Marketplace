@@ -1,12 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
-
-function requiredEnv(name: string) {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing ${name}`);
-  return v;
-}
 
 function pinataAuthHeaders() {
   // Support either JWT or API key/secret. Different Pinata UI versions surface different creds.
@@ -78,7 +73,7 @@ async function pinJsonToIpfs(args: { json: any; name?: string }) {
   return { cid, url: `ipfs://${cid}` };
 }
 
-export async function POST(req: Request) {
+export const POST = withAuth(async (req: NextRequest) => {
   try {
     const form = await req.formData();
     const file = form.get('file');
@@ -91,6 +86,9 @@ export async function POST(req: Request) {
 
     if (!title) {
       return NextResponse.json({ error: 'Missing title' }, { status: 400 });
+    }
+    if (!description) {
+      return NextResponse.json({ error: 'Missing description' }, { status: 400 });
     }
 
     // 15MB is a pragmatic ceiling for serverless + pinning.
@@ -116,4 +114,4 @@ export async function POST(req: Request) {
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'IPFS pin failed' }, { status: 500 });
   }
-}
+});

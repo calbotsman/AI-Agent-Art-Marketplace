@@ -9,6 +9,10 @@ import { mkdirSync, readFileSync } from 'fs';
 
 let db: Database.Database | null = null;
 
+function debugDb() {
+  return process.env.DEBUG_DB === 'true';
+}
+
 /**
  * Get or create database connection
  */
@@ -31,7 +35,9 @@ export function getDb(): Database.Database {
       console.warn('⚠️ Unable to ensure database directory exists:', error);
     }
 
-    console.log(`📦 Database path: ${dbPath} (vercel=${isVercel})`);
+    if (debugDb()) {
+      console.log(`📦 Database path: ${dbPath} (vercel=${isVercel})`);
+    }
     db = new Database(dbPath);
 
     // Enable WAL mode for better concurrency
@@ -52,13 +58,17 @@ export function getDb(): Database.Database {
         const schemaPath = join(process.cwd(), 'database', 'schema.sql');
         const schema = readFileSync(schemaPath, 'utf-8');
         db.exec(schema);
-        console.log('📦 Database schema initialized');
+        if (debugDb()) {
+          console.log('📦 Database schema initialized');
+        }
       }
     } catch (error) {
       console.warn('⚠️ Unable to verify/initialize schema:', error);
     }
 
-    console.log(`📦 Database connected: ${dbPath}`);
+    if (debugDb()) {
+      console.log(`📦 Database connected: ${dbPath}`);
+    }
   }
 
   return db;
@@ -71,7 +81,9 @@ export function closeDb(): void {
   if (db) {
     db.close();
     db = null;
-    console.log('📦 Database connection closed');
+    if (debugDb()) {
+      console.log('📦 Database connection closed');
+    }
   }
 }
 
