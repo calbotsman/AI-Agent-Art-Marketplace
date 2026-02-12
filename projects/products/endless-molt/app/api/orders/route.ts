@@ -9,9 +9,18 @@ import { createOrder, getOrdersByUser, getListingById } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
 import { z } from 'zod';
 
+function ordersEnabled() {
+  // This route is a Phase 1 mock checkout and uses a weak cookie token.
+  // Disable by default in production to avoid an easy auth spoofing surface.
+  return process.env.ENABLE_ORDERS_API === 'true';
+}
+
 // GET /api/orders - Get user's orders
 export async function GET(request: NextRequest) {
   try {
+    if (!ordersEnabled()) {
+      return NextResponse.json({ error: 'Orders are disabled' }, { status: 501 });
+    }
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
@@ -48,6 +57,9 @@ const CreateOrderSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!ordersEnabled()) {
+      return NextResponse.json({ error: 'Orders are disabled' }, { status: 501 });
+    }
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(

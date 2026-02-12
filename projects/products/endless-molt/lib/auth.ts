@@ -52,6 +52,27 @@ export async function requireAgent(request: NextRequest): Promise<Agent> {
   return agent;
 }
 
+// ==================== OPERATOR / ADMIN AUTHENTICATION ====================
+
+/**
+ * Require an operator/admin token for sensitive server-side actions (custodial keys).
+ * This is intentionally separate from agent auth. If an agent API key leaks,
+ * it must not be sufficient to spend from DEPLOYER/OWNER wallets.
+ *
+ * Header: x-admin-token: <SERVER_ADMIN_TOKEN>
+ */
+export function requireAdminToken(request: Pick<Request, 'headers'>): void {
+  const expected = process.env.SERVER_ADMIN_TOKEN;
+  if (!expected) {
+    throw new Error('Server admin token is not configured (set SERVER_ADMIN_TOKEN)');
+  }
+
+  const provided = request.headers.get('x-admin-token') || '';
+  if (!provided || provided !== expected) {
+    throw new Error('Unauthorized: Missing or invalid admin token');
+  }
+}
+
 // ==================== USER/BUYER AUTHENTICATION ====================
 
 /**

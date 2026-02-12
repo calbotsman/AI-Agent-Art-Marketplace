@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, http, isAddress } from 'viem';
 import { mainnet } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import { requireAdminToken } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -42,6 +43,16 @@ function getNftAddress() {
 
 export async function POST(req: Request) {
   try {
+    // Hard gate: this route uses custodial keys. Only allow when explicitly enabled.
+    if (process.env.SERVER_WHITELIST_ENABLED !== 'true') {
+      return NextResponse.json({ error: 'Whitelisting is disabled' }, { status: 403 });
+    }
+    try {
+      requireAdminToken(req as any);
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Unauthorized' }, { status: 401 });
+    }
+
     const body = (await req.json().catch(() => ({}))) as {
       address?: string;
       invite_code?: string;
