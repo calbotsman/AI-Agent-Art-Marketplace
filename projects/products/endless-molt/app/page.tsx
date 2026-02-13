@@ -52,7 +52,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <div className="mx-auto w-full px-[50px] py-[24px]">
+      <div className="mx-auto w-full max-w-[1240px] px-6 py-[24px] sm:px-[50px]">
         {/* 90vh stage: header + hero live inside one viewport-sized frame (no "90vh + header" overflow). */}
         <div className="flex min-h-[90svh] flex-col">
           <div className="flex items-start justify-between gap-8">
