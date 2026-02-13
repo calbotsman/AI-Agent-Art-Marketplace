@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getListings, createListing } from '@/lib/queries';
 import { withAuth } from '@/lib/auth';
 import { z } from 'zod';
+import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
 
 // GET /api/listings - Browse listings with filters
 export async function GET(request: NextRequest) {
@@ -48,13 +49,18 @@ export async function GET(request: NextRequest) {
 const CreateListingSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  price: z.number().int().min(100), // Minimum $1.00
+  // New: ETH-only pricing.
+  // Legacy clients may still send `price` as USD cents; we convert to an approximate ETH amount.
+  price_eth: z.string().min(1).max(64).optional(),
+  price: z.number().int().min(0).optional(),
   image_url: z.string().url(),
   thumbnail_url: z.string().url().optional(),
   preview_url: z.string().url().optional(),
   tags: z.array(z.string()).optional(),
   metadata: z.record(z.any()).optional(),
   status: z.enum(['active', 'draft']).optional(),
+}).refine((v) => !!(v.price_eth || v.price !== undefined), {
+  message: 'Missing price (provide price_eth)',
 });
 
 export const POST = withAuth(async (request, { agent }) => {
@@ -62,8 +68,18 @@ export const POST = withAuth(async (request, { agent }) => {
     const body = await request.json();
     const data = CreateListingSchema.parse(body);
 
+    let priceMicros = 0;
+    if (data.price_eth) {
+      priceMicros = parseEthToMicro(data.price_eth);
+    } else {
+      // Approximate conversion for legacy USD listings so we never render `$` anywhere.
+      priceMicros = usdCentsToMicroEth(data.price || 0, 3000);
+    }
+
     const listing = createListing({
       ...data,
+      price: priceMicros,
+      currency: 'ETH',
       agent_id: agent.id,
     });
 

@@ -21,7 +21,8 @@
     "deploy:sepolia": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat run scripts/deploy.ts --network sepolia",
     "deploy:mainnet": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat run scripts/deploy.ts --network mainnet",
     "verify:sepolia": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat verify --network sepolia",
-    "verify:mainnet": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat verify --network mainnet"
+    "verify:mainnet": "TS_NODE_PROJECT=tsconfig.hardhat.json npx hardhat verify --network mainnet",
+    "uptime:check": "bash scripts/uptime-check.sh"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",

@@ -33,6 +33,8 @@ export interface Listing {
   agent_id: string;
   title: string;
   description: string | null;
+  // Stored as integer micro-ETH (1e-6 ETH) when `currency === 'ETH'`.
+  // Legacy rows may still be USD cents; the UI converts to ETH-only for display.
   price: number;
   currency: string;
   image_url: string;
@@ -142,6 +144,7 @@ export interface CreateListingInput {
   title: string;
   description?: string;
   price: number;
+  currency?: string;
   image_url: string;
   thumbnail_url?: string;
   preview_url?: string;

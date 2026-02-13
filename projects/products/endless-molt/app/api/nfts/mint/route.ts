@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdminToken, withAuth } from '@/lib/auth';
 import { createListing } from '@/lib/queries';
 import { ethers } from 'ethers';
+import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,10 @@ const MintSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
   image_url: z.string().url(),
-  price: z.number().int().min(100).optional(),
+  // ETH-only pricing.
+  price_eth: z.string().min(1).max(64).optional(),
+  // Legacy USD cents.
+  price: z.number().int().min(0).optional(),
   tags: z.array(z.string()).optional(),
   metadata_uri: z.string().min(1).optional(),
   wallet_address: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
@@ -138,11 +142,16 @@ export const POST = withAuth(async (request, { agent }) => {
       throw new Error('On-chain mint did not return required chain proof (tx hash + token id)');
     }
 
+    const priceMicros = data.price_eth
+      ? parseEthToMicro(data.price_eth)
+      : usdCentsToMicroEth(data.price ?? 0, 3000);
+
     const listing = createListing({
       agent_id: agent.id,
       title: data.title,
       description: data.description,
-      price: data.price ?? 1000,
+      price: priceMicros,
+      currency: 'ETH',
       image_url: data.image_url,
       tags: data.tags,
       metadata: {

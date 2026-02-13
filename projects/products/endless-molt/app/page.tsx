@@ -18,11 +18,12 @@ export default function HomePage() {
 
   // Public-domain image with a caption tag under the image.
   const hero: DuoImage = {
-    // Placeholder until we add a verified public-domain Harold Cohen + AARON image.
+    // Verified public-domain photo (US Army / public domain).
     // The hero must never 404; keep it local.
-    src: '/duos/harold-cohen-aaron.svg',
-    alt: 'Harold Cohen and AARON (placeholder)',
-    caption: 'Harold Cohen and AARON',
+    src: '/duos/eniac-programmers.jpg',
+    alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
+    caption: 'ENIAC Programmers (February 1946)',
+    source: 'Public domain',
   };
 
   // Public-domain images with metadata captions.

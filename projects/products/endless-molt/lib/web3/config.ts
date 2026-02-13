@@ -5,7 +5,9 @@
 
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { sepolia, mainnet } from 'wagmi/chains';
-import { http, cookieStorage, createStorage } from 'wagmi';
+import { http } from 'wagmi';
+
+const ENABLE_TESTNETS = process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true';
 
 function transportFor(chainId: number) {
   // Browser-based RPC calls must hit a CORS-friendly endpoint.
@@ -31,15 +33,16 @@ function transportFor(chainId: number) {
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-  chains: [sepolia, mainnet],
+  // Default to mainnet for launch. Opt-in testnets with NEXT_PUBLIC_ENABLE_TESTNETS=true.
+  chains: ENABLE_TESTNETS ? [sepolia, mainnet] : [mainnet],
+  // Keep transports defined for both chains to satisfy typing; `chains` controls what is selectable.
   transports: {
     [mainnet.id]: transportFor(mainnet.id),
     [sepolia.id]: transportFor(sepolia.id),
   },
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
-  ssr: true,
+  // Client-only wallet state avoids server-side localStorage shims during
+  // Next static generation (which caused intermittent build failures).
+  ssr: false,
 });
 
 // Contract addresses (update after deployment)

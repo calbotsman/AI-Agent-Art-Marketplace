@@ -31,8 +31,8 @@ export interface MintResult {
 // Contract addresses (updated after mainnet deployment)
 const CONTRACTS = {
   mainnet: {
-    nft: '0x0000000000000000000000000000000000000000', // Will update
-    marketplace: '0x0000000000000000000000000000000000000000'
+    nft: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',
+    marketplace: '0xD0834204Bde70B789d26DBA7B81591a793718B18'
   },
   sepolia: {
     nft: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',
@@ -42,15 +42,18 @@ const CONTRACTS = {
 
 const NFT_ABI = [
   'function mint(address to, string metadataURI, address creator) returns (uint256)',
+  'function approve(address to, uint256 tokenId)',
   'function verifiedAgents(address) view returns (bool)',
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function tokenURI(uint256 tokenId) view returns (string)'
 ];
 
 const MARKETPLACE_ABI = [
-  'function listToken(address nftContract, uint256 tokenId, uint256 price)',
-  'function buyToken(bytes32 listingId) payable',
-  'function listings(bytes32 listingId) view returns (tuple(address seller, address nftContract, uint256 tokenId, uint256 price, bool active))'
+  'function listNFT(address nftContract, uint256 tokenId, uint256 price) returns (bytes32)',
+  'function buyNFT(bytes32 listingId) payable',
+  'function getListing(bytes32 listingId) view returns (tuple(address seller, address nftContract, uint256 tokenId, uint256 price, bool active))',
+  'event Listed(bytes32 indexed listingId, address indexed seller, address indexed nftContract, uint256 tokenId, uint256 price)',
+  'event Sale(bytes32 indexed listingId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee, uint256 buyerFee, uint256 royaltyAmount)'
 ];
 
 export class EndlessMolt {
@@ -180,22 +183,66 @@ export class EndlessMolt {
   /**
    * List an NFT for sale
    */
-  async list(tokenId: string, priceEth: string): Promise<string> {
+  async list(tokenId: string, priceEth: string): Promise<{ txHash: string; listingId: string }> {
     console.log(`💰 Listing Token ID ${tokenId} for ${priceEth} ETH...`);
 
+    const nft = new ethers.Contract(this.contracts.nft, NFT_ABI, this.wallet);
     const marketplace = new ethers.Contract(this.contracts.marketplace, MARKETPLACE_ABI, this.wallet);
     const priceWei = ethers.parseEther(priceEth);
 
-    const tx = await marketplace.listToken(
-      this.contracts.nft,
-      tokenId,
-      priceWei
-    );
+    // Ensure marketplace is approved to transfer the token.
+    console.log('🔓 Approving marketplace transfer...');
+    const approveTx = await nft.approve(this.contracts.marketplace, tokenId);
+    await approveTx.wait();
 
+    const tx = await marketplace.listNFT(this.contracts.nft, tokenId, priceWei);
     console.log(`✅ Listing submitted: ${tx.hash}`);
+    const receipt = await tx.wait();
+
+    // Extract listingId from event.
+    let listingId = '';
+    try {
+      const iface = new ethers.Interface(MARKETPLACE_ABI);
+      for (const log of receipt.logs) {
+        try {
+          const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
+          if (parsed?.name === 'Listed') {
+            listingId = String(parsed.args[0]);
+            break;
+          }
+        } catch {
+          // ignore unrelated logs
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    if (!listingId) {
+      throw new Error('Listing confirmed but listingId was not found in logs');
+    }
+
+    console.log(`🛒 Listed successfully! listingId=${listingId}`);
+    return { txHash: tx.hash, listingId };
+  }
+
+  /**
+   * Buy a listed NFT.
+   */
+  async buy(listingId: string): Promise<string> {
+    console.log(`🧾 Buying listing ${listingId}...`);
+
+    const marketplace = new ethers.Contract(this.contracts.marketplace, MARKETPLACE_ABI, this.wallet);
+    const listing = await marketplace.getListing(listingId);
+    const priceWei = listing?.price as bigint;
+    if (!priceWei || priceWei <= 0n) {
+      throw new Error('Listing price unavailable');
+    }
+
+    const tx = await marketplace.buyNFT(listingId, { value: priceWei });
+    console.log(`✅ Purchase submitted: ${tx.hash}`);
     await tx.wait();
-    console.log(`🛒 Listed successfully!`);
-    
+    console.log('🎉 Purchase confirmed.');
     return tx.hash;
   }
 
@@ -204,7 +251,7 @@ export class EndlessMolt {
    */
   async mintAndList(options: MintOptions & { price: string }): Promise<{ tokenId: string; listingHash: string }> {
     const { tokenId, txHash: mintHash } = await this.mint(options);
-    const listingHash = await this.list(tokenId, options.price);
+    const { txHash: listingHash } = await this.list(tokenId, options.price);
     
     return { tokenId, listingHash };
   }

@@ -49,7 +49,7 @@ export default function UploadPage() {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          price: parseFloat(formData.price) * 100, // Convert to cents
+          price_eth: formData.price, // ETH (decimal string)
           image_url: formData.imageUrl,
           tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
         })
@@ -188,17 +188,17 @@ export default function UploadPage() {
 
             <div>
               <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
-                Price (USD) <span className="text-red-500">*</span>
+                Price (ETH) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="0.000001"
                 min="0"
                 required
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
-                placeholder="10.00"
+                placeholder="0.05"
               />
             </div>
 

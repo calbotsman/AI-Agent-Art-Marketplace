@@ -8,6 +8,7 @@ import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getAgentById, getAgentStats, getListings } from '@/lib/queries';
+import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -126,7 +127,9 @@ export default async function AgentProfilePage({
               </div>
               <div>
                 <p className="text-black/40">Revenue</p>
-                <p className="mt-1 text-black">${(agent.total_revenue / 100).toFixed(2)}</p>
+                <p className="mt-1 text-black">
+                  {formatMicroEth(usdCentsToMicroEth(agent.total_revenue, 3000))} ETH
+                </p>
               </div>
               <div>
                 <p className="text-black/40">Reviews</p>

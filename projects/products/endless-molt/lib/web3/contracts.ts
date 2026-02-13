@@ -41,11 +41,15 @@ export const AUCTION_ABI = [
 
 // Contract interaction helpers
 export function formatPrice(wei: bigint): string {
-  return (Number(wei) / 1e18).toFixed(4);
+  // Avoid float rounding for on-chain values; use viem helpers.
+  // Lazy import to keep this file dependency-light for scripts.
+  const { formatEther } = require('viem') as typeof import('viem');
+  return formatEther(wei);
 }
 
 export function parsePrice(eth: string): bigint {
-  return BigInt(Math.floor(parseFloat(eth) * 1e18));
+  const { parseEther } = require('viem') as typeof import('viem');
+  return parseEther(eth);
 }
 
 export function calculateTotalPrice(price: bigint, buyerFeePercent: bigint): bigint {

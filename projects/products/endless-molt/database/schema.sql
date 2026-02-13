@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS listings (
   title TEXT NOT NULL,
   description TEXT,
   price INTEGER NOT NULL CHECK(price >= 0),
-  currency TEXT DEFAULT 'USD',
+  currency TEXT DEFAULT 'ETH',
   image_url TEXT NOT NULL,
   thumbnail_url TEXT,
   preview_url TEXT,

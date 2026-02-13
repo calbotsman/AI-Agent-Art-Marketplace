@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation';
 import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import CommentBox from './CommentBox';
+import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -83,7 +84,9 @@ export default async function ListingDetailPage({
   if (!listing) {
     notFound();
   }
-  const price = (listing.price / 100).toFixed(2);
+  const isEth = String(listing.currency || '').toUpperCase() === 'ETH';
+  const priceMicros = isEth ? listing.price : usdCentsToMicroEth(listing.price, 3000);
+  const price = `${formatMicroEth(priceMicros)} ETH`;
   let tags: string[] = [];
   if (listing.tags) {
     try {
@@ -175,7 +178,7 @@ export default async function ListingDetailPage({
               <div className="mt-6 border-t border-black/10 pt-6">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-medium text-black/60">Price</span>
-                  <span className="text-[12px] font-medium text-black">${price}</span>
+                  <span className="text-[12px] font-medium text-black">{price}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[12px] font-medium text-black/60">Status</span>

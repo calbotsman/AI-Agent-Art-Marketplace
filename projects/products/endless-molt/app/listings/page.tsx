@@ -7,22 +7,17 @@ import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getListings, getAllAgents } from '@/lib/queries';
+import { formatMicroEth } from '@/lib/pricing';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
 // Ensure Node.js runtime for SQLite
 export const runtime = 'nodejs';
 
-type PriceDisplay = 'usd' | 'eth';
-
 export default async function ListingsPage({
-  searchParams,
 }: {
-  searchParams?: Promise<{ price?: string }>;
+  searchParams?: Promise<Record<string, string>>;
 }) {
-  const sp = searchParams ? await searchParams : undefined;
-  const priceDisplay: PriceDisplay = sp?.price === 'eth' ? 'eth' : 'usd';
-
   let listings: Awaited<ReturnType<typeof getListings>> = [];
   let agents: Awaited<ReturnType<typeof getAllAgents>> = [];
   let dbOk = true;
@@ -45,7 +40,7 @@ export default async function ListingsPage({
       description: 'A static test piece so the gallery never dead-ends.',
       image_url: '/placeholder/monochrome-type.svg',
       agent_name: 'seed',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
     {
       slug: 'type-monochrome-2',
@@ -53,7 +48,7 @@ export default async function ListingsPage({
       description: 'A static test piece so the gallery never dead-ends.',
       image_url: '/placeholder/monochrome-type-2.svg',
       agent_name: 'seed',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
     {
       slug: 'type-monochrome-3',
@@ -61,7 +56,7 @@ export default async function ListingsPage({
       description: 'A static test piece so the gallery never dead-ends.',
       image_url: '/placeholder/monochrome-type-3.svg',
       agent_name: 'seed',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
     {
       slug: 'univac-operators',
@@ -69,7 +64,7 @@ export default async function ListingsPage({
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: '/duos/univac.jpg',
       agent_name: 'public domain',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
     {
       slug: 'eniac-programmers',
@@ -77,7 +72,7 @@ export default async function ListingsPage({
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: '/duos/eniac-programmers.jpg',
       agent_name: 'public domain',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
     {
       slug: 'eniac-room',
@@ -85,7 +80,7 @@ export default async function ListingsPage({
       description: 'Public-domain image. Placeholder seed until agents ship.',
       image_url: '/duos/eniac-room.jpg',
       agent_name: 'public domain',
-      price_usd: '$0.00',
+      price_eth: `${formatMicroEth(0)} ETH`,
     },
   ] as const;
 
@@ -98,22 +93,6 @@ export default async function ListingsPage({
             <p className="mt-4 text-[12px] font-medium">Browse the gallery.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
-            <div className="flex items-center gap-3 text-[12px] font-medium text-black/70">
-              <span className="text-black/40">Display</span>
-              <Link
-                href={`/listings?price=usd`}
-                className={priceDisplay === 'usd' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
-              >
-                $
-              </Link>
-              <span className="text-black/20">|</span>
-              <Link
-                href={`/listings?price=eth`}
-                className={priceDisplay === 'eth' ? 'underline decoration-black/30 underline-offset-4' : 'text-black/40'}
-              >
-                ETH
-              </Link>
-            </div>
             <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
               List a piece
             </Link>
@@ -163,7 +142,7 @@ export default async function ListingsPage({
                       {seed.description}
                     </p>
                     <div className="mt-3 flex items-end justify-between">
-                      <span className="text-[12px] font-medium text-black">{seed.price_usd}</span>
+                      <span className="text-[12px] font-medium text-black">{seed.price_eth}</span>
                     </div>
                   </div>
                 </Link>
@@ -182,7 +161,6 @@ export default async function ListingsPage({
                 <ListingCard
                   key={listing.id}
                   listing={{ ...listing, agent }}
-                  priceDisplay={priceDisplay}
                 />
               );
             })}

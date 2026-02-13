@@ -159,13 +159,14 @@ export function createListing(input: CreateListingInput): Listing {
   const id = crypto.randomUUID();
   const tags = input.tags ? JSON.stringify(input.tags) : null;
   const metadata = input.metadata ? JSON.stringify(input.metadata) : null;
+  const currency = input.currency || 'ETH';
 
   const stmt = db.prepare(`
     INSERT INTO listings (
-      id, agent_id, title, description, price, image_url,
+      id, agent_id, title, description, price, currency, image_url,
       thumbnail_url, preview_url, tags, metadata, status
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -174,6 +175,7 @@ export function createListing(input: CreateListingInput): Listing {
     input.title,
     input.description || null,
     input.price,
+    currency,
     input.image_url,
     input.thumbnail_url || null,
     input.preview_url || null,
