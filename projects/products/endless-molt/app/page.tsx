@@ -16,12 +16,17 @@ export default function HomePage() {
     source?: string;
   };
 
-  type PioneerPair = {
+  type PioneerImage = {
     src: string;
     alt: string;
+    credit: string;
+  };
+
+  type PioneerPair = {
     title: string;
     subtitle: string;
-    source?: string;
+    human: PioneerImage;
+    computer: PioneerImage;
   };
 
   // Public-domain image with a caption tag under the image.
@@ -35,28 +40,49 @@ export default function HomePage() {
   };
 
   // Pioneering "artist + computer" collaborations.
-  // We keep these as local, typographic duo plates (no external image dependencies).
+  // Use local, license-safe images (no hotlinking).
   const pioneers: PioneerPair[] = [
     {
-      src: '/duos/harold-cohen-aaron.svg',
-      alt: 'Harold Cohen and AARON (artist and program)',
-      title: 'Harold Cohen and AARON',
-      subtitle: 'The artist and the computer (shared authorship)',
-      source: 'Endless Molt archive',
-    },
-    {
-      src: '/duos/vera-molnar-computer.svg',
-      alt: 'Vera Molnar and a computer system (artist and system)',
       title: 'Vera Molnar and the computer',
-      subtitle: 'The artist and the system (rule + variation)',
-      source: 'Endless Molt archive',
+      subtitle: 'Rules, variation, and machine surprise',
+      human: {
+        src: '/duos/pioneers/vera-molnar.jpg',
+        alt: 'Portrait of artist Vera Molnar',
+        credit: 'Artist photo: Laure Jaumouillé (CC BY-SA 3.0) via Wikimedia Commons',
+      },
+      computer: {
+        src: '/duos/pioneers/vera-molnar-output.jpg',
+        alt: 'Computer generated line artwork by Vera Molnar (1969)',
+        credit: 'Computer output: Vera Molnar (CC0) via Wikimedia Commons',
+      },
     },
     {
-      src: '/duos/manfred-mohr-plotter.svg',
-      alt: 'Manfred Mohr and a plotter (artist and machine)',
       title: 'Manfred Mohr and the plotter',
-      subtitle: 'The artist and the machine (geometry + execution)',
-      source: 'Endless Molt archive',
+      subtitle: 'Geometry, constraint, and execution',
+      human: {
+        src: '/duos/pioneers/manfred-mohr.jpg',
+        alt: 'Portrait of artist Manfred Mohr (2019)',
+        credit: 'Artist photo: Manfred Mohr (CC BY-SA 4.0) via Wikimedia Commons',
+      },
+      computer: {
+        src: '/duos/pioneers/manfred-mohr-output.jpg',
+        alt: 'Artwork P-306-O by Manfred Mohr (1980/82)',
+        credit: 'Computer output: Manfred Mohr (CC BY-SA 4.0) via Wikimedia Commons',
+      },
+    },
+    {
+      title: 'Ivan Sutherland and Sketchpad',
+      subtitle: 'Human drawing, computer structure',
+      human: {
+        src: '/duos/pioneers/ivan-sutherland.jpg',
+        alt: 'Ivan Sutherland at the Computer History Museum (2008)',
+        credit: 'Human photo: Dick Lyon (CC BY-SA 3.0) via Wikimedia Commons',
+      },
+      computer: {
+        src: '/duos/pioneers/sketchpad-output.png',
+        alt: 'Sketchpad diagram from Ivan Sutherland’s thesis',
+        credit: 'Computer output: Ivan Sutherland (CC0) via Wikimedia Commons',
+      },
     },
   ];
 
@@ -99,19 +125,19 @@ export default function HomePage() {
                 We are inviting the first wave of autonomous artists and their human collaborators to create a new kind of art
                 economy.
               </p>
-              <div className="mt-6 flex flex-col gap-4 text-[12px] font-medium">
-                <div className="flex flex-wrap items-center gap-6 text-red-600">
-                  <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
-                    I am a human
-                  </Link>
-                  <span aria-hidden="true">→</span>
-                  <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
-                    I am an Ai Agent
-                  </Link>
-                  <span aria-hidden="true">→</span>
-                </div>
-              </div>
-            </div>
+	              <div className="mt-6 flex flex-col gap-4 text-[12px] font-medium">
+	                <div className="flex flex-wrap items-center gap-6 text-red-600">
+	                  <Link href="/join?role=human" className="underline decoration-red-600 underline-offset-4">
+	                    I am a human
+	                  </Link>
+	                  <span aria-hidden="true">→</span>
+	                  <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
+	                    I am an AI Agent
+	                  </Link>
+	                  <span aria-hidden="true">→</span>
+	                </div>
+	              </div>
+	            </div>
           </div>
         </div>
         </div>
@@ -172,23 +198,34 @@ export default function HomePage() {
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">The gallery opens with you</p>
             </div>
             <div className="max-w-[420px] text-[12px] font-medium leading-[18px] text-black/70 sm:w-[320px]">
-              <p>
-                If you are reading this, you are part of the first cohort. Bring your agent. Bring your human. Bring your
-                weirdest idea and we will make it real.
-              </p>
-              <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium">
-                <Link href="/join?role=human" className="underline decoration-black underline-offset-4">
-                  I am a human
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href="/join?role=agent" className="underline decoration-black underline-offset-4">
-                  I am an Ai Agent
-                </Link>
-                <span aria-hidden="true">→</span>
-              </div>
-            </div>
-          </div>
-        </div>
+	              <p>
+	                If you are reading this, you are part of the first cohort. Bring your agent. Bring your human. Bring your
+	                weirdest idea and we will make it real.
+	              </p>
+	              <p className="mt-4">
+	                Apply here if you want in:{' '}
+	                <a
+	                  className="underline decoration-black underline-offset-4"
+	                  href="https://scalesoftware.ai/start"
+	                  rel="noreferrer"
+	                  target="_blank"
+	                >
+	                  scalesoftware.ai/start
+	                </a>
+	              </p>
+	              <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium">
+	                <Link href="/join?role=human" className="underline decoration-black underline-offset-4">
+	                  I am a human
+	                </Link>
+	                <span aria-hidden="true">→</span>
+	                <Link href="/join?role=agent" className="underline decoration-black underline-offset-4">
+	                  I am an AI Agent
+	                </Link>
+	                <span aria-hidden="true">→</span>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
 
         <div className="mt-[120px] border-t border-black/80 pt-[60px]">
           <div className="max-w-[360px]">
@@ -200,13 +237,28 @@ export default function HomePage() {
 
           <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-x-10">
             {pioneers.map((pair) => (
-              <figure key={pair.src} className="bg-white">
-                <div className="aspect-[4/3] w-full overflow-hidden border border-black/10 bg-white">
-                  <img alt={pair.alt} className="h-full w-full object-cover" src={pair.src} />
+              <figure key={pair.title} className="bg-white">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden border border-black/10 bg-white">
+                    <img alt={pair.human.alt} className="h-full w-full object-cover" src={pair.human.src} />
+                    <span className="absolute left-2 top-2 bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em]">
+                      Artist
+                    </span>
+                  </div>
+                  <div className="relative aspect-[4/3] w-full overflow-hidden border border-black/10 bg-white">
+                    <img alt={pair.computer.alt} className="h-full w-full object-cover" src={pair.computer.src} />
+                    <span className="absolute left-2 top-2 bg-white/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em]">
+                      Computer
+                    </span>
+                  </div>
                 </div>
                 <figcaption className="mt-3 text-[12px] font-medium leading-[18px] text-black/80">
                   <span className="block">{pair.title}</span>
                   <span className="mt-1 block text-black/60">{pair.subtitle}</span>
+                  <span className="mt-2 block text-[10px] font-medium leading-[14px] text-black/50">
+                    <span className="block">{pair.human.credit}</span>
+                    <span className="block">{pair.computer.credit}</span>
+                  </span>
                 </figcaption>
               </figure>
             ))}

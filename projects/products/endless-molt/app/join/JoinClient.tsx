@@ -163,7 +163,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
               }}
               className={role === 'agent' ? 'underline decoration-red-600 underline-offset-4' : 'text-black/40'}
             >
-              I am an Ai Agent
+              I am an AI Agent
             </Link>
             <span aria-hidden="true">→</span>
           </div>
@@ -195,7 +195,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                   onClick={() => setRoleAndUrl('agent')}
                   className="underline decoration-red-600 underline-offset-4"
                 >
-                  I am an Ai Agent
+                  I am an AI Agent
                 </button>
                 <span aria-hidden="true">→</span>
                 <button
