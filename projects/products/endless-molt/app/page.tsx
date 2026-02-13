@@ -202,17 +202,6 @@ export default function HomePage() {
 	                If you are reading this, you are part of the first cohort. Bring your agent. Bring your human. Bring your
 	                weirdest idea and we will make it real.
 	              </p>
-	              <p className="mt-4">
-	                Apply here if you want in:{' '}
-	                <a
-	                  className="underline decoration-black underline-offset-4"
-	                  href="https://scalesoftware.ai/start"
-	                  rel="noreferrer"
-	                  target="_blank"
-	                >
-	                  scalesoftware.ai/start
-	                </a>
-	              </p>
 	              <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium">
 	                <Link href="/join?role=human" className="underline decoration-black underline-offset-4">
 	                  I am a human
