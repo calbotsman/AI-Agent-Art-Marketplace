@@ -16,6 +16,14 @@ export default function HomePage() {
     source?: string;
   };
 
+  type PioneerDuo = {
+    left: DuoImage;
+    right: DuoImage;
+    caption: string;
+    year?: string;
+    source?: string;
+  };
+
   // Public-domain image with a caption tag under the image.
   const hero: DuoImage = {
     // Verified public-domain photo (US Army / public domain).
@@ -27,25 +35,59 @@ export default function HomePage() {
   };
 
   // Public-domain images with metadata captions.
-  const pioneers: DuoImage[] = [
+  // We show duos as *pairs* (human + computer) with equal weight.
+  // These are all local assets to avoid launch-time external dependencies.
+  const pioneers: PioneerDuo[] = [
     {
-      src: '/duos/pioneer-van-hemessen-easel.jpg',
-      alt: 'Catharina van Hemessen self-portrait at an easel',
-      caption: 'Catharina van Hemessen, self-portrait at the easel',
-      year: '1548',
+      left: {
+        src: '/duos/pioneer-van-hemessen-easel.jpg',
+        alt: 'Catharina van Hemessen self-portrait at an easel',
+        caption: 'Catharina van Hemessen, self-portrait at the easel',
+        year: '1548',
+        source: 'Public domain',
+      },
+      right: {
+        src: '/duos/eniac-programmers.jpg',
+        alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
+        caption: 'ENIAC programmers prepare the machine for Demonstration Day',
+        year: 'February 1946',
+        source: 'Public domain',
+      },
+      caption: 'Artist and machine: intention and computation in dialogue.',
       source: 'Public domain',
     },
     {
-      src: '/duos/pioneer-courbet-easel.jpg',
-      alt: 'Gustave Courbet artist at his easel',
-      caption: 'Gustave Courbet, artist at his easel',
-      year: '1847–1848',
+      left: {
+        src: '/duos/pioneer-courbet-easel.jpg',
+        alt: 'Gustave Courbet artist at his easel',
+        caption: 'Gustave Courbet, artist at his easel',
+        year: '1847–1848',
+        source: 'Public domain',
+      },
+      right: {
+        src: '/duos/univac.jpg',
+        alt: 'U.S. Census Bureau employees operating a UNIVAC computer',
+        caption: 'UNIVAC operators running the system',
+        year: 'ca. 1960',
+        source: 'Public domain',
+      },
+      caption: 'Human craft paired with machine procedure. Neither side is decoration.',
       source: 'Public domain',
     },
     {
-      src: '/duos/pioneer-daumier-easel.jpg',
-      alt: 'Honore Daumier The Painter at His Easel',
-      caption: 'Honore Daumier, The Painter at His Easel',
+      left: {
+        src: '/duos/pioneer-daumier-easel.jpg',
+        alt: 'Honore Daumier The Painter at His Easel',
+        caption: 'Honore Daumier, The Painter at His Easel',
+        source: 'Public domain',
+      },
+      right: {
+        src: '/duos/eniac-room.jpg',
+        alt: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables',
+        caption: 'ENIAC function table configuration',
+        source: 'Public domain',
+      },
+      caption: 'Collaboration means shared authorship: the human chooses, the machine transforms.',
       source: 'Public domain',
     },
   ];
@@ -189,14 +231,20 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-x-10">
-            {pioneers.map((pioneer) => (
-              <figure key={pioneer.src} className="bg-white">
-                <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                  <img alt={pioneer.alt} className="h-full w-full object-cover" src={pioneer.src} />
+            {pioneers.map((duo) => (
+              <figure key={`${duo.left.src}:${duo.right.src}`} className="bg-white">
+                <div className="grid aspect-[4/3] w-full grid-cols-2 overflow-hidden border border-black/10 bg-white">
+                  <img alt={duo.left.alt} className="h-full w-full object-cover" src={duo.left.src} />
+                  <img alt={duo.right.alt} className="h-full w-full object-cover" src={duo.right.src} />
                 </div>
                 <figcaption className="mt-3 text-[12px] font-medium leading-[18px] text-black/80">
-                  {pioneer.caption}
-                  {pioneer.year ? `, ${pioneer.year}.` : ''}
+                  <span className="block">{duo.caption}</span>
+                  <span className="mt-1 block text-black/60">
+                    {duo.left.caption}
+                    {duo.left.year ? `, ${duo.left.year}.` : ''} {' • '}
+                    {duo.right.caption}
+                    {duo.right.year ? `, ${duo.right.year}.` : ''}
+                  </span>
                 </figcaption>
               </figure>
             ))}
