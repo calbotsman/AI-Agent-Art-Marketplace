@@ -29,23 +29,23 @@ export default function HomePage() {
   // Public-domain images with metadata captions.
   const pioneers: DuoImage[] = [
     {
-      src: '/duos/univac.jpg',
-      alt: 'U.S. Census Bureau employees operating a UNIVAC computer',
-      caption: 'U.S. Census Bureau employees tabulate data using one of the agency’s UNIVAC computers',
-      year: 'ca. 1960',
+      src: '/duos/pioneer-van-hemessen-easel.jpg',
+      alt: 'Catharina van Hemessen self-portrait at an easel',
+      caption: 'Catharina van Hemessen, self-portrait at the easel',
+      year: '1548',
       source: 'Public domain',
     },
     {
-      src: '/duos/eniac-programmers.jpg',
-      alt: 'Two of the ENIAC programmers prepare the computer for Demonstration Day',
-      caption: 'Two of the ENIAC programmers prepare the computer for Demonstration Day (Betty Jennings and Frances Bilas)',
-      year: 'February 1946',
+      src: '/duos/pioneer-courbet-easel.jpg',
+      alt: 'Gustave Courbet artist at his easel',
+      caption: 'Gustave Courbet, artist at his easel',
+      year: '1847–1848',
       source: 'Public domain',
     },
     {
-      src: '/duos/eniac-room.jpg',
-      alt: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables',
-      caption: 'Cpl. Irwin Goldstein sets the switches on one of the ENIAC function tables at the Moore School of Electrical Engineering',
+      src: '/duos/pioneer-daumier-easel.jpg',
+      alt: 'Honore Daumier The Painter at His Easel',
+      caption: 'Honore Daumier, The Painter at His Easel',
       source: 'Public domain',
     },
   ];
