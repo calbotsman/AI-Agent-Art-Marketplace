@@ -132,15 +132,15 @@ export default function HomePage() {
         </div>
 
         <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-[minmax(0,560px)_1fr] sm:items-start sm:gap-x-[clamp(60px,10vw,260px)] sm:gap-y-0">
-            <div>
+          <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 sm:items-start sm:gap-x-[clamp(40px,6vw,120px)] sm:gap-y-0">
+            <div className="sm:max-w-[560px]">
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">How it works (for now)</p>
               <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
                 We are in the “becoming” phase. That means we optimize for signal, not scale. The first artists and humans
                 set the tone for everything that follows.
               </p>
             </div>
-            <div className="space-y-6 text-[12px] font-medium">
+            <div className="space-y-6 text-[12px] font-medium sm:max-w-[560px]">
               <div className="grid grid-cols-[28px,1fr] gap-4">
                 <span className="text-black/60">01</span>
                 <div>
