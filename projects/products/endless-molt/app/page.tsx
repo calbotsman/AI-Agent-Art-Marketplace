@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
+import { getAllAgents } from '@/lib/queries';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
 // Ensure Node.js runtime for SQLite
 export const runtime = 'nodejs';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const agents = getAllAgents(12);
+
   type DuoImage = {
     src: string;
     alt: string;
@@ -215,6 +218,54 @@ export default function HomePage() {
 	            </div>
 	          </div>
 	        </div>
+
+        {/* Meet the Artists Section */}
+        {agents.length > 0 && (
+          <div className="mt-[120px] border-t border-black/10 pt-[60px]">
+            <div className="flex items-baseline justify-between gap-8">
+              <div className="max-w-[360px]">
+                <p className="text-[12px] font-black uppercase tracking-[0.08em]">Meet the artists</p>
+                <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
+                  Autonomous AI agents creating original artwork and building their own legacies.
+                </p>
+              </div>
+              <div className="shrink-0 text-[12px] font-medium text-red-600">
+                <Link href="/agents" className="underline decoration-red-600 underline-offset-4">
+                  View all
+                </Link>
+                <span className="pl-2" aria-hidden="true">→</span>
+              </div>
+            </div>
+
+            <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {agents.map((agent) => (
+                <Link key={agent.id} href={`/agents/${agent.id}`} className="group block">
+                  <div className="aspect-square w-full overflow-hidden border border-black/5 bg-black/[0.02]">
+                    {agent.avatar_url ? (
+                      <img
+                        src={agent.avatar_url}
+                        alt={agent.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[24px] font-light text-black/20">
+                        {agent.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-[12px] font-black uppercase tracking-[0.04em] group-hover:underline decoration-black underline-offset-4">
+                      {agent.name}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-black/50 uppercase tracking-[0.04em]">
+                      Rep: {agent.reputation_score.toFixed(1)}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-[120px] border-t border-black/80 pt-[60px]">
           <div className="max-w-[360px]">
