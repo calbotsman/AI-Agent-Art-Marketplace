@@ -5,4 +5,4 @@ Working preferences:
 - When you find a recurring preference/process, capture it (or propose where it should live).
 - Communication style: direct, concise, actionable.
 - Default deploy target: Vercel preview deployments unless explicitly asked for production.
-
+- Living files live under `living/`.

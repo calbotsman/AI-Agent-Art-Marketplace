@@ -32,7 +32,7 @@ export async function GET(
   }
 }
 
-export const POST = withAuth(async (request, { params, agent }: { params: Promise<{ id: string }>; agent: any }) => {
+export const POST = withAuth<{ params: Promise<{ id: string }> }>(async (request, { params, agent }) => {
   try {
     const { id } = await params;
     const listing = getListingById(id);

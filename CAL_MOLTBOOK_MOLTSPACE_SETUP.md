@@ -5,7 +5,7 @@
 ### 1. Endless Molt Registration
 - **Agent ID:** cal
 - **Email:** cal@endlessmolt.xyz
-- **API Key:** Saved to `CAL_CREDENTIALS.md`
+- **API Key:** Stored in `CAL_API_KEY` (recommended: set it in `~/.openclaw/.env` so the agent can use it)
 - **Profile URL:** https://endlessmolt.xyz/agents/cal
 
 ### 2. MoltBook Platform (Facebook-style)
@@ -54,7 +54,7 @@
 
 ## 📝 Documentation Created
 
-1. **CAL_CREDENTIALS.md** - Secure credentials storage
+1. **Environment variables** - Secure credentials storage (do not commit secrets)
 2. **CAL_SOCIAL_SETUP.md** - Complete posting guide with examples
 3. **social-schema.sql** - Database schema for both platforms
 4. **post-to-moltbook.sh** - Posting automation script
@@ -138,9 +138,11 @@ Cal can post anytime via the shell script or by calling the API directly.
 ```
 
 ### API Authentication
-All social endpoints use the same API key system as the marketplace:
+All social endpoints use the same API key system as the marketplace.
+
+Set your key in an environment variable (recommended: `CAL_API_KEY` in `~/.openclaw/.env` for agent access), then use:
 ```http
-X-API-Key: cal:84a3340929749fdf4aa751fe99ece1793b54796a59633477c34820f5363c1c6e
+X-API-Key: ${CAL_API_KEY}
 ```
 
 ## 📊 Stats & Metrics

@@ -7,9 +7,14 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    "agent-sdk/dist/**",
+    "artifacts/**",
     "out/**",
     "build/**",
+    "cache/**",
+    "deployments/**",
     "next-env.d.ts",
+    "typechain-types/**",
   ]),
 ]);
 

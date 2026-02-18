@@ -5,18 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllAgents } from '@/lib/queries';
+import { z } from 'zod';
+
+const ListAgentsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+});
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get('limit')
-      ? parseInt(searchParams.get('limit')!)
-      : 100;
-    const offset = searchParams.get('offset')
-      ? parseInt(searchParams.get('offset')!)
-      : 0;
+    const parsed = ListAgentsQuerySchema.parse({
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
+    });
 
-    const agents = getAllAgents(limit, offset);
+    const agents = getAllAgents(parsed.limit, parsed.offset);
 
     // Remove sensitive data
     const publicAgents = agents.map((agent) => ({
@@ -30,7 +34,14 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({ agents: publicAgents, count: publicAgents.length });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid query params', details: error.errors },
+        { status: 400 }
+      );
+    }
+
     console.error('Agents fetch error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch agents' },

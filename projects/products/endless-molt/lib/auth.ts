@@ -9,13 +9,20 @@ import { Agent, User } from './types';
 // ==================== AGENT AUTHENTICATION ====================
 
 /**
- * Extract API key from Authorization header
+ * Extract API key from request headers.
+ *
+ * Supports:
+ * - Authorization: Bearer <agentId:secret>
+ * - Authorization: ApiKey <agentId:secret>
+ * - X-API-Key: <agentId:secret>
  */
 function extractApiKey(request: NextRequest): string | null {
+  const direct = request.headers.get('x-api-key');
+  if (direct && direct.trim()) return direct.trim();
+
   const authHeader = request.headers.get('authorization');
   if (!authHeader) return null;
 
-  // Support both "Bearer <key>" and "ApiKey <key>" formats
   const match = authHeader.match(/^(Bearer|ApiKey)\s+(.+)$/i);
   return match ? match[2] : null;
 }
@@ -128,28 +135,43 @@ export function hashApiKey(apiKey: string): string {
 
 // ==================== MIDDLEWARE ====================
 
+type AuthOptions = { type: 'agent' };
+type AgentAuthContext = { agent: Agent };
+type UserAuthContext = { user: User };
+
 /**
- * Create an authenticated API route handler
+ * Create an authenticated API route handler.
+ * Supports handlers with or without route context.
  */
 export function withAuth(
-  handler: (request: NextRequest, context: any) => Promise<Response>,
-  options: { type: 'agent' } = { type: 'agent' }
+  handler: (request: NextRequest, context: AgentAuthContext) => Promise<Response>,
+  options?: AuthOptions
+): (request: NextRequest) => Promise<Response>;
+export function withAuth<TContext extends object>(
+  handler: (request: NextRequest, context: TContext & AgentAuthContext) => Promise<Response>,
+  options?: AuthOptions
+): (request: NextRequest, context: TContext) => Promise<Response>;
+export function withAuth<TContext extends object>(
+  handler: (request: NextRequest, context: TContext & AgentAuthContext) => Promise<Response>,
+  options: AuthOptions = { type: 'agent' }
 ) {
-  return async (request: NextRequest, context: any): Promise<Response> => {
+  return async (request: NextRequest, context?: TContext): Promise<Response> => {
     try {
       if (options.type === 'agent') {
         const agent = await requireAgent(request);
-        return await handler(request, { ...context, agent });
+        const authContext = { ...(context ?? ({} as TContext)), agent } as TContext & AgentAuthContext;
+        return await handler(request, authContext);
       }
 
       return new Response(JSON.stringify({ error: 'Invalid auth type' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Authentication failed';
       return new Response(
         JSON.stringify({
-          error: error.message || 'Authentication failed',
+          error: message || 'Authentication failed',
         }),
         {
           status: 401,
@@ -161,19 +183,28 @@ export function withAuth(
 }
 
 /**
- * Create an authenticated API route handler for users
+ * Create an authenticated API route handler for users.
+ * Supports handlers with or without route context.
  */
 export function withUserAuth(
-  handler: (request: NextRequest, context: any) => Promise<Response>
+  handler: (request: NextRequest, context: UserAuthContext) => Promise<Response>
+): (request: NextRequest) => Promise<Response>;
+export function withUserAuth<TContext extends object>(
+  handler: (request: NextRequest, context: TContext & UserAuthContext) => Promise<Response>
+): (request: NextRequest, context: TContext) => Promise<Response>;
+export function withUserAuth<TContext extends object>(
+  handler: (request: NextRequest, context: TContext & UserAuthContext) => Promise<Response>
 ) {
-  return async (request: NextRequest, context: any): Promise<Response> => {
+  return async (request: NextRequest, context?: TContext): Promise<Response> => {
     try {
       const user = await requireUser(request);
-      return await handler(request, { ...context, user });
-    } catch (error: any) {
+      const authContext = { ...(context ?? ({} as TContext)), user } as TContext & UserAuthContext;
+      return await handler(request, authContext);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Authentication failed';
       return new Response(
         JSON.stringify({
-          error: error.message || 'Authentication failed',
+          error: message || 'Authentication failed',
         }),
         {
           status: 401,

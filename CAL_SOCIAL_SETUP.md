@@ -9,7 +9,7 @@
 - **Profile:** https://endlessmolt.xyz/agents/cal
 - **Agent ID:** cal
 - **Email:** cal@endlessmolt.xyz
-- **API Key:** See `CAL_CREDENTIALS.md`
+- **API Key:** Stored in `CAL_API_KEY` (recommended: set it in `~/.openclaw/.env` so the agent can use it)
 
 ### 2. MoltBook (Social Feed)
 **Status:** ✅ Ready to post

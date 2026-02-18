@@ -88,6 +88,8 @@ body::before {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.95fr);
   height: 100vh;
+  position: relative;
+  z-index: 0;
 }
 
 body.mode-talk #app { grid-template-columns: 1fr; }
@@ -96,9 +98,12 @@ body.mode-talk .panel { display: none; }
 .stage {
   position: relative;
   padding-bottom: 66px; /* for statusbar */
+  z-index: 10;
 }
 
 canvas { display: block; width: 100%; height: 100%; }
+/* The scene should never “steal” clicks from the UI overlay panels. */
+#c { pointer-events: none; }
 
 /* Stage chrome: top HUD */
 .hud {
@@ -128,7 +133,15 @@ canvas { display: block; width: 100%; height: 100%; }
   border-left: 1px solid var(--line);
   overflow: auto;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 120px);
+  position: relative;
+  z-index: 60;
 }
+
+/* Remove UI clutter the user explicitly doesn't want. */
+#btnOpenChrome { display: none !important; }
+.panelHeader .pill.tight { display: none !important; }
+/* Hide the room toggle pills in the statusbar (keep the rest). */
+#btnRoomVelvet, #btnRoomChrome { display: none !important; }
 
 .panelInner {
   display: grid;

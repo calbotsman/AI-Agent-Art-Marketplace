@@ -3,3 +3,26 @@ inbox/
 
 # Local-only scratch (shows up as ../../hardware from nested worktrees)
 projects/hardware/
+
+# Local state / caches (never commit)
+logs/
+node_modules/
+**/node_modules/
+**/.vite/
+**/.vite-cache/
+**/.next/
+**/dist/
+**/coverage/
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# ClawVault/QMD derived artifacts (never commit)
+.clawvault/
+.clawvault*.json
+.clawhub/
+
+# Local-only agent docs that may include secrets
+CAL_CREDENTIALS.md

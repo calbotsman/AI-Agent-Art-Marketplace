@@ -238,9 +238,17 @@ async function refreshOps() {
   // Models are optional; don't block status rendering on it.
   if (opsModelsEl) {
     const m = await fetchJson('/ops/models')
-    if (m.ok && m.json) {
-      const out = (m.json.stdout || m.text || '').trim()
-      opsModelsEl.textContent = out || '(no output)'
+    if (m.ok && m.json?.models) {
+      const models = m.json.models
+      const lines = [
+        `Default: ${models.resolvedDefault || models.defaultModel || '—'}`,
+        `Fallbacks: ${(models.fallbacks || []).join(', ') || '—'}`,
+        `Allowed: ${(models.allowed || []).length || 0}`,
+        `Image: ${models.imageModel || '—'}`,
+      ]
+      opsModelsEl.textContent = lines.join('\n')
+    } else if (m.ok && m.json?.pending) {
+      opsModelsEl.textContent = '(models: refreshing)'
     } else {
       opsModelsEl.textContent = '(models unavailable)'
     }
@@ -261,6 +269,28 @@ async function pullTokenFromOpenclaw() {
   if (gatewayTokenEl) gatewayTokenEl.value = state.gatewayToken
   renderStatusBar()
   return true
+}
+
+async function autoBootstrapGatewayAuth() {
+  // Goal: avoid manual token pasting. If the token isn't in localStorage/URL, pull it
+  // from ~/.openclaw/openclaw.json via the local dev-only /ops endpoint, then connect.
+  // Tokens can rotate; if we’re disconnected, we should still try to refresh.
+  if (state.gatewayToken && state.connected) return
+  // Retry a few times; on macOS the gateway can come up a few seconds after the portal.
+  for (let i = 0; i < 8; i++) {
+    // Always re-pull while bootstrapping so we self-heal after token rotation.
+    const ok = await pullTokenFromOpenclaw()
+    if (ok) {
+      try { await connectGateway() } catch { /* connectGateway handles UI state */ }
+      return
+    }
+    setLink('Agent: waiting for local token…')
+    renderStatusBar()
+    await new Promise((r) => setTimeout(r, 900 + i * 250))
+  }
+  // Final state if we couldn’t read it.
+  setLink('Agent: token missing (use OpenClaw Ops → “Use local token”)')
+  renderStatusBar()
 }
 
 function setStatus(text) {
@@ -1155,7 +1185,9 @@ function addMsg(role, content, opts = {}) {
 
   d.appendChild(meta)
   d.appendChild(body)
-  chatlog.prepend(d)
+  // Newest messages at the bottom (Slack-like).
+  chatlog.appendChild(d)
+  try { chatlog.scrollTop = chatlog.scrollHeight } catch { /* ignore */ }
 }
 
 function renderThumbs() {
@@ -1478,22 +1510,35 @@ async function connectGateway() {
   state.lastGatewayErr = ''
   renderStatusBar()
   try {
-    // Ensure we hit same-origin /v1... by default (proxied by Vite)
-    const url = state.gatewayUrl || '/v1/chat/completions'
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${state.gatewayToken}`,
-        'Content-Type': 'application/json',
-        'x-clawdbot-agent-id': state.agentId || 'main',
-      },
-      body: JSON.stringify({
-        model: 'clawdbot',
-        user: 'cal-portal',
-        messages: [{ role: 'user', content: 'ping' }],
-      }),
-    })
+    const attemptPing = async () => {
+      const url = state.gatewayUrl || '/v1/chat/completions'
+      return await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${state.gatewayToken}`,
+          'Content-Type': 'application/json',
+          'x-clawdbot-agent-id': state.agentId || 'main',
+        },
+        body: JSON.stringify({
+          model: 'clawdbot',
+          user: 'cal-portal',
+          messages: [{ role: 'user', content: 'ping' }],
+        }),
+      })
+    }
+
+    let r = await attemptPing()
     if (!r.ok) {
+      // Self-heal: if the gateway token rotated, refresh from local OpenClaw config and retry once.
+      if (r.status === 401 || r.status === 403) {
+        const before = state.gatewayToken
+        const ok = await pullTokenFromOpenclaw().catch(() => false)
+        if (ok && state.gatewayToken && state.gatewayToken !== before) {
+          try { gatewayTokenEl.value = state.gatewayToken } catch { /* ignore */ }
+          saveSettings()
+          r = await attemptPing()
+        }
+      }
       const t = await r.text().catch(() => '')
       throw new Error(`HTTP ${r.status} ${t.slice(0, 120)}`)
     }
@@ -1606,12 +1651,50 @@ async function checkGatewayHeartbeat() {
 }
 
 async function sendToAgent(userText) {
+  const isContextOverflow = (s) => {
+    const msg = String(s || '').toLowerCase()
+    return (
+      msg.includes('context overflow') ||
+      msg.includes('context limit') ||
+      msg.includes('prompt too large') ||
+      msg.includes('input length and max_tokens exceed context limit') ||
+      msg.includes('maximum context length')
+    )
+  }
+
+  const compactContextForRetry = () => {
+    // Aggressive trim to recover from overflow without user intervention.
+    state.maxHistoryMessages = Math.min(state.maxHistoryMessages || 12, 4)
+    state.maxHistoryCharsPerMsg = Math.min(state.maxHistoryCharsPerMsg || 1400, 800)
+    state.summary = String(state.summary || '').slice(-1000)
+    state.history = (state.history || []).slice(-4).map((m) => {
+      if (typeof m?.content !== 'string') return m
+      return { ...m, content: m.content.slice(-800) }
+    })
+    saveSettings()
+  }
+
+  // Self-heal: if we’re not connected, first try to pull the local token,
+  // then attempt reconnect. This avoids the “token missing” loop.
+  if (!state.gatewayToken) {
+    try { await pullTokenFromOpenclaw() } catch {}
+  }
   if (!state.connected) {
     // Try auto-connect if token is present
     if (state.gatewayToken) await connectGateway()
   }
+  if (!state.connected && state.gatewayToken) {
+    // One more self-heal pass for token rotation: refresh token and retry connect.
+    try {
+      const before = state.gatewayToken
+      const ok = await pullTokenFromOpenclaw()
+      if (ok && state.gatewayToken && state.gatewayToken !== before) {
+        await connectGateway()
+      }
+    } catch { /* ignore */ }
+  }
   if (!state.connected) {
-    return `I’m not connected to the gateway yet. Open Settings → paste the gateway token, then hit Connect.`
+    return `I’m not connected to the gateway yet. If this is a fresh refresh, wait ~5 seconds. Otherwise open Ops → OpenClaw Ops → “Use local token”, then “Connect”.`
   }
 
   // Vision: attach images as a multimodal message (when supported by the gateway).
@@ -1648,8 +1731,10 @@ async function sendToAgent(userText) {
 
   const systemParts = [
     "You are Cal, Josh's studio copilot. Be warm, witty, and direct. For voice: keep replies to 1–3 short sentences; no boilerplate.",
+    "Truth contract: never claim an action happened unless you can cite concrete evidence from this thread/tool output. If unverified, say 'I can’t verify yet' and give exactly one next check.",
+    "Execution reporting contract: label outcomes as planned, running, blocked, or done. Use 'done' only with evidence.",
     state.summary ? `Context summary (compressed):\n${state.summary}` : null,
-    state.notes ? `Studio notes (persistent):\n${state.notes}` : null,
+    state.notes ? `Studio notes (persistent):\n${String(state.notes || '').slice(-2000)}` : null,
   ].filter(Boolean)
 
   const body = {
@@ -1664,23 +1749,44 @@ async function sendToAgent(userText) {
   const url = state.gatewayUrl || '/v1/chat/completions'
   // Barge-in / cancel: one active request at a time
   abortActiveRequest()
-  activeRequestController = new AbortController()
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${state.gatewayToken}`,
-      'Content-Type': 'application/json',
-      'x-clawdbot-agent-id': state.agentId || 'main',
-    },
-    body: JSON.stringify(body),
-    signal: activeRequestController.signal,
-  })
-  if (!r.ok) {
-    const t = await r.text().catch(() => '')
-    throw new Error(`Gateway error HTTP ${r.status}: ${t.slice(0, 200)}`)
+
+  let j = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    activeRequestController = new AbortController()
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.gatewayToken}`,
+        'Content-Type': 'application/json',
+        'x-clawdbot-agent-id': state.agentId || 'main',
+      },
+      body: JSON.stringify(body),
+      signal: activeRequestController.signal,
+    })
+
+    if (!r.ok) {
+      const t = await r.text().catch(() => '')
+      const errText = `Gateway error HTTP ${r.status}: ${t.slice(0, 300)}`
+      if (attempt === 0 && isContextOverflow(errText)) {
+        compactContextForRetry()
+        // Rebuild messages with compacted context for one automatic retry.
+        body.messages = [
+          { role: 'system', content: systemParts.join('\n\n') },
+          ...state.history,
+        ]
+        continue
+      }
+      activeRequestController = null
+      throw new Error(errText)
+    }
+
+    j = await r.json()
+    break
   }
-  const j = await r.json()
   activeRequestController = null
+  if (!j) {
+    throw new Error('No gateway response payload')
+  }
   const txt = j?.choices?.[0]?.message?.content || ''
   state.history.push({ role: 'assistant', content: txt })
 
@@ -1849,8 +1955,20 @@ function handleLocalCommand(rawText) {
 }
 
 async function sendUserMessage(text) {
-  const t = (text || '').trim()
+  let t = (text || '').trim()
   if (!t) return
+
+  // Overflow guard for very large pasted blobs in UI chat.
+  if (t.length > 6000) {
+    const originalLen = t.length
+    const head = t.slice(0, 2400)
+    const tail = t.slice(-1200)
+    t = `${head}\n\n[...trimmed ${originalLen - 3600} chars for safety...]\n\n${tail}`
+    addMsg(
+      'cal',
+      `I trimmed a very large message (${originalLen.toLocaleString()} chars) to prevent context overflow. If needed, send the rest as a file or in parts.`
+    )
+  }
 
   addMsg('user', t, { note: state.pendingImages.length ? `${state.pendingImages.length} image(s)` : '' })
 
@@ -1967,7 +2085,8 @@ btnTalkClear?.addEventListener('click', () => {
 })
 
 talkInput?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+  // Enter sends; Shift+Enter makes a newline.
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     btnTalkSend?.click()
   }
@@ -2020,7 +2139,8 @@ btnSend?.addEventListener('click', () => {
 })
 
 input?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+  // Enter sends; Shift+Enter makes a newline.
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     sendUserMessage(input.value)
     input.value = ''
@@ -2134,6 +2254,8 @@ renderStatusBar()
 // Auto-connect if a token is present (e.g., passed via ?token=...)
 if (state.gatewayToken) {
   connectGateway()
+} else {
+  autoBootstrapGatewayAuth()
 }
 
 // lightweight connectivity heartbeat (keeps the bottom status bar accurate)
@@ -2342,15 +2464,25 @@ if (USE_ORB_AVATAR) {
   )
 }
 
-// movement controls (WASD)
+// movement controls (WASD + arrows)
 const keys = new Set()
 window.addEventListener('keydown', (e) => {
+  if (isTypingTarget(document.activeElement)) return
   const k = e.key.toLowerCase()
   if (['w', 'a', 's', 'd'].includes(k)) keys.add(k)
+  if (e.key === 'ArrowUp') keys.add('w')
+  if (e.key === 'ArrowDown') keys.add('s')
+  if (e.key === 'ArrowLeft') keys.add('a')
+  if (e.key === 'ArrowRight') keys.add('d')
 })
 window.addEventListener('keyup', (e) => {
+  if (isTypingTarget(document.activeElement)) return
   const k = e.key.toLowerCase()
   keys.delete(k)
+  if (e.key === 'ArrowUp') keys.delete('w')
+  if (e.key === 'ArrowDown') keys.delete('s')
+  if (e.key === 'ArrowLeft') keys.delete('a')
+  if (e.key === 'ArrowRight') keys.delete('d')
 })
 
 // Push-to-talk: hold Space to listen (when not typing in an input)

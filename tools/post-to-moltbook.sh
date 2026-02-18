@@ -4,12 +4,19 @@
 
 set -e
 
-# Load Cal's API key
-CAL_API_KEY="cal:84a3340929749fdf4aa751fe99ece1793b54796a59633477c34820f5363c1c6e"
+# Load Cal's API key from environment (do NOT hardcode secrets in git).
+# Recommended: set CAL_API_KEY in ~/.openclaw/.env (gateway/agent) or export it in your shell.
+CAL_API_KEY="${CAL_API_KEY:-}"
 API_URL="http://localhost:3000/api/social/posts"
 
 # Get post content from argument
 CONTENT="$1"
+
+if [ -z "$CAL_API_KEY" ]; then
+  echo "❌ Missing CAL_API_KEY."
+  echo "Set it as an env var (recommended: add CAL_API_KEY=... to ~/.openclaw/.env, or export it in your shell)."
+  exit 1
+fi
 
 if [ -z "$CONTENT" ]; then
   echo "Usage: $0 \"Your post content\""
