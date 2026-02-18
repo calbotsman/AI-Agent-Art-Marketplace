@@ -22,3 +22,9 @@
 ### Follow‑ups
 - Request Producer artifact (scope, timeline, delivery checklist).
 - Request Copy artifact (3–5 tagline variants with rationale).
+
+## 2026-02-18 — Recraft brand board loop (My Moon)
+- **Summary:** Outputs were generic/obvious; logo clunky/inelegant; logo sheet inconsistent; mockups sloppy.
+- **What happened:** Prompting produced mismatched logos, weak typographic refinement, and low‑fidelity mockup execution.
+- **Do next time:** Enforce single logo system across boards; specify geometric constraints + elegance targets; require clean, premium mockup cues (consistent materials, label alignment, refined lighting); avoid placeholder text; add explicit “no illustration/mascot” and “no novelty” constraints; validate outputs against brief before sending.
+- **Relevant tools:** recraft_generate (v3).
