@@ -24,5 +24,8 @@ node_modules/
 .clawvault*.json
 .clawhub/
 
+# Reports / artifacts (never commit)
+reports/
+
 # Local-only agent docs that may include secrets
 CAL_CREDENTIALS.md
