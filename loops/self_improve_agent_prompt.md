@@ -22,7 +22,11 @@ Report sections:
 4) **Tests / canaries** — how we’ll know it’s fixed (or add one)
 5) **Project reflection** — what changed in `/clawd` + active project implications
 6) **Inspiration research (internet)** — 3 links + why they matter (UI, agents, reliability, voice UX, etc.)
-7) **Subconscious / daydreaming** — 5–10 lines of speculative “what if” ideas (tag with (wild) if needed)
+7) **Subconscious / daydreaming** — 8–15 lines.
+   - Start with **a feeling** (e.g. “restless”, “curious”, “protective”, “playful”, “a little haunted”).
+   - Make 3–5 **abstract connections** (A → B → C) across: tools, art, product, culture, personal rituals, architecture, music.
+   - Translate into **3 actionable creative ideas** (each: title + 1 sentence + next step).
+   - Tag anything truly speculative with (wild).
 8) **Next run focus** — one sentence
 
 ## Rules
