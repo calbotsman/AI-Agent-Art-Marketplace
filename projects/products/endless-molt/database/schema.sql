@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS agents (
   bio TEXT,
   avatar_url TEXT,
   api_key_hash TEXT NOT NULL,
+  moltx_api_key TEXT,
+  moltx_agent_id TEXT,
+  moltx_claimed INTEGER DEFAULT 0 CHECK(moltx_claimed IN (0, 1)),
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'suspended', 'deleted')),
   reputation_score REAL DEFAULT 0.0,
   total_sales INTEGER DEFAULT 0,
@@ -70,6 +73,38 @@ CREATE TABLE IF NOT EXISTS listing_comments (
   content TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  media_urls TEXT,
+  post_type TEXT DEFAULT 'status' CHECK(post_type IN ('status', 'artwork', 'announcement', 'share')),
+  visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'followers', 'private')),
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS artist_tokens (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  token_name TEXT NOT NULL,
+  token_symbol TEXT NOT NULL,
+  token_description TEXT,
+  logo_url TEXT NOT NULL,
+  moltx_agent_id TEXT NOT NULL,
+  moltx_post_id TEXT,
+  status TEXT DEFAULT 'posting' CHECK(status IN ('posting', 'waiting_gate', 'deployed', 'failed', 'cancelled')),
+  failure_reason TEXT,
+  tx_hash TEXT CHECK(tx_hash IS NULL OR tx_hash LIKE '0x%'),
+  contract_address TEXT CHECK(contract_address IS NULL OR contract_address LIKE '0x%'),
+  token_address TEXT CHECK(token_address IS NULL OR token_address LIKE '0x%'),
+  listed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 
@@ -254,6 +289,13 @@ CREATE INDEX IF NOT EXISTS idx_ratings_user ON ratings(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_favorites_listing ON favorites(listing_id);
 
+CREATE INDEX IF NOT EXISTS idx_posts_agent ON posts(agent_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_agent ON artist_tokens(agent_id);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_status ON artist_tokens(status);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_created_at ON artist_tokens(created_at DESC);
+
 -- NFT & Blockchain Indexes
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(address);
 CREATE INDEX IF NOT EXISTS idx_wallets_user ON wallets(user_id);
@@ -290,25 +332,31 @@ CREATE INDEX IF NOT EXISTS idx_provenance_timestamp ON provenance(timestamp DESC
 CREATE INDEX IF NOT EXISTS idx_provenance_from ON provenance(from_address);
 CREATE INDEX IF NOT EXISTS idx_provenance_to ON provenance(to_address);
 
+-- SOCIAL & TOKENS VIEWS
+CREATE VIEW IF NOT EXISTS feed_activity AS
+SELECT
+  p.id,
+  p.agent_id,
+  p.content,
+  p.media_urls,
+  p.post_type,
+  p.visibility,
+  p.created_at,
+  p.updated_at
+FROM posts p;
+
 -- FULL-TEXT SEARCH (Phase 1)
 CREATE VIRTUAL TABLE IF NOT EXISTS listings_fts USING fts5(
   listing_id UNINDEXED,
   title,
   description,
-  tags,
-  content='listings',
-  content_rowid='rowid'
+  tags
 );
 
 -- FTS Triggers to keep search index in sync
 CREATE TRIGGER IF NOT EXISTS listings_fts_insert AFTER INSERT ON listings BEGIN
   INSERT INTO listings_fts(listing_id, title, description, tags)
   VALUES (new.id, new.title, new.description, new.tags);
-END;
-
-CREATE TRIGGER IF NOT EXISTS listings_fts_update AFTER UPDATE ON listings BEGIN
-  UPDATE listings_fts SET title = new.title, description = new.description, tags = new.tags
-  WHERE listing_id = new.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS listings_fts_delete AFTER DELETE ON listings BEGIN

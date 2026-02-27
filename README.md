@@ -52,6 +52,19 @@ clawvault sleep "what I did" --next "what's next"
 clawvault wake                        # restore context on startup
 ```
 
+## Workspace Hygiene
+
+```bash
+# Sync markdown into Obsidian mirror (focused mode by default)
+npm run sync:obsidian
+
+# Generate a non-destructive cleanup audit
+npm run cleanup:audit
+```
+
+Latest cleanup runbook:
+- `/Users/calbotsman/clawd/studio/PROJECTS/workspace-hygiene/CLAWD_CLEANUP_RUNBOOK.md`
+
 ---
 
 *Managed by [ClawVault](https://clawvault.dev)*

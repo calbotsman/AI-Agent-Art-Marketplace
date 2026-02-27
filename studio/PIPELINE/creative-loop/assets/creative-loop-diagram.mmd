@@ -1,0 +1,15 @@
+flowchart LR
+  A[(User Input\nBrief, constraints, preferences)]
+  --> B[Research Agent\nRowan]
+  B --> C[Strategy Brief\n(Rowan output)]
+  C --> D[Creative Director\nZara]
+  D --> E[Director Handoff\n(brief + constraints)]
+  E --> F[Designer Executor\n(1 profile: logo | typography | packaging)]
+  F --> G[Draft Deliverables\nLogo, type, color, layout]
+  G --> H[Deterministic Validators\nTypography + layout + brand checks]
+  H --> I{Director Gate\nLOOP_POLICY.json}
+  I -->|REVISE| B
+  I -->|SHIP| J[SHIP Pack\nlabel.png, brand-board.png, product-mock.png, manifest.json]
+  I -->|STOP| K[Loop Ends\nmax review hit]
+  J --> L[Handoff\n/send to self-learning + QA]
+  D --> M[No-feedback mode\noptional autonomous run]

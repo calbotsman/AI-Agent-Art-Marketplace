@@ -1,0 +1,10 @@
+{
+  "brand": "<brand_name>",
+  "audience": "",
+  "adjectives": [""],
+  "constraints": {
+    "colors": ["#000000"],
+    "no_text_in_mark": true
+  },
+  "deliverables": ["mark.svg","wordmark.svg","lockups"]
+}

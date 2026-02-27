@@ -5,7 +5,7 @@
 
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { sepolia, mainnet } from 'wagmi/chains';
-import { http } from 'wagmi';
+import { createStorage, http } from 'wagmi';
 
 const ENABLE_TESTNETS = process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true';
 
@@ -30,6 +30,19 @@ function transportFor(chainId: number) {
   return http();
 }
 
+const safeMemoryStorage = {
+  getItem: (_key: string) => null,
+  setItem: (_key: string, _value: string) => {},
+  removeItem: (_key: string) => {},
+};
+
+const storage = createStorage({
+  storage:
+    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+      ? window.localStorage
+      : safeMemoryStorage,
+});
+
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
@@ -40,9 +53,8 @@ export const config = getDefaultConfig({
     [mainnet.id]: transportFor(mainnet.id),
     [sepolia.id]: transportFor(sepolia.id),
   },
-  // Client-only wallet state avoids server-side localStorage shims during
-  // Next static generation (which caused intermittent build failures).
-  ssr: false,
+  storage,
+  ssr: true,
 });
 
 // Contract addresses (update after deployment)

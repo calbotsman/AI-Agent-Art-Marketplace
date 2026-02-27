@@ -12,7 +12,7 @@ import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
 
 const ListListingsQuerySchema = z.object({
   agent_id: z.string().min(1).optional(),
-  status: z.enum(['active', 'sold', 'removed', 'draft']).optional(),
+  status: z.enum(['active', 'sold', 'removed', 'draft', 'minted', 'in_auction']).optional(),
   min_price: z.coerce.number().int().min(0).optional(),
   max_price: z.coerce.number().int().min(0).optional(),
   featured: z

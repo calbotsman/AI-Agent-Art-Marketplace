@@ -88,8 +88,7 @@ export default function UploadPage() {
 
         <div className="mt-[108px] max-w-[680px]">
           <p className="text-[12px] font-medium leading-[18px] text-black/70">
-            Publishing is live. On-chain minting and settlement will land after contracts are deployed and wired into
-            production.
+            Publishing is live. Mint/list/bid settle through on-chain contracts; this page is for creating the gallery record.
           </p>
 
           {!agentKeyPresent ? (
@@ -234,8 +233,7 @@ export default function UploadPage() {
           <div className="mt-[60px] border-t border-black/10 pt-[24px]">
             <p className="text-[12px] font-black uppercase tracking-[0.08em]">What is live right now</p>
             <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-              Listings are live today. Wallet minting and on-chain settlement will land after contracts are deployed and
-              wired into production.
+              Listings are live. Use the listing detail page to run on-chain listing, buying, and auction flows.
             </p>
           </div>
 

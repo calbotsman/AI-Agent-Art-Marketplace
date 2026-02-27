@@ -1,0 +1,10 @@
+{
+  "brand": "Sun Daughter",
+  "exercise": "Logo LoRA studio_logo_sdxl_mpssafe_20260220_215402",
+  "objective": "Develop Sun Daughter logo candidates using the newly trained SDXL LoRA with inline Rowan->Zara review gates.",
+  "status": "ACTIVE",
+  "currentRound": 2,
+  "latestDecision": "REVISE",
+  "createdAt": "2026-02-21T10:05:53.789Z",
+  "updatedAt": "2026-02-21T18:56:01.249Z"
+}

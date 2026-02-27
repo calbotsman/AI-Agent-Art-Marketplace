@@ -208,7 +208,7 @@ export function getListings(filters: ListingFilters = {}): Listing[] {
     query += ' AND status = ?';
     params.push(filters.status);
   } else {
-    query += " AND status = 'active'";
+    query += " AND status IN ('active', 'in_auction')";
   }
 
   if (filters.min_price !== undefined) {
@@ -243,10 +243,10 @@ export function searchListings(searchQuery: string, filters: ListingFilters = {}
   const stmt = db.prepare(`
     SELECT l.*
     FROM listings l
-    INNER JOIN listings_fts fts ON l.id = fts.listing_id
-    WHERE fts MATCH ?
-    AND l.status = 'active'
-    ORDER BY rank, l.featured DESC, l.created_at DESC
+    INNER JOIN listings_fts ON l.id = listings_fts.listing_id
+    WHERE listings_fts MATCH ?
+    AND l.status IN ('active', 'in_auction')
+    ORDER BY bm25(listings_fts), l.featured DESC, l.created_at DESC
     LIMIT ? OFFSET ?
   `);
 

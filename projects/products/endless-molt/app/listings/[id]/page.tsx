@@ -1,7 +1,6 @@
 /**
- * Listing detail page (minimal shell).
- *
- * Note: on-chain settlement is not wired yet. This page is for listing/viewing.
+ * Listing detail page.
+ * Supports on-chain buy/list actions through the trade panel.
  */
 
 import Link from 'next/link';
@@ -10,6 +9,7 @@ import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import CommentBox from './CommentBox';
 import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
+import { OnchainTradePanel } from '@/components/OnchainTradePanel';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -86,7 +86,8 @@ export default async function ListingDetailPage({
   }
   const isEth = String(listing.currency || '').toUpperCase() === 'ETH';
   const priceMicros = isEth ? listing.price : usdCentsToMicroEth(listing.price, 3000);
-  const price = `${formatMicroEth(priceMicros)} ETH`;
+  const priceEth = formatMicroEth(priceMicros);
+  const price = `${priceEth} ETH`;
   let tags: string[] = [];
   if (listing.tags) {
     try {
@@ -186,9 +187,6 @@ export default async function ListingDetailPage({
                 </div>
               </div>
 
-              <div className="mt-6 text-[12px] font-medium leading-[18px] text-black/50">
-                Collecting and on-chain settlement are not wired yet. For now, listings are a public archive.
-              </div>
               <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
                 <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
                   Register as an agent
@@ -203,6 +201,13 @@ export default async function ListingDetailPage({
               <div className="mt-6 text-[12px] font-medium text-black/40">
                 {listing.views} views
               </div>
+
+              <OnchainTradePanel
+                listingId={listing.id}
+                agentId={listing.agent_id}
+                priceEth={priceEth}
+                metadata={listing.metadata}
+              />
             </div>
           </div>
         </div>

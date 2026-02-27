@@ -1,0 +1,46 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "typography",
+  "displayName": "Typography System",
+  "objective": "Produce a type system with stable hierarchy, spacing rhythm, and readability under deterministic checks.",
+  "inputArtifacts": [
+    "strategy/LATEST.md",
+    "direction/LATEST.md"
+  ],
+  "systemRefs": {
+    "designSystem": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/typography-tokens.json"
+    ],
+    "validators": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/typography.ts"
+    ],
+    "workflowDocs": [
+      "/Users/calbotsman/clawd/Cyborg_Autonomous_Type_Layout_Workflow.md",
+      "/Users/calbotsman/clawd/studio/PIPELINE/contracts/TEAM_OPERATING_CONTRACT.md"
+    ]
+  },
+  "deliverables": [
+    "type-scale",
+    "role-map",
+    "pairing-rules",
+    "application-examples"
+  ],
+  "qaGates": [
+    "font size never below 8px",
+    "hierarchy step ratio >= 1.15",
+    "body line length between 28 and 58 characters",
+    "body contrast >= 4.5:1 and headline contrast >= 3.0:1"
+  ],
+  "approvalFlow": [
+    "strategy",
+    "director",
+    "designer",
+    "validators",
+    "director"
+  ],
+  "constraints": [
+    "hierarchy by structure first, color second",
+    "max two font families",
+    "avoid style-only hierarchy hacks"
+  ]
+}

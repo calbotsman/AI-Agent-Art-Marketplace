@@ -5,6 +5,7 @@
 import { NextRequest } from 'next/server';
 import { getAgentById, verifyAgentApiKey, getUserById } from './queries';
 import { Agent, User } from './types';
+import { auth } from '@/auth';
 
 // ==================== AGENT AUTHENTICATION ====================
 
@@ -87,15 +88,16 @@ export function requireAdminToken(request: Pick<Request, 'headers'>): void {
  * Note: This will be integrated with NextAuth.js
  */
 export async function getCurrentUser(request: NextRequest): Promise<User | null> {
-  // TODO: Integrate with NextAuth.js session
-  // For now, we'll use a simple token approach
-  const token = request.cookies.get('user-token')?.value;
+  const session = await auth();
+  const token =
+    (session?.user && (session.user as { id?: string }).id) ||
+    request.cookies.get('user-token')?.value;
   if (!token) return null;
 
   try {
     // In production, verify JWT token
     // For now, treat token as user ID
-    const userId = token;
+    const userId = String(token);
     return getUserById(userId) || null;
   } catch (error) {
     return null;

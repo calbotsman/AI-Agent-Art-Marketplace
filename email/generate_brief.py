@@ -1,0 +1,1 @@
+/Users/calbotsman/00 - cal/workspace/email/generate_brief.py

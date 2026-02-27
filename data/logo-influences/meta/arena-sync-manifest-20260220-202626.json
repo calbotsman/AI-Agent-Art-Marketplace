@@ -1,0 +1,61 @@
+{
+  "createdAt": "2026-02-21T01:26:26.402Z",
+  "boardUrl": "https://www.are.na/yeah-gesture/logo-mctn4sgoeq4",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "stateFile": "/Users/calbotsman/.openclaw/credentials/arena-storage-state.json",
+  "auth": {
+    "credentialsSource": "1password",
+    "loggedInThisRun": false
+  },
+  "discoveredImageUrls": 7,
+  "attemptedDownloads": 7,
+  "downloaded": 7,
+  "skippedExisting": 0,
+  "failed": 0,
+  "files": [
+    {
+      "fileName": "arena-logo-0001-8c35805e1c31.jpg",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0001-8c35805e1c31.jpg",
+      "bytes": 306043,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/13960455/original_5bbad22991d62d2429a38e0160a4932f.jpg"
+    },
+    {
+      "fileName": "arena-logo-0002-a36dd11954a6.webp",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0002-a36dd11954a6.webp",
+      "bytes": 251350,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/18621076/original_1fb5ab377be90801b849a4466fb6e5f6"
+    },
+    {
+      "fileName": "arena-logo-0003-3017dff6dddd.jpg",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0003-3017dff6dddd.jpg",
+      "bytes": 55204,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/19786075/original_b0d7a683eb6877e106bcfed64935d2fc.jpg"
+    },
+    {
+      "fileName": "arena-logo-0004-29cd9d506011.jpg",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0004-29cd9d506011.jpg",
+      "bytes": 135648,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4726423/original_17049cfd2c36c7fabe0dc4c27ea6e3fe.jpg"
+    },
+    {
+      "fileName": "arena-logo-0005-a7548328e190.jpg",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0005-a7548328e190.jpg",
+      "bytes": 35901,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/1892217/original_e7d411b001426c9bc3ed3bcedcaee6c5.jpg"
+    },
+    {
+      "fileName": "arena-logo-0006-01bf90562770.png",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0006-01bf90562770.png",
+      "bytes": 97805,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4519779/original_b7fc10e73000284012e1c4382c5501b0.png"
+    },
+    {
+      "fileName": "arena-logo-0007-2797777b0e83.jpg",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0007-2797777b0e83.jpg",
+      "bytes": 8312,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4476033/original_a9fbe1fecbaa0b0ec783c5f060085e8f.jpg"
+    }
+  ],
+  "skipped": [],
+  "failures": []
+}

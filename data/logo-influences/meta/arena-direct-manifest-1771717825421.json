@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-02-21T23:50:25.421Z",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "requests": [
+    "https://www.are.na/block/33298427",
+    "https://www.are.na/block/41508583",
+    "https://www.are.na/block/4739507",
+    "https://www.are.na/block/22148897"
+  ],
+  "results": [
+    {
+      "source": "https://www.are.na/block/33298427",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/33298427/original_ffb204cc16e2c501be4e12c0312a67a8.jpg?1735606589?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-df8e4f5f0083.jpg",
+      "bytes": 240781
+    },
+    {
+      "source": "https://www.are.na/block/41508583",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/41508583/original_0a254dba2e36ceb77958a8964489fcdf.jpg?1764665962?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-9bf6a08d4f7e.jpg",
+      "bytes": 40633
+    },
+    {
+      "source": "https://www.are.na/block/4739507",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4739507/original_e4a2b602b39efcfa881770feea28d726.png?1564617804?bc=1",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-5e20af09655f.png",
+      "bytes": 15198
+    },
+    {
+      "source": "https://www.are.na/block/22148897",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/22148897/original_eb45615de0acc5a88c73052a8f64b24b.jpg?1686089646?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-de2fa945507e.png",
+      "bytes": 69120
+    }
+  ]
+}

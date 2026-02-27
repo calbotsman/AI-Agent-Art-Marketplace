@@ -1,4 +1,19 @@
 {
+  "scripts": {
+    "design:supplement": "node scripts/design_supplement_with_cyborg_qa.mjs",
+    "design:supplement:html": "node studio/tools/generate_supplement_design_set.mjs",
+    "design:exercise": "node studio/tools/design_exercise_loop.mjs",
+    "sync:obsidian": "bash scripts/sync_markdown_to_obsidian.sh",
+    "cleanup:audit": "bash scripts/audit_clawd_cleanup.sh",
+    "sync:arena:lora": "node scripts/sync_arena_to_lora.mjs",
+    "lora:prepare:logo": "node scripts/prepare_logo_lora_dataset.mjs",
+    "lora:train:logo:kohya": "bash scripts/train_logo_lora_kohya.sh",
+    "sun-daughter:logo-style": "bash scripts/run_sun_daughter_logo_style_process.sh",
+    "sun-daughter:label-from-style-logo": "node scripts/run_sun_daughter_label_design.mjs",
+    "sun-daughter:send-assets": "bash scripts/send_latest_sun_daughter_assets.sh",
+    "pipeline:test:creative": "node studio/PIPELINE/testing/run_creative_tests.mjs",
+    "pipeline:cycle:autonomous": "bash scripts/run_autonomous_creative_learning_cycle.sh"
+  },
   "dependencies": {
     "playwright": "^1.58.1"
   }

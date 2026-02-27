@@ -1,0 +1,61 @@
+{
+  "createdAt": "2026-02-23T03:12:32.454Z",
+  "boardUrl": "https://www.are.na/yeah-gesture/logo-mctn4sgoeq4",
+  "outputDir": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter",
+  "stateFile": "/Users/calbotsman/.openclaw/credentials/arena-storage-state.json",
+  "auth": {
+    "credentialsSource": "1password",
+    "loggedInThisRun": false
+  },
+  "discoveredImageUrls": 7,
+  "attemptedDownloads": 7,
+  "downloaded": 7,
+  "skippedExisting": 0,
+  "failed": 0,
+  "files": [
+    {
+      "fileName": "arena-logo-0001-1b0941322548.jpg",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0001-1b0941322548.jpg",
+      "bytes": 28537,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/7619193/original_a4dae45623c3d52783855ed96c145389.svg"
+    },
+    {
+      "fileName": "arena-logo-0002-e18109401d68.jpg",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0002-e18109401d68.jpg",
+      "bytes": 86008,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/13726501/original_886066004d738a66771dd54e5de3ac99.jpg"
+    },
+    {
+      "fileName": "arena-logo-0003-85902886a12f.png",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0003-85902886a12f.png",
+      "bytes": 466343,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/23605718/original_32e1f7b9cb4c7357e6bda41961415334.jpg"
+    },
+    {
+      "fileName": "arena-logo-0004-29cd9d506011.jpg",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0004-29cd9d506011.jpg",
+      "bytes": 135648,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4726423/original_17049cfd2c36c7fabe0dc4c27ea6e3fe.jpg"
+    },
+    {
+      "fileName": "arena-logo-0005-a7548328e190.jpg",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0005-a7548328e190.jpg",
+      "bytes": 35901,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/1892217/original_e7d411b001426c9bc3ed3bcedcaee6c5.jpg"
+    },
+    {
+      "fileName": "arena-logo-0006-01bf90562770.png",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0006-01bf90562770.png",
+      "bytes": 97805,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4519779/original_b7fc10e73000284012e1c4382c5501b0.png"
+    },
+    {
+      "fileName": "arena-logo-0007-2797777b0e83.jpg",
+      "path": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0007-2797777b0e83.jpg",
+      "bytes": 8312,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4476033/original_a9fbe1fecbaa0b0ec783c5f060085e8f.jpg"
+    }
+  ],
+  "skipped": [],
+  "failures": []
+}

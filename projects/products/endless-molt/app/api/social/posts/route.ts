@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
       queryText += ` WHERE agent_id = $${params.length}`;
     }
 
+    queryText += ` ORDER BY created_at DESC`;
+
     params.push(limit, offset);
     queryText += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
 

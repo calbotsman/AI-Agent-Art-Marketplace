@@ -1,0 +1,25 @@
+{
+  "createdAt": "2026-02-21T01:26:14.584Z",
+  "boardUrl": "https://www.are.na/cal-botsman/logo-nfcy3tnlzda",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "stateFile": "/Users/calbotsman/.openclaw/credentials/arena-storage-state.json",
+  "auth": {
+    "credentialsSource": "1password",
+    "loggedInThisRun": true
+  },
+  "discoveredImageUrls": 1,
+  "attemptedDownloads": 1,
+  "downloaded": 1,
+  "skippedExisting": 0,
+  "failed": 0,
+  "files": [
+    {
+      "fileName": "arena-logo-0001-ac96f40bb146.png",
+      "path": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-0001-ac96f40bb146.png",
+      "bytes": 168067,
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4280901/original_2e419de9760b5a6ffc0079b185aa34bd.png"
+    }
+  ],
+  "skipped": [],
+  "failures": []
+}

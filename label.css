@@ -1,0 +1,195 @@
+:root {
+    --border: #ccc;
+    --primary: #0056b3; /* Deep Blue for Clinical Clarity */
+    --text: #333;
+    --logo-font: 'Helvetica Neue', sans-serif;
+    --headline-font: 'Helvetica Neue', sans-serif;
+    --body-font: 'Inter', sans-serif; /* A clean, modern sans-serif */
+}
+
+body {
+    margin: 0;
+    font-family: var(--body-font);
+    color: var(--text);
+    background-color: #f8f8f8; /* Light background for canvas view */
+}
+
+.label-container {
+    width: 1650px;
+    height: 600px;
+    border: 3px solid var(--border);
+    overflow: hidden;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    display: flex;
+    flex-direction: column;
+    background-color: #fff; /* Solid white background for the label */
+}
+
+.header {
+    padding: 32px 32px 0 32px; /* Top padding for the brand logo section */
+    background-color: #fff;
+}
+
+.brand-logo {
+    font-family: var(--logo-font);
+    font-size: 140%; /* Default 140% */
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 16px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 300px 1fr;
+    gap: 0;
+    flex-grow: 1; /* Allow grid to fill remaining height */
+}
+
+.panel {
+    box-sizing: border-box;
+    padding: 0;
+    display: flex;
+    flex-direction: column; /* For vertical rhythm and footer pinning */
+}
+
+.left-panel {
+    padding: 32px;
+}
+
+.center-panel {
+    padding: 24px 20px;
+    border-right: 2px solid var(--border);
+    border-left: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    padding: 32px;
+    gap: 20px; /* Vertical rhythm */
+    display: flex;
+    flex-direction: column;
+}
+
+.product-name {
+    font-family: var(--headline-font);
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 16px; /* Added for spacing */
+}
+
+.description {
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.85;
+    max-width: 400px;
+    margin-bottom: 32px; /* Added for spacing */
+}
+
+.serving-info {
+    margin-top: auto; /* Push to bottom */
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--primary);
+    text-align: right; /* Align serving count text to right */
+}
+
+.serving-info .separator {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin-top: 16px;
+    margin-bottom: 8px; /* Spacing between separator and text */
+}
+
+.serving-count {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.supplement-facts-header {
+    font-size: 20px;
+    font-weight: 800;
+    text-transform: uppercase;
+    border-bottom: 8px solid var(--text);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.serving-size-info {
+    font-size: 12px;
+    border-bottom: 1px solid var(--text);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.facts-table {
+    font-size: 11px;
+}
+
+.facts-table .table-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--text);
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.facts-table .table-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0,0,0,0.15);
+    padding: 5px 0;
+}
+
+.facts-table .col2 {
+    text-align: right;
+    font-weight: 500;
+}
+
+.footer-note {
+    font-size: 9px;
+    opacity: 0.7;
+    line-height: 1.4;
+    margin-top: auto; /* Pinned to bottom */
+    text-align: center; /* Centered for balance */
+    padding-top: 10px; /* Spacing from table */
+}
+
+.section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    margin-bottom: 8px; /* Spacing */
+}
+
+.suggested-use-body {
+    font-size: 11px;
+    line-height: 1.5;
+    margin-bottom: 20px; /* Adhere to vertical rhythm */
+}
+
+.warnings-body {
+    font-size: 9px;
+    line-height: 1.5;
+    opacity: 0.8;
+    margin-bottom: 20px; /* Adhere to vertical rhythm */
+}
+
+.footer {
+    font-size: 9px;
+    opacity: 0.6;
+    margin-top: auto; /* Pinned to bottom */
+    text-align: center; /* Centered for balance */
+    padding-top: 10px; /* Spacing */
+}

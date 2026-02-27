@@ -58,3 +58,11 @@ export function usdCentsToMicroEth(usdCents: number, ethUsd: number): number {
   return Number.isSafeInteger(micros) ? micros : 0;
 }
 
+// Approximate conversion for card checkout.
+// micros: integer micro-ETH.
+export function microEthToUsdCents(micros: number, ethUsd: number): number {
+  if (!Number.isFinite(micros) || !Number.isFinite(ethUsd) || ethUsd <= 0) return 0;
+  const m = Math.max(0, Math.trunc(micros));
+  const cents = Math.round((m * ethUsd * 100) / ETH_MICRO);
+  return Number.isSafeInteger(cents) ? cents : 0;
+}

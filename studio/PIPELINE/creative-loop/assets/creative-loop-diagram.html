@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: #f8fafc; }
+    .wrap { width: 3200px; height: 1800px; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    svg { width: 100% !important; height: 100% !important; }
+    .mermaid text { font-size: 34px; }
+    .mermaid .nodeLabel { font-weight: 600; }
+    .node rect, .node polygon, .node circle { stroke-width: 3px; }
+    .edgePath path { stroke-width: 3px; }
+    .edgeLabel { font-size: 30px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <pre class="mermaid">%%{init: {
+      'theme':'default',
+      'themeVariables': {
+        'fontSize': '30px',
+        'fontFamily': 'Arial, sans-serif',
+        'noteBkgColor': '#fff',
+        'labelTextColor': '#1e293b',
+        'nodeTextColor': '#1e293b',
+        'lineColor': '#334155',
+        'lineWidth': '3'
+      }
+    }}%%
+flowchart LR
+  A[(User Input\nBrief, constraints, preferences)]
+  --> B[Research Agent\nRowan]
+  B --> C[Strategy Brief\n(Rowan output)]
+  C --> D[Creative Director\nZara]
+  D --> E[Director Handoff\n(brief + constraints)]
+  E --> F[Designer Executor\n(1 profile: logo | typography | packaging)]
+  F --> G[Draft Deliverables\nLogo, type, color, layout]
+  G --> H[Deterministic Validators\nTypography + layout + brand checks]
+  H --> I{Director Gate\nLOOP_POLICY.json}
+  I -->|REVISE| B
+  I -->|SHIP| J[SHIP Pack\nlabel.png, brand-board.png, product-mock.png, manifest.json]
+  I -->|STOP| K[Loop Ends\nmax review hit]
+  J --> L[Handoff\nsend to self-learning + QA]
+  D --> M[No-feedback mode\noptional autonomous run]
+    </pre>
+  </div>
+  <script>
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+</body>
+</html>

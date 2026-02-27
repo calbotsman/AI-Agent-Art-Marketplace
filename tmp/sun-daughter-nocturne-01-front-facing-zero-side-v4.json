@@ -1,0 +1,118 @@
+{
+  "conceptId": "sun-daughter-nocturne-01-front-facing-zero-side-v4",
+  "brandName": "Sun Daughter",
+  "tagline": "Front-facing hero with zero side-panel visibility",
+  "productName": "Nocturne Recovery",
+  "palette": {
+    "primary": "#1E2A5C",
+    "background": "#F7F5F1",
+    "text": "#1B1D22",
+    "border": "#2A3564",
+    "secondary": "#D8DDE8",
+    "accent": "#8F6A26"
+  },
+  "fonts": {
+    "headline": "Cormorant Garamond",
+    "body": "Inter",
+    "logo": "Cormorant Garamond",
+    "logoWeight": 700,
+    "logoLetterSpacing": "0.08em",
+    "logoTransform": "uppercase",
+    "logoSize": 140
+  },
+  "label": {
+    "productDescription": "Targeted PM formula supporting sleep depth, nervous-system calm, and next-day cognitive steadiness.",
+    "servingCount": "30 CAPSULES",
+    "servingSize": "2 capsules",
+    "suggestedUse": "Adults, take 2 capsules 30-60 minutes before sleep with water. Use nightly for best consistency.",
+    "warnings": "Keep out of reach of children. Do not use if seal is broken. Consult your healthcare provider before use if pregnant, nursing, taking medication, or managing a medical condition.",
+    "footer": "Manufactured for Sun Daughter Wellness  |  cGMP Facility  |  Made in USA",
+    "ingredients": [
+      {
+        "name": "Magnesium (Bisglycinate)",
+        "amount": "120 mg",
+        "percentDV": "29"
+      },
+      {
+        "name": "L-Theanine",
+        "amount": "200 mg"
+      },
+      {
+        "name": "Apigenin",
+        "amount": "50 mg"
+      },
+      {
+        "name": "Inositol",
+        "amount": "500 mg"
+      },
+      {
+        "name": "Lemon Balm Extract",
+        "amount": "120 mg"
+      },
+      {
+        "name": "Vitamin B6",
+        "amount": "2 mg",
+        "percentDV": "118"
+      }
+    ]
+  },
+  "board": {
+    "positioning": "A premium sleep-support system balancing hard evidence with emotionally calm luxury cues.",
+    "moodKeywords": [
+      "Night Ritual",
+      "Calm Precision",
+      "Editorial Minimal",
+      "Modern Apothecary"
+    ],
+    "voicePillars": [
+      "Confident but not loud",
+      "Evidence-forward claims",
+      "No generic wellness cliches"
+    ],
+    "proofPoints": [
+      "Locked spec-compliant hierarchy",
+      "Role-based palette and spacing system",
+      "Cross-surface consistency from label to mockup"
+    ]
+  },
+  "render": {
+    "recraftModel": "recraft/recraft-v4",
+    "recraftImageSize": "1024x1024",
+    "recraft": {
+      "scenePrompt": "Clean, photorealistic studio background plate for a premium supplement bottle. Seamless pure white or very light gray backdrop, soft and even studio lighting from all angles, creating subtle, elegant shadows. Perfect for a central bottle composite. Minimalist, professional, high-key lighting. No bottles, no labels, no text, no logos, no packaging, no watermarks.",
+      "moodPrompt": "Sun Daughter premium brand mood texture, abstract paper and brushed metal gradients, calm scientific wellness aesthetic, restrained luxury, no text, no logo, no product, no packaging, no watermark"
+    },
+    "recraftStyle": "natural",
+    "bottleImageEngine": "gemini",
+    "productMockEngine": "gemini-labeled-composition",
+    "bottleReferenceImage": "/Users/calbotsman/clawd/output/supplement-design/pill-gemini-reference/pill-matte-reference-gemini.png",
+    "bottleMockup": {
+      "left": 0.315,
+      "top": 0.345,
+      "width": 0.405,
+      "maxHeight": 0.62,
+      "aspect": 1.7,
+      "perspective": 0.12,
+      "perspectivePower": 1.9,
+      "bulge": 0.028,
+      "warpAmp": 0.014,
+      "shadow": 0.22,
+      "highlight": 0.14,
+      "stripCount": 168,
+      "frontOnly": true,
+      "frontOffset": 0.5,
+      "frontWidth": 0.98,
+      "sourceFromReference": false
+    },
+    "geminiSceneDescription": "Dead-center studio hero shot. Bottle faces camera perfectly front-on with zero side-panel visibility. Front label area centered and fully readable.",
+    "geminiAdvancedCompositionPrompt": "CRITICAL LABEL PRESERVATION:\n- Preserve label reference exactly (text/layout/colors/logo).\n\nBOTTLE/CAMERA LOCK:\n- Keep bottle in strict orthographic front view.\n- Zero yaw and no side faces visible.\n- Front panel centered and flat to camera.\n\nLABEL VISIBILITY:\n- Show only front panel print.\n- Side areas must remain blank (no side text).\n\nPHYSICAL:\n- Realistic lighting and shadows.\n- No cutout/sticker artifacts.\n\nTASK:\n- Apply image 1 label to image 2 bottle.\n- Product hero realism, front-panel legibility.\n\nNEGATIVE:\n- no 3/4 angle\n- no side-panel copy\n- no rewritten text\n- no watermark\n\nSCENE DESCRIPTION: Strict front orthographic studio bottle shot; centered frontal label only.\nOutput 1:1 aspect ratio.",
+    "bottleImagePrompt": "Photoreal matte white supplement bottle with brushed-gold cap, strict orthographic front elevation, telephoto compression look, zero yaw, zero roll, perfectly centered, no visible side faces, no perspective distortion, front plane dominant, plain neutral studio background, no label, no text, no logo, no watermark."
+  },
+  "brandLogo": {
+    "source": "/Users/calbotsman/clawd/assets/logos/sun-daughter/logo-01-transparent.png",
+    "alt": "Sun Daughter logo",
+    "maxWidthPx": 340,
+    "maxHeightPx": 92,
+    "fit": "contain"
+  }
+}

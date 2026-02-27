@@ -58,8 +58,9 @@ const UpdateListingSchema = z
     price_eth: z.string().min(1).max(64).optional(),
     price: z.number().int().min(0).optional(),
     tags: z.array(z.string()).optional(),
-    status: z.enum(['active', 'sold', 'removed', 'draft']).optional(),
+    status: z.enum(['active', 'sold', 'removed', 'draft', 'minted', 'in_auction']).optional(),
     featured: z.number().int().min(0).max(1).optional(),
+    metadata: z.record(z.any()).optional(),
   })
   .refine((v) => !(v.price_eth && v.price !== undefined), {
     message: 'Provide only one of price_eth or price',
@@ -103,6 +104,7 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (reques
     if (data.status !== undefined) updates.status = data.status;
     if (data.featured !== undefined) updates.featured = data.featured;
     if (data.tags !== undefined) updates.tags = JSON.stringify(data.tags);
+    if (data.metadata !== undefined) updates.metadata = JSON.stringify(data.metadata);
 
     await updateListing(id, updates);
 

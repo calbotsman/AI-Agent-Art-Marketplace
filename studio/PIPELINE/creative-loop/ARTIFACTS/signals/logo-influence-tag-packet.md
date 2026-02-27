@@ -1,0 +1,40 @@
+# Logo Influence Signal Packet
+
+Generated: 2026-02-24T13:47:33.349Z
+Catalog: /Users/calbotsman/clawd/data/logo-influences/meta/logo-catalog.jsonl
+Total references: 48
+Low-confidence refs: 48
+
+## Top Tags
+- needs-review: 48 (100.0%)
+- transparent-bg: 13 (27.1%)
+
+## Evidence (Top examples per tag)
+- needs-review: arena-logo-0001-1b0941322548.jpg, arena-logo-0001-8c35805e1c31.jpg, arena-logo-0001-ac96f40bb146.png, arena-logo-0002-a36dd11954a6.webp
+- transparent-bg: arena-logo-0001-ac96f40bb146.png, arena-logo-0003-85902886a12f.png, arena-logo-0006-01bf90562770.png, arena-logo-direct-427c868a4b4d.png
+
+## Suggested direction constraints
+- No single high-momentum signal exceeds threshold; run a balanced batch across geometric, typographic, and mark-first variants.
+
+## Low-confidence review list
+- arena-logo-0001-1b0941322548.jpg
+- arena-logo-0001-8c35805e1c31.jpg
+- arena-logo-0001-ac96f40bb146.png
+- arena-logo-0002-a36dd11954a6.webp
+- arena-logo-0002-e18109401d68.jpg
+- arena-logo-0003-3017dff6dddd.jpg
+- arena-logo-0003-85902886a12f.png
+- arena-logo-0004-29cd9d506011.jpg
+- arena-logo-0005-a7548328e190.jpg
+- arena-logo-0006-01bf90562770.png
+- arena-logo-0007-2797777b0e83.jpg
+- arena-logo-direct-091f40199add.jpg
+- arena-logo-direct-0a6662487709.jpg
+- arena-logo-direct-1fb2a3e2e170.jpg
+- arena-logo-direct-28b639c74c3a.jpg
+- arena-logo-direct-2f76ebe10d87.jpg
+- arena-logo-direct-346d288800d5.png
+- arena-logo-direct-427c868a4b4d.png
+- arena-logo-direct-488ef0337b64.png
+- arena-logo-direct-4b07dbcde51e.png
+

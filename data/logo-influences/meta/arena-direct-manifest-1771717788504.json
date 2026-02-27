@@ -1,0 +1,88 @@
+{
+  "createdAt": "2026-02-21T23:49:48.504Z",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "requests": [
+    "https://www.are.na/block/14379322",
+    "https://www.are.na/block/14656347",
+    "https://www.are.na/block/12169672",
+    "https://www.are.na/block/4415150",
+    "https://www.are.na/block/29567442",
+    "https://www.are.na/block/29567445",
+    "https://www.are.na/block/725043",
+    "https://d2w9rnfcy7mm78.cloudfront.net/6979214/original_f6b3cc5a72b188379eaca657ce70ca7b.png?1587590192?bc=0",
+    "https://www.are.na/block/13726444",
+    "https://www.are.na/block/13725972"
+  ],
+  "results": [
+    {
+      "source": "https://www.are.na/block/14379322",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/14379322/original_6c6faecc9cccc1b5aad50c1eaea143f5.png?1639667645?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-61fe50588376.png",
+      "bytes": 37424
+    },
+    {
+      "source": "https://www.are.na/block/14656347",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/14656347/original_e224a118a9e49ed4929adfdc70adb8d0.png?1641911937?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-5e6cbc959c40.png",
+      "bytes": 47752
+    },
+    {
+      "source": "https://www.are.na/block/12169672",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/12169672/original_07f371ddb3144a5e44b3f9801185c201.png?1622786069?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-7912133c931b.png",
+      "bytes": 66219
+    },
+    {
+      "source": "https://www.are.na/block/4415150",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4415150/original_3525ef8ec07849b7bb6bdc508da6d440.jpg?1559812057?bc=1",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-1fb2a3e2e170.jpg",
+      "bytes": 21982
+    },
+    {
+      "source": "https://www.are.na/block/29567442",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/29567442/original_477ba05d886925bf0c969ceeadb077ef.png?1721739075?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-edd6f97f5a11.png",
+      "bytes": 433455
+    },
+    {
+      "source": "https://www.are.na/block/29567445",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/29567445/original_0c4b3b2b382cf651f255a1e1d27d40d1.png?1721739086?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-4ff27e964d8e.png",
+      "bytes": 364923
+    },
+    {
+      "source": "https://www.are.na/block/725043",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/725043/original_9e051b0640bd0e329aad67f5fe5c1cf6.jpg?1475523749?bc=1",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-8f62f2191937.jpg",
+      "bytes": 47855
+    },
+    {
+      "source": "https://d2w9rnfcy7mm78.cloudfront.net/6979214/original_f6b3cc5a72b188379eaca657ce70ca7b.png?1587590192?bc=0",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/6979214/original_f6b3cc5a72b188379eaca657ce70ca7b.png?1587590192?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-488ef0337b64.png",
+      "bytes": 27183
+    },
+    {
+      "source": "https://www.are.na/block/13726444",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/13726444/original_7654d768310fc5939c45ceb9a5d545d9.jpg?1635272488?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-b0f9c516c474.jpg",
+      "bytes": 338631
+    },
+    {
+      "source": "https://www.are.na/block/13725972",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/13725972/original_cd1ae9428eb02041acb19ad8c6013c9e.png?1635270066?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-4b07dbcde51e.png",
+      "bytes": 17985
+    }
+  ]
+}

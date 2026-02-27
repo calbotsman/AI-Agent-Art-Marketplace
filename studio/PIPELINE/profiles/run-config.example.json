@@ -1,0 +1,17 @@
+{
+  "profileId": "packaging",
+  "project": "sun-daughter",
+  "round": 1,
+  "loopPolicyPath": "/Users/calbotsman/clawd/studio/PIPELINE/creative-loop/LOOP_POLICY.json",
+  "inputs": {
+    "strategyBriefPath": "/Users/calbotsman/clawd/studio/PIPELINE/creative-loop/ARTIFACTS/strategy/LATEST.md",
+    "directionBriefPath": "/Users/calbotsman/clawd/studio/PIPELINE/creative-loop/ARTIFACTS/direction/LATEST.md"
+  },
+  "outputDir": "/Users/calbotsman/clawd/output/design-runs/sun-daughter/round-1",
+  "requiredHandoffEvidence": [
+    "artifact paths",
+    "qa gate results",
+    "known risks",
+    "next owner"
+  ]
+}

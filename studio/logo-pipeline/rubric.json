@@ -1,0 +1,13 @@
+{
+  "weights": {
+    "silhouette": 0.30,
+    "simplicity": 0.25,
+    "legibility_16px": 0.20,
+    "distinctness": 0.15,
+    "reproducibility": 0.10
+  },
+  "hard_filters": {
+    "max_paths": 120,
+    "min_stroke_px": 1
+  }
+}

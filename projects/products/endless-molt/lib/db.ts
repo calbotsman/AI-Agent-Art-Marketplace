@@ -13,17 +13,41 @@ function debugDb() {
   return process.env.DEBUG_DB === 'true';
 }
 
+function stripWrappingQuotes(value: string): string {
+  return value.trim().replace(/^['"]|['"]$/g, '');
+}
+
+function resolveSqlitePath(envValue?: string): string | null {
+  if (!envValue) return null;
+  const cleaned = stripWrappingQuotes(envValue);
+  if (!cleaned) return null;
+
+  // This app uses better-sqlite3 at runtime; ignore non-SQLite URLs (Postgres, etc).
+  if (/^(postgres|postgresql|mysql|mariadb|http|https):/i.test(cleaned)) {
+    return null;
+  }
+
+  if (cleaned.startsWith('file:')) {
+    const withoutPrefix = cleaned.replace(/^file:/, '');
+    const [pathOnly] = withoutPrefix.split('?');
+    return pathOnly || null;
+  }
+
+  return cleaned;
+}
+
 /**
  * Get or create database connection
  */
 export function getDb(): Database.Database {
   if (!db) {
-    const envPath = process.env.DATABASE_URL || process.env.DATABASE_PATH;
-    const normalizedEnvPath = envPath?.startsWith('file:') ? envPath.replace(/^file:/, '') : envPath;
+    const envSqlitePath =
+      resolveSqlitePath(process.env.DATABASE_PATH) ??
+      resolveSqlitePath(process.env.DATABASE_URL);
     const vercelFallback = join('/tmp', 'endless-molt.db');
     const isVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV;
     const defaultPath = isVercel ? vercelFallback : join(process.cwd(), 'database', 'endless-molt.db');
-    const dbPath = isVercel ? vercelFallback : normalizedEnvPath || defaultPath;
+    const dbPath = isVercel ? vercelFallback : envSqlitePath || defaultPath;
 
     // Ensure parent directory exists (Vercel only allows writes in /tmp)
     try {
@@ -48,18 +72,32 @@ export function getDb(): Database.Database {
 
     // Ensure schema exists (especially on Vercel /tmp DB)
     try {
-      const listingsRow = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listings'").get() as
-        | { name: string }
-        | undefined;
-      const commentsRow = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='listing_comments'").get() as
-        | { name: string }
-        | undefined;
-      if (!listingsRow || !commentsRow) {
+      const database = db as Database.Database;
+      const requiredDbObjects = [
+        { type: 'table', name: 'listings' },
+        { type: 'table', name: 'listing_comments' },
+        { type: 'table', name: 'artist_tokens' },
+        { type: 'table', name: 'posts' },
+        { type: 'view', name: 'feed_activity' },
+      ];
+
+      const missingObject = requiredDbObjects.find(({ type, name }) => {
+        const row = database
+          .prepare(
+            `SELECT name FROM sqlite_master WHERE type = ? AND name = ?`
+          )
+          .get(type, name) as { name: string } | undefined;
+        return !row;
+      });
+
+      if (missingObject) {
         const schemaPath = join(process.cwd(), 'database', 'schema.sql');
         const schema = readFileSync(schemaPath, 'utf-8');
-        db.exec(schema);
+        database.exec(schema);
         if (debugDb()) {
-          console.log('📦 Database schema initialized');
+          console.log(
+            `📦 Database schema initialized (missing: ${missingObject.name})`
+          );
         }
       }
     } catch (error) {

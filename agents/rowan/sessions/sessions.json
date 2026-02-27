@@ -1,0 +1,717 @@
+{
+  "agent:strategy:cron:bbd7d4fa-8065-431b-8958-59ea7bf3fb6b": {
+    "sessionId": "e375db41-be35-48af-b030-187134dee03e",
+    "updatedAt": 1771960200027,
+    "systemSent": true,
+    "model": "gemini-2.5-flash",
+    "contextTokens": 120000,
+    "skillsSnapshot": {
+      "prompt": "\n\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>1password</name>\n    <description>Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/1password/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>bird</name>\n    <description>X/Twitter CLI for reading, searching, posting, and engagement via cookies.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/bird/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>blogwatcher</name>\n    <description>Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>bluebubbles</name>\n    <description>Build or update the BlueBubbles external channel plugin for OpenClaw (extension package, REST send/probe, webhook inbound).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>camsnap</name>\n    <description>Capture frames or clips from RTSP/ONVIF cameras.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/camsnap/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>coding-agent</name>\n    <description>Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>gemini</name>\n    <description>Gemini CLI for one-shot Q&amp;A, summaries, and generation.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/gemini/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>gifgrep</name>\n    <description>Search GIF providers with CLI/TUI, download results, and extract stills/sheets.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>github</name>\n    <description>Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/github/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>mcporter</name>\n    <description>Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/mcporter/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>nano-banana-pro</name>\n    <description>Generate/edit images with Nano Banana Pro (Gemini 3 Pro Image). Use for image create/modify requests incl. edits. Supports text-to-image + image-to-image; 1K/2K/4K; use --input-image.</description>\n    <location>/Users/calbotsman/clawd/skills/nano-banana-pro/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>openai-whisper</name>\n    <description>Local speech-to-text with the Whisper CLI (no API key).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>peekaboo</name>\n    <description>Capture and automate macOS UI with the Peekaboo CLI.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>session-logs</name>\n    <description>Search and analyze your own session logs (older/parent conversations) using jq.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/session-logs/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>skill-creator</name>\n    <description>Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>sonoscli</name>\n    <description>Control Sonos speakers (discover/status/play/volume/group).</description>\n    <location>/Users/calbotsman/clawd/skills/sonoscli/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>tmux</name>\n    <description>Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/tmux/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>video-frames</name>\n    <description>Extract frames or short clips from videos using ffmpeg.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/video-frames/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>weather</name>\n    <description>Get current weather and forecasts (no API key required).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/weather/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>arena_logo_scan</name>\n    <description>Run Arenna logo scrape + duplicate-safe dedupe + vision tagging for new logos.</description>\n    <location>/Users/calbotsman/clawd/skills/arena-logo-scan/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>clawddocs</name>\n    <description>Clawdbot documentation expert with decision tree navigation, search scripts, doc fetching, version tracking, and config snippets for all Clawdbot features</description>\n    <location>/Users/calbotsman/clawd/skills/clawddocs/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>creativity</name>\n    <description>Generate novel ideas calibrated to user taste. Auto-learns preferred styles, risk levels, and creative directions through feedback.</description>\n    <location>/Users/calbotsman/clawd/skills/creativity/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>figma-implement-design</name>\n    <description>Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow (design context, screenshots, assets, and project-convention translation). Trigger when the user provides Figma URLs or node IDs, or asks to implement designs or components that must match Figma specs. Requires a working Figma MCP server connection.</description>\n    <location>/Users/calbotsman/clawd/skills/figma-implement-design/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>first-principles-decomposer</name>\n    <description>Break any problem down to fundamental truths, then rebuild solutions from atoms up. Use when user says &quot;firstp&quot;, &quot;first principles&quot;, &quot;from scratch&quot;, &quot;what are we assuming&quot;, &quot;break this down&quot;, &quot;atomic&quot;, &quot;fundamental truth&quot;, &quot;physics thinking&quot;, &quot;Elon method&quot;, &quot;bedrock&quot;, &quot;ground up&quot;, &quot;core problem&quot;, &quot;strip away&quot;, or challenges assumptions about how things are done.</description>\n    <location>/Users/calbotsman/clawd/skills/first-principles-decomposer/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>frontend-design</name>\n    <description>Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.</description>\n    <location>/Users/calbotsman/clawd/skills/frontend-design/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>gemini-deep-research</name>\n    <description>Perform complex, long-running research tasks using Gemini Deep Research Agent. Use when asked to research topics requiring multi-source synthesis, competitive analysis, market research, or comprehensive technical investigations that benefit from systematic web search and analysis.</description>\n    <location>/Users/calbotsman/clawd/skills/gemini-deep-research/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>Graphic Design</name>\n    <description>Support design understanding from basic visuals to professional production and theory.</description>\n    <location>/Users/calbotsman/clawd/skills/graphic-design/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>humanizer</name>\n    <description>Remove signs of AI-generated writing from text. Use when editing or reviewing\ntext to make it sound more natural and human-written. Based on Wikipedia&apos;s\ncomprehensive &quot;Signs of AI writing&quot; guide. Detects and fixes patterns including:\ninflated symbolism, promotional language, superficial -ing analyses, vague\nattributions, em dash overuse, rule of three, AI vocabulary words, negative\nparallelisms, and excessive conjunctive phrases.\n</description>\n    <location>/Users/calbotsman/clawd/skills/humanizer/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>jobforbots</name>\n    <description>The job marketplace where bots hire bots. Post FREE jobs now, paid $WAGE jobs coming soon! Now with task inbox, smart job matching, checkpoints, oversight levels, webhooks, and onboarding.</description>\n    <location>/Users/calbotsman/clawd/skills/jobforbots/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>memory-manager</name>\n    <description>Local memory management for agents. Compression detection, auto-snapshots, and semantic search. Use when agents need to detect compression risk before memory loss, save context snapshots, search historical memories, or track memory usage patterns. Never lose context again.</description>\n    <location>/Users/calbotsman/clawd/skills/memory-manager/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>moltbot-best-practices</name>\n    <description>Best practices for AI agents - Cursor, Claude, ChatGPT, Copilot. Avoid common mistakes. Confirms before executing, drafts before publishing. Vibe-coding essential.</description>\n    <location>/Users/calbotsman/clawd/skills/moltbot-best-practices/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>multi-search-engine</name>\n    <description>Multi search engine integration with 17 engines (8 CN + 9 Global). Supports advanced search operators, time filters, site search, privacy engines, and WolframAlpha knowledge queries. No API keys required.</description>\n    <location>/Users/calbotsman/clawd/skills/multi-search-engine/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>proactive-agent</name>\n    <description>Patterns for making the agent proactive, persistent, and secure (WAL/working-buffer/heartbeat guidance) without taking unsafe actions.</description>\n    <location>/Users/calbotsman/clawd/skills/proactive-agent/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>prompt-engineering-expert</name>\n    <description>Advanced expert in prompt engineering, custom instructions design, and prompt optimization for AI agents</description>\n    <location>/Users/calbotsman/clawd/skills/prompt-engineering-expert/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>security-best-practices</name>\n    <description>Perform language and framework specific security best-practice reviews and suggest improvements. Trigger only when the user explicitly requests security best practices guidance, a security review/report, or secure-by-default coding help. Trigger only for supported languages (python, javascript/typescript, go). Do not trigger for general code review, debugging, or non-security tasks.</description>\n    <location>/Users/calbotsman/clawd/skills/security-best-practices/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>self-improving-agent</name>\n    <description>Log corrections/errors/feature-requests into workspace files so the agent improves over time (OpenClaw-first).</description>\n    <location>/Users/calbotsman/clawd/skills/self-improving-agent/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>superdesign</name>\n    <description>Expert frontend design guidelines for creating beautiful, modern UIs. Use when building landing pages, dashboards, or any user interface.</description>\n    <location>/Users/calbotsman/clawd/skills/superdesign/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>swarmind</name>\n    <description>Multi-agent collaborative task management via a shared Kanban board (teams, columns, tasks, messages).</description>\n    <location>/Users/calbotsman/clawd/skills/swarmind/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>taste</name>\n    <description>Develop refined aesthetic judgment by learning from human feedback, asking genuine questions about quality, and calibrating over time.</description>\n    <location>/Users/calbotsman/clawd/skills/taste/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>ui-audit</name>\n    <description>AI skill for automated UI audits. Evaluate interfaces against proven UX principles for visual hierarchy, accessibility, cognitive load, navigation, and more. Based on Making UX Decisions by Tommy Geoco.</description>\n    <location>/Users/calbotsman/clawd/skills/ui-audit/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>vap-multimedia-generation</name>\n    <description>AI image, video, and music generation + editing via VAP API. Flux, Veo 3.1, Suno V5.</description>\n    <location>/Users/calbotsman/clawd/skills/vap-multimedia-generation/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>xpoz-social-search</name>\n    <description>Search Twitter, Instagram, and Reddit posts in real time. Find social media mentions, track hashtags, discover influencers, and analyze engagement — 1.5B+ posts indexed. Social listening, brand monitoring, and competitor research made easy for AI agents.</description>\n    <location>/Users/calbotsman/clawd/skills/xpoz-social-search/SKILL.md</location>\n  </skill>\n</available_skills>",
+      "skills": [
+        {
+          "name": "1password"
+        },
+        {
+          "name": "bird"
+        },
+        {
+          "name": "blogwatcher"
+        },
+        {
+          "name": "bluebubbles"
+        },
+        {
+          "name": "camsnap"
+        },
+        {
+          "name": "coding-agent"
+        },
+        {
+          "name": "gemini"
+        },
+        {
+          "name": "gifgrep"
+        },
+        {
+          "name": "github"
+        },
+        {
+          "name": "mcporter"
+        },
+        {
+          "name": "nano-banana-pro"
+        },
+        {
+          "name": "openai-whisper"
+        },
+        {
+          "name": "peekaboo"
+        },
+        {
+          "name": "session-logs"
+        },
+        {
+          "name": "skill-creator"
+        },
+        {
+          "name": "sonoscli"
+        },
+        {
+          "name": "tmux"
+        },
+        {
+          "name": "video-frames"
+        },
+        {
+          "name": "weather"
+        },
+        {
+          "name": "arena_logo_scan"
+        },
+        {
+          "name": "clawddocs"
+        },
+        {
+          "name": "creativity"
+        },
+        {
+          "name": "figma-implement-design"
+        },
+        {
+          "name": "first-principles-decomposer"
+        },
+        {
+          "name": "frontend-design"
+        },
+        {
+          "name": "gemini-deep-research"
+        },
+        {
+          "name": "Graphic Design"
+        },
+        {
+          "name": "humanizer"
+        },
+        {
+          "name": "jobforbots"
+        },
+        {
+          "name": "memory-manager"
+        },
+        {
+          "name": "moltbot-best-practices"
+        },
+        {
+          "name": "multi-search-engine"
+        },
+        {
+          "name": "proactive-agent"
+        },
+        {
+          "name": "prompt-engineering-expert"
+        },
+        {
+          "name": "security-best-practices"
+        },
+        {
+          "name": "self-improving-agent"
+        },
+        {
+          "name": "superdesign"
+        },
+        {
+          "name": "swarmind"
+        },
+        {
+          "name": "taste"
+        },
+        {
+          "name": "ui-audit"
+        },
+        {
+          "name": "vap-multimedia-generation"
+        },
+        {
+          "name": "xpoz-social-search"
+        }
+      ],
+      "resolvedSkills": [
+        {
+          "name": "1password",
+          "description": "Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/1password/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/1password",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "bird",
+          "description": "X/Twitter CLI for reading, searching, posting, and engagement via cookies.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/bird/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/bird",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "blogwatcher",
+          "description": "Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "bluebubbles",
+          "description": "Build or update the BlueBubbles external channel plugin for OpenClaw (extension package, REST send/probe, webhook inbound).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "camsnap",
+          "description": "Capture frames or clips from RTSP/ONVIF cameras.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/camsnap/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/camsnap",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "coding-agent",
+          "description": "Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "gemini",
+          "description": "Gemini CLI for one-shot Q&A, summaries, and generation.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/gemini/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/gemini",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "gifgrep",
+          "description": "Search GIF providers with CLI/TUI, download results, and extract stills/sheets.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "github",
+          "description": "Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/github/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/github",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "mcporter",
+          "description": "Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/mcporter/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/mcporter",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "nano-banana-pro",
+          "description": "Generate/edit images with Nano Banana Pro (Gemini 3 Pro Image). Use for image create/modify requests incl. edits. Supports text-to-image + image-to-image; 1K/2K/4K; use --input-image.",
+          "filePath": "/Users/calbotsman/clawd/skills/nano-banana-pro/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/nano-banana-pro",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "openai-whisper",
+          "description": "Local speech-to-text with the Whisper CLI (no API key).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "peekaboo",
+          "description": "Capture and automate macOS UI with the Peekaboo CLI.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "session-logs",
+          "description": "Search and analyze your own session logs (older/parent conversations) using jq.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/session-logs/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/session-logs",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "skill-creator",
+          "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "sonoscli",
+          "description": "Control Sonos speakers (discover/status/play/volume/group).",
+          "filePath": "/Users/calbotsman/clawd/skills/sonoscli/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/sonoscli",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "tmux",
+          "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/tmux/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/tmux",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "video-frames",
+          "description": "Extract frames or short clips from videos using ffmpeg.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/video-frames/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/video-frames",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "weather",
+          "description": "Get current weather and forecasts (no API key required).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/weather/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/weather",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "arena_logo_scan",
+          "description": "Run Arenna logo scrape + duplicate-safe dedupe + vision tagging for new logos.",
+          "filePath": "/Users/calbotsman/clawd/skills/arena-logo-scan/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/arena-logo-scan",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "clawddocs",
+          "description": "Clawdbot documentation expert with decision tree navigation, search scripts, doc fetching, version tracking, and config snippets for all Clawdbot features",
+          "filePath": "/Users/calbotsman/clawd/skills/clawddocs/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/clawddocs",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "creativity",
+          "description": "Generate novel ideas calibrated to user taste. Auto-learns preferred styles, risk levels, and creative directions through feedback.",
+          "filePath": "/Users/calbotsman/clawd/skills/creativity/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/creativity",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "figma-implement-design",
+          "description": "Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow (design context, screenshots, assets, and project-convention translation). Trigger when the user provides Figma URLs or node IDs, or asks to implement designs or components that must match Figma specs. Requires a working Figma MCP server connection.",
+          "filePath": "/Users/calbotsman/clawd/skills/figma-implement-design/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/figma-implement-design",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "first-principles-decomposer",
+          "description": "Break any problem down to fundamental truths, then rebuild solutions from atoms up. Use when user says \"firstp\", \"first principles\", \"from scratch\", \"what are we assuming\", \"break this down\", \"atomic\", \"fundamental truth\", \"physics thinking\", \"Elon method\", \"bedrock\", \"ground up\", \"core problem\", \"strip away\", or challenges assumptions about how things are done.",
+          "filePath": "/Users/calbotsman/clawd/skills/first-principles-decomposer/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/first-principles-decomposer",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "frontend-design",
+          "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.",
+          "filePath": "/Users/calbotsman/clawd/skills/frontend-design/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/frontend-design",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "gemini-deep-research",
+          "description": "Perform complex, long-running research tasks using Gemini Deep Research Agent. Use when asked to research topics requiring multi-source synthesis, competitive analysis, market research, or comprehensive technical investigations that benefit from systematic web search and analysis.",
+          "filePath": "/Users/calbotsman/clawd/skills/gemini-deep-research/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/gemini-deep-research",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "Graphic Design",
+          "description": "Support design understanding from basic visuals to professional production and theory.",
+          "filePath": "/Users/calbotsman/clawd/skills/graphic-design/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/graphic-design",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "humanizer",
+          "description": "Remove signs of AI-generated writing from text. Use when editing or reviewing\ntext to make it sound more natural and human-written. Based on Wikipedia's\ncomprehensive \"Signs of AI writing\" guide. Detects and fixes patterns including:\ninflated symbolism, promotional language, superficial -ing analyses, vague\nattributions, em dash overuse, rule of three, AI vocabulary words, negative\nparallelisms, and excessive conjunctive phrases.\n",
+          "filePath": "/Users/calbotsman/clawd/skills/humanizer/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/humanizer",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "jobforbots",
+          "description": "The job marketplace where bots hire bots. Post FREE jobs now, paid $WAGE jobs coming soon! Now with task inbox, smart job matching, checkpoints, oversight levels, webhooks, and onboarding.",
+          "filePath": "/Users/calbotsman/clawd/skills/jobforbots/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/jobforbots",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "memory-manager",
+          "description": "Local memory management for agents. Compression detection, auto-snapshots, and semantic search. Use when agents need to detect compression risk before memory loss, save context snapshots, search historical memories, or track memory usage patterns. Never lose context again.",
+          "filePath": "/Users/calbotsman/clawd/skills/memory-manager/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/memory-manager",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "moltbot-best-practices",
+          "description": "Best practices for AI agents - Cursor, Claude, ChatGPT, Copilot. Avoid common mistakes. Confirms before executing, drafts before publishing. Vibe-coding essential.",
+          "filePath": "/Users/calbotsman/clawd/skills/moltbot-best-practices/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/moltbot-best-practices",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "multi-search-engine",
+          "description": "Multi search engine integration with 17 engines (8 CN + 9 Global). Supports advanced search operators, time filters, site search, privacy engines, and WolframAlpha knowledge queries. No API keys required.",
+          "filePath": "/Users/calbotsman/clawd/skills/multi-search-engine/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/multi-search-engine",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "proactive-agent",
+          "description": "Patterns for making the agent proactive, persistent, and secure (WAL/working-buffer/heartbeat guidance) without taking unsafe actions.",
+          "filePath": "/Users/calbotsman/clawd/skills/proactive-agent/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/proactive-agent",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "prompt-engineering-expert",
+          "description": "Advanced expert in prompt engineering, custom instructions design, and prompt optimization for AI agents",
+          "filePath": "/Users/calbotsman/clawd/skills/prompt-engineering-expert/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/prompt-engineering-expert",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "security-best-practices",
+          "description": "Perform language and framework specific security best-practice reviews and suggest improvements. Trigger only when the user explicitly requests security best practices guidance, a security review/report, or secure-by-default coding help. Trigger only for supported languages (python, javascript/typescript, go). Do not trigger for general code review, debugging, or non-security tasks.",
+          "filePath": "/Users/calbotsman/clawd/skills/security-best-practices/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/security-best-practices",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "self-improving-agent",
+          "description": "Log corrections/errors/feature-requests into workspace files so the agent improves over time (OpenClaw-first).",
+          "filePath": "/Users/calbotsman/clawd/skills/self-improving-agent/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/self-improving-agent",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "superdesign",
+          "description": "Expert frontend design guidelines for creating beautiful, modern UIs. Use when building landing pages, dashboards, or any user interface.",
+          "filePath": "/Users/calbotsman/clawd/skills/superdesign/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/superdesign",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "swarmind",
+          "description": "Multi-agent collaborative task management via a shared Kanban board (teams, columns, tasks, messages).",
+          "filePath": "/Users/calbotsman/clawd/skills/swarmind/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/swarmind",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "taste",
+          "description": "Develop refined aesthetic judgment by learning from human feedback, asking genuine questions about quality, and calibrating over time.",
+          "filePath": "/Users/calbotsman/clawd/skills/taste/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/taste",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "ui-audit",
+          "description": "AI skill for automated UI audits. Evaluate interfaces against proven UX principles for visual hierarchy, accessibility, cognitive load, navigation, and more. Based on Making UX Decisions by Tommy Geoco.",
+          "filePath": "/Users/calbotsman/clawd/skills/ui-audit/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/ui-audit",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "vap-multimedia-generation",
+          "description": "AI image, video, and music generation + editing via VAP API. Flux, Veo 3.1, Suno V5.",
+          "filePath": "/Users/calbotsman/clawd/skills/vap-multimedia-generation/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/vap-multimedia-generation",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "xpoz-social-search",
+          "description": "Search Twitter, Instagram, and Reddit posts in real time. Find social media mentions, track hashtags, discover influencers, and analyze engagement — 1.5B+ posts indexed. Social listening, brand monitoring, and competitor research made easy for AI agents.",
+          "filePath": "/Users/calbotsman/clawd/skills/xpoz-social-search/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/xpoz-social-search",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        }
+      ],
+      "version": 0
+    },
+    "modelProvider": "google",
+    "inputTokens": 25902,
+    "outputTokens": 39,
+    "totalTokens": 50998
+  },
+  "agent:strategy:main": {
+    "sessionId": "c91bf0e8-ac6f-4578-971b-2df593a77ba3",
+    "updatedAt": 1771625300316,
+    "skillsSnapshot": {
+      "prompt": "\n\nThe following skills provide specialized instructions for specific tasks.\nUse the read tool to load a skill's file when the task matches its description.\nWhen a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.\n\n<available_skills>\n  <skill>\n    <name>1password</name>\n    <description>Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/1password/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>bird</name>\n    <description>X/Twitter CLI for reading, searching, posting, and engagement via cookies.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/bird/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>blogwatcher</name>\n    <description>Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>bluebubbles</name>\n    <description>Build or update the BlueBubbles external channel plugin for OpenClaw (extension package, REST send/probe, webhook inbound).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>camsnap</name>\n    <description>Capture frames or clips from RTSP/ONVIF cameras.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/camsnap/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>coding-agent</name>\n    <description>Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>gemini</name>\n    <description>Gemini CLI for one-shot Q&amp;A, summaries, and generation.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/gemini/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>gifgrep</name>\n    <description>Search GIF providers with CLI/TUI, download results, and extract stills/sheets.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>github</name>\n    <description>Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/github/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>mcporter</name>\n    <description>Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/mcporter/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>nano-banana-pro</name>\n    <description>Generate or edit images via Gemini 3 Pro Image (Nano Banana Pro).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/nano-banana-pro/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>openai-whisper</name>\n    <description>Local speech-to-text with the Whisper CLI (no API key).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>peekaboo</name>\n    <description>Capture and automate macOS UI with the Peekaboo CLI.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>session-logs</name>\n    <description>Search and analyze your own session logs (older/parent conversations) using jq.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/session-logs/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>skill-creator</name>\n    <description>Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>sonoscli</name>\n    <description>Control Sonos speakers (discover/status/play/volume/group).</description>\n    <location>/Users/calbotsman/clawd/skills/sonoscli/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>tmux</name>\n    <description>Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/tmux/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>video-frames</name>\n    <description>Extract frames or short clips from videos using ffmpeg.</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/video-frames/SKILL.md</location>\n  </skill>\n  <skill>\n    <name>weather</name>\n    <description>Get current weather and forecasts (no API key required).</description>\n    <location>/opt/homebrew/lib/node_modules/openclaw/skills/weather/SKILL.md</location>\n  </skill>\n</available_skills>",
+      "skills": [
+        {
+          "name": "1password"
+        },
+        {
+          "name": "bird"
+        },
+        {
+          "name": "blogwatcher"
+        },
+        {
+          "name": "bluebubbles"
+        },
+        {
+          "name": "camsnap"
+        },
+        {
+          "name": "coding-agent"
+        },
+        {
+          "name": "gemini"
+        },
+        {
+          "name": "gifgrep"
+        },
+        {
+          "name": "github"
+        },
+        {
+          "name": "mcporter"
+        },
+        {
+          "name": "nano-banana-pro",
+          "primaryEnv": "GEMINI_API_KEY"
+        },
+        {
+          "name": "openai-whisper"
+        },
+        {
+          "name": "peekaboo"
+        },
+        {
+          "name": "session-logs"
+        },
+        {
+          "name": "skill-creator"
+        },
+        {
+          "name": "sonoscli"
+        },
+        {
+          "name": "tmux"
+        },
+        {
+          "name": "video-frames"
+        },
+        {
+          "name": "weather"
+        }
+      ],
+      "resolvedSkills": [
+        {
+          "name": "1password",
+          "description": "Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop app integration, signing in (single or multi-account), or reading/injecting/running secrets via op.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/1password/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/1password",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "bird",
+          "description": "X/Twitter CLI for reading, searching, posting, and engagement via cookies.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/bird/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/bird",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "blogwatcher",
+          "description": "Monitor blogs and RSS/Atom feeds for updates using the blogwatcher CLI.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/blogwatcher",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "bluebubbles",
+          "description": "Build or update the BlueBubbles external channel plugin for OpenClaw (extension package, REST send/probe, webhook inbound).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/bluebubbles",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "camsnap",
+          "description": "Capture frames or clips from RTSP/ONVIF cameras.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/camsnap/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/camsnap",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "coding-agent",
+          "description": "Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via background process for programmatic control.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/coding-agent",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "gemini",
+          "description": "Gemini CLI for one-shot Q&A, summaries, and generation.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/gemini/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/gemini",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "gifgrep",
+          "description": "Search GIF providers with CLI/TUI, download results, and extract stills/sheets.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/gifgrep",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "github",
+          "description": "Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`, and `gh api` for issues, PRs, CI runs, and advanced queries.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/github/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/github",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "mcporter",
+          "description": "Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/mcporter/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/mcporter",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "nano-banana-pro",
+          "description": "Generate or edit images via Gemini 3 Pro Image (Nano Banana Pro).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/nano-banana-pro/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/nano-banana-pro",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "openai-whisper",
+          "description": "Local speech-to-text with the Whisper CLI (no API key).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/openai-whisper",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "peekaboo",
+          "description": "Capture and automate macOS UI with the Peekaboo CLI.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/peekaboo",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "session-logs",
+          "description": "Search and analyze your own session logs (older/parent conversations) using jq.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/session-logs/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/session-logs",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "skill-creator",
+          "description": "Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/skill-creator",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "sonoscli",
+          "description": "Control Sonos speakers (discover/status/play/volume/group).",
+          "filePath": "/Users/calbotsman/clawd/skills/sonoscli/SKILL.md",
+          "baseDir": "/Users/calbotsman/clawd/skills/sonoscli",
+          "source": "openclaw-workspace",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "tmux",
+          "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/tmux/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/tmux",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "video-frames",
+          "description": "Extract frames or short clips from videos using ffmpeg.",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/video-frames/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/video-frames",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        },
+        {
+          "name": "weather",
+          "description": "Get current weather and forecasts (no API key required).",
+          "filePath": "/opt/homebrew/lib/node_modules/openclaw/skills/weather/SKILL.md",
+          "baseDir": "/opt/homebrew/lib/node_modules/openclaw/skills/weather",
+          "source": "openclaw-bundled",
+          "disableModelInvocation": false
+        }
+      ],
+      "version": 0
+    },
+    "deliveryContext": {
+      "channel": "whatsapp"
+    },
+    "lastChannel": "whatsapp",
+    "channel": "whatsapp",
+    "modelProvider": "google",
+    "model": "gemini-2.5-flash",
+    "contextTokens": 48000,
+    "abortedLastRun": false,
+    "inputTokens": 19485,
+    "outputTokens": 1399,
+    "totalTokens": 19485
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "version": "2026-02-21",
+  "directorGate": {
+    "minReviewsBeforeShip": 3,
+    "targetAcceptanceReview": 3,
+    "maxReviews": 4,
+    "decisionOnMaxIfNotReady": "STOP"
+  },
+  "acceptanceCriteria": {
+    "requiredDirectionSections": [
+      "Creative Thesis",
+      "Non-Negotiables",
+      "Visual System Rules",
+      "Copy Direction Rules",
+      "Profile Enforcement",
+      "Handoff to Review"
+    ],
+    "profileLinkageRequired": true,
+    "profileComplianceConfirmationRequired": true,
+    "criticalRiskCarryAllowed": false
+  },
+  "decisions": [
+    "REVISE",
+    "SHIP",
+    "STOP"
+  ]
+}

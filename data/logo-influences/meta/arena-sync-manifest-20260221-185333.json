@@ -1,0 +1,47 @@
+{
+  "createdAt": "2026-02-21T23:53:33.494Z",
+  "boardUrl": "https://www.are.na/yeah-gesture/logo-mctn4sgoeq4",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "stateFile": "/Users/calbotsman/.openclaw/credentials/arena-storage-state.json",
+  "auth": {
+    "credentialsSource": "1password",
+    "loggedInThisRun": false
+  },
+  "discoveredImageUrls": 7,
+  "attemptedDownloads": 7,
+  "downloaded": 0,
+  "skippedExisting": 7,
+  "failed": 0,
+  "files": [],
+  "skipped": [
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/7619193/original_a4dae45623c3d52783855ed96c145389.svg",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/13726501/original_886066004d738a66771dd54e5de3ac99.jpg",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/23605718/original_32e1f7b9cb4c7357e6bda41961415334.jpg",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4726423/original_17049cfd2c36c7fabe0dc4c27ea6e3fe.jpg",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/1892217/original_e7d411b001426c9bc3ed3bcedcaee6c5.jpg",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4519779/original_b7fc10e73000284012e1c4382c5501b0.png",
+      "reason": "already_exists"
+    },
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/4476033/original_a9fbe1fecbaa0b0ec783c5f060085e8f.jpg",
+      "reason": "already_exists"
+    }
+  ],
+  "failures": []
+}

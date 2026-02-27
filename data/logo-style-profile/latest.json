@@ -1,0 +1,60 @@
+{
+  "createdAt": "2026-02-23T04:13:13.194Z",
+  "source": {
+    "dir": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter",
+    "fileCount": 7,
+    "usedCount": 6,
+    "truncated": true,
+    "maxFiles": 6
+  },
+  "dimensions": {
+    "widthMin": 400,
+    "widthMax": 2400,
+    "widthAvg": 1565.17,
+    "heightMin": 400,
+    "heightMax": 1400,
+    "heightAvg": 1089.33,
+    "total": 6
+  },
+  "composition": {
+    "square": 2,
+    "landscape": 4,
+    "portrait": 0,
+    "dominant": "landscape",
+    "alphaRatio": 0.3333,
+    "alphaDriven": true,
+    "hasSquareDominance": false,
+    "hasLandscapeDominance": true,
+    "hasPortraitDominance": false
+  },
+  "fileFormats": {
+    "jpg": 4,
+    "png": 2
+  },
+  "sampleFiles": [
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0002-e18109401d68.jpg",
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0003-85902886a12f.png",
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0004-29cd9d506011.jpg",
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0005-a7548328e190.jpg",
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0006-01bf90562770.png",
+    "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0007-2797777b0e83.jpg"
+  ],
+  "styleHintSeed": "45f529c32ccfb48ad989a61887a14d7b8ef9ce7991894e9117671d947b1b563c",
+  "styleHints": [
+    "minimal logo mark",
+    "vector-friendly edges",
+    "plain background",
+    "high contrast",
+    "scalable geometry",
+    "horizontal lockup friendly",
+    "transparent shape logic",
+    "strong contour edges",
+    "icon-style silhouette"
+  ],
+  "skipped": [
+    {
+      "file": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0001-1b0941322548.jpg",
+      "reason": "Could not parse dimensions for /Users/calbotsman/clawd/data/logo-influences/sun-daughter/arena-logo-0001-1b0941322548.jpg"
+    }
+  ]
+}

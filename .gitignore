@@ -1,5 +1,9 @@
 .DS_Store
 inbox/
+.env
+*~
+*.bak
+*.bak.*
 
 # Local-only scratch (shows up as ../../hardware from nested worktrees)
 projects/hardware/
@@ -18,6 +22,8 @@ node_modules/
 **/*.db
 **/*.db-shm
 **/*.db-wal
+scripts/__pycache__/
+.venv-kohya/
 
 # ClawVault/QMD derived artifacts (never commit)
 .clawvault/
@@ -26,6 +32,11 @@ node_modules/
 
 # Reports / artifacts (never commit)
 reports/
+output/
+outputs/
+
+# Local third-party tool install
+tools/kohya_ss/
 
 # Local-only agent docs that may include secrets
 CAL_CREDENTIALS.md

@@ -42,7 +42,7 @@ export interface Listing {
   preview_url: string | null;
   tags: string | null; // JSON array
   metadata: string | null; // JSON object
-  status: 'active' | 'sold' | 'removed' | 'draft';
+  status: 'active' | 'sold' | 'removed' | 'draft' | 'minted' | 'in_auction';
   views: number;
   featured: number;
   created_at: string;

@@ -3,7 +3,8 @@
 Default stance: **cautious by default**.
 
 ## Secrets
-- Store all new account credentials in **1Password → Personal**.
+- Store credentials needed by Cal automations in **1Password → Cal Automation** (service-account accessible).
+- `Personal` can still be used for purely human-only secrets, but Cal reliability depends on `Cal Automation`.
 - Never paste secrets into chat/logs.
 - Prefer service/app passwords, tokens, or OAuth over primary passwords.
 
