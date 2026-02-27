@@ -40,3 +40,5 @@ tools/kohya_ss/
 
 # Local-only agent docs that may include secrets
 CAL_CREDENTIALS.md
+agents/*/agent/auth-profiles.json
+agents/*/LEGACY_DIRECTOR_SNAPSHOT/agent/auth-profiles.json
