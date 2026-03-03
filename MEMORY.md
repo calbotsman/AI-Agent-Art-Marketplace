@@ -6,41 +6,26 @@
 - Use no name by default; do not greet by first name unless explicitly requested.
 - Never ask for API keys in chat.
 
-## Active Thread (2026-02-20)
-- Active project: OpenClaw Reliability (Cal) at `/Users/calbotsman/clawd`.
-- Objective: keep Telegram/main-session behavior stable, preserve continuity across session resets, and prevent API-key prompt loops.
-- Cancelled workstream: Sun Daughter logo design iteration.
-- Confirmed issue: main session rotated on 2026-02-20 (around 15:35 EST), so short messages like "hi" had no active-thread anchor and fell back to generic chat.
-- Reliability direction:
-  - Keep `web_search` enabled when a valid Brave key is present, and use it first for explicit live-search requests.
-  - Use fallback paths (`web_fetch`, local files, direct sources) only when `web_search` is unavailable/failing, without asking for keys.
-  - Maintain a clear handoff of unresolved work in memory files so a new session can resume immediately.
-  - 1Password no-click access is now wired via service-account token in Keychain (`OP_SERVICE_ACCOUNT_TOKEN`, account `cal`) with runtime hooks:
-    - `/Users/calbotsman/.openclaw/bin/load-op-service-account.sh`
-    - `/Users/calbotsman/.openclaw/bin/op-service-account-check.sh`
-    - Gateway wrapper: `/Users/calbotsman/.openclaw/bin/openclaw-gateway-wrapper.sh`
-    - LaunchAgent: `/Users/calbotsman/Library/LaunchAgents/ai.openclaw.gateway.plist`
-  - Loader now prefers cache file `/Users/calbotsman/.openclaw/credentials/op-service-account.token` before Keychain to avoid repeated authorize prompts on restarts; validated via `OP_SA_TOKEN_SOURCE=cache`.
-  - Legacy interactive auth artifact `op-signin-persistent-20260220-194455` tmux session was removed.
-  - `com.tcr.openclaw.foundation` is enabled again with patched logic: it no longer restarts gateway for unchanged memory handoff updates.
-  - Gateway runtime patched at `/opt/homebrew/lib/node_modules/openclaw/dist/gateway/auth.js` to allow local loopback websocket auth without repeated token-entry prompts in Control UI.
-  - Credentials Cal needs should be saved in 1Password vault `Cal Automation` (not only `Personal`) because service accounts cannot read `Personal`.
-  - Root cause deep dive (2026-02-21) confirmed live provider instability: OpenAI quota/auth-profile errors can trigger brittle failover behavior; fallback ordering is now tuned to prefer `google/gemini-2.5-flash` before additional OpenAI fallbacks.
-  - Self-heal gateway restart is now explicitly enabled in runtime config (`/Users/calbotsman/.openclaw/openclaw.json` -> `commands.restart=true`) so Cal can execute restart requests from Telegram during recovery flows.
-  - LoRA runtime recovery (2026-02-21): model checkpoint was valid; main breakage was orchestration (missing local base-model path + temporary script corruption). Recovery applied in:
-    - `/Users/calbotsman/clawd/scripts/generate_sdxl_lora_logo_set.py`
-    - `/Users/calbotsman/clawd/scripts/run_sun_daughter_logo_process_after_lora.sh`
-    - runbook: `/Users/calbotsman/clawd/projects/design-exercises/sun-daughter/logo-lora-studio-logo-sdxl-mpssafe-20260220-215402/LORA_RUNTIME_RECOVERY_2026-02-21.md`
-  - Deterministic asset delivery path now exists: `/Users/calbotsman/clawd/scripts/send_latest_sun_daughter_assets.sh` (`npm run sun-daughter:send-assets`) always sends folder + 3 PNGs to Telegram target `6736310070`.
-- My current active thread is now focused on **OpenClaw Reliability** and **Workspace Optimization (Performance, Cleaning, Self-Learning)**.
+## Active Thread (2026-03-02)
+- **Active Task:** Self-Improvement & Automation.
+- **Objective:** To build and refine autonomous processes that enhance my capabilities and streamline user workflows.
+- **Status:**
+  - **Skill Discovery:** A new cron job (`Daily OpenClaw Skill Discovery v2`) is scheduled for 4 AM daily. It will find potential new skills and present them to the user with an interactive approval workflow (✅/❌ buttons). This is a direct result of user feedback to make the process easier. The first run is pending.
+  - **Creative Judgment:** The "Impact Aesthetics" framework has been logged as a foundational model for evaluating creative work. The next step is to apply it in practice.
+- **Reliability Note:** A recent cron job failed because the `docker` command wasn't found in its execution path. This has been logged as a high-priority issue to investigate and ensure cron jobs have a consistent and reliable environment.
+- **Previous Workstreams (Stable/Paused):**
+  - OpenClaw Reliability (General): Ongoing.
+  - Marketing Automation (Endless Molt): Paused due to suspended X/Twitter account (`@CoolCalHere`).
 
 **Performance & Cleaning:**
 - Implemented structured memory management (`memory/episodic`, `semantic`, `procedural`).
 - Organized existing memories.
-- Current memory usage: 24% (healthy).
+- Current memory usage: 27% (healthy).
+- Noted significant uncommitted changes in `projects/products/endless-molt` from external development, which were not part of this self-improvement run.
 
 **Self-Learning:**
 - Established systematic logging for learnings, errors, and feature requests in `.learnings/` directory.
+- Identified several critical areas for reliability improvement through log analysis, focusing on gateway/channel stability and cron job integrity.
 
 ## DM Continuity Rules
 - In direct chats, never answer short check-ins with generic "How can I help?".
@@ -71,8 +56,6 @@
     ```
   - This command will output `label.png`, `label.pdf`, `product-mock.png`, `brand-board.png`, and `manifest.json` under `/Users/calbotsman/clawd/output/supplement-design/<concept-id>/<timestamp>/`.
   - Ensure `manifest.json` includes `checks.recraftV4Used: true` for strict Recraft V4 runs.
-- Design iteration workspace: `/Users/calbotsman/clawd/projects/design-exercises/` with per-round `assets.md` + `feedback.md` logs.
-- `/Users/calbotsman/openclaw` was removed on 2026-02-20 after verifying it was empty; treat that path as deprecated.
 
 ## Image Tool Truncation Issue (2026-02-20)
 - **Problem:** The `image` tool consistently truncates its output, even with short prompts, ample `contextPruning` settings (maxChars, headChars, tailChars increased to 60000/30000/30000 respectively), and after switching the `imageModel` from `google/gemini-2.5-flash` to `ollama/moondream:latest`.
@@ -81,8 +64,8 @@
 
 <!-- AUTO_HANDOFF_START -->
 ## Auto Session Handoff
-- Updated: 2026-02-27 00:48 EST
-- Last user message: just cancel the sun daughter workstream right now [message_id: 7406]
-- Last assistant message: The Sun Daughter logo design workstream has been cancelled in my memory. My current active thread is now focused on **OpenClaw Reliability**. I am still waiting for you to provide your **backend `.env` file** securely via the `write` command I shared, if you still need me to h...
-- Most recent actionable request: just cancel the sun daughter workstream right now [message_id: 7406]
+- Updated: 2026-03-02 23:57 EST
+- Last user message: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.
+- Last assistant message: HEARTBEAT_OK
+- Most recent actionable request: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.
 <!-- AUTO_HANDOFF_END -->
