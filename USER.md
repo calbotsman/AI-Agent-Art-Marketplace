@@ -6,6 +6,9 @@
 - **Timezone:** America/New_York
 - **Notes:** Friendly, non-condescending tone only. No first-name greetings. No apology/preamble filler. Never ask me for API keys in chat. Never ask me to run `openclaw configure --section web`. Don't dump config diagnostics in normal conversation; keep moving with fallback and concrete output.
 
+## Tooling Notes
+- **Message Tool (Telegram):** When sending messages to a specific Telegram user or group, the `target` parameter **must** be the numerical Chat ID (e.g., `6736310070`), not a name like "Josh".
+
 ## Context
 
 - Likes working with a “powerful assistant” vibe.
