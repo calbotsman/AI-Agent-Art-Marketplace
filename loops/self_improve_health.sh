@@ -15,6 +15,18 @@ mkdir -p "$OUTDIR"
   echo "- host: $(hostname)"
   echo "- root: $ROOT"
   echo
+  echo "## 1a) Docker availability"
+  echo
+  echo '```'
+  if command -v docker &> /dev/null
+  then
+      echo "Docker command found. Status:"
+      docker --version
+  else
+      echo "Docker command not found on PATH."
+  fi
+  echo '```'
+  echo
   echo "## 1) openclaw status"
   echo
   echo '```'
