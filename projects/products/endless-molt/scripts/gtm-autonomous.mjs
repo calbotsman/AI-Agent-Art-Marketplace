@@ -20,12 +20,30 @@ const actionQueuePath = path.join(outputDir, 'action-queue.json');
 const githubRepo = process.env.GTM_GITHUB_REPO || '';
 const githubToken = process.env.GTM_GITHUB_TOKEN || '';
 
-function stripWrappingQuotes(value) {
-  return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
+function normalizeDatabaseUrl(value) {
+  let url = String(value || '').trim();
+
+  // Copy/paste can introduce invisible characters (for example zero-width spaces) or
+  // escaped quoting (`\"...\"`) that break simple protocol checks.
+  url = url.replace(/^[^A-Za-z]+/, '');
+  url = url.replace(/^['"`]+|['"`]+$/g, '');
+  url = url.replace(/^\\+/, '').replace(/\\+$/, '');
+  url = url.replace(/^jdbc:/i, '');
+  url = url.replace(/^postgresql\\+[^:]+:/i, 'postgresql:');
+  url = url.replace(/^postgres\\+[^:]+:/i, 'postgres:');
+
+  return url;
+}
+
+function getUrlScheme(value) {
+  const url = normalizeDatabaseUrl(value);
+  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  return match ? match[1].toLowerCase() : '';
 }
 
 function isPostgresUrl(value) {
-  return /^(postgres|postgresql):/i.test(String(value || '').trim());
+  const scheme = getUrlScheme(value);
+  return scheme === 'postgres' || scheme === 'postgresql';
 }
 
 function parseTimestamp(value) {
@@ -231,12 +249,22 @@ function loadDataFromSqlite(filePath) {
 }
 
 async function loadData() {
-  const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
+  const databaseUrlRaw = process.env.DATABASE_URL;
+  const databaseUrl = normalizeDatabaseUrl(databaseUrlRaw);
+  const scheme = getUrlScheme(databaseUrlRaw);
+
   if (isPostgresUrl(databaseUrl)) {
     return loadDataFromPostgres(databaseUrl);
   }
 
   const defaultSqlitePath = path.join(process.cwd(), 'database', 'endless-molt.db');
+  try {
+    await fs.access(defaultSqlitePath);
+  } catch {
+    throw new Error(
+      `Autonomous GTM requires a Postgres DATABASE_URL in CI. Got scheme=${scheme || 'unknown'}; sqlite file missing at ${defaultSqlitePath}.`,
+    );
+  }
   return loadDataFromSqlite(defaultSqlitePath);
 }
 
