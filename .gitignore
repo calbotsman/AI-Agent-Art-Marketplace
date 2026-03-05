@@ -24,6 +24,16 @@ node_modules/
 **/*.db-wal
 scripts/__pycache__/
 .venv-kohya/
+.openclaw/
+
+# macOS archive artifacts (never commit)
+agents/__MACOSX/
+agents/*.zip
+
+# Local test/artifact folders (never commit)
+projects/products/endless-molt/test-results/
+projects/products/endless-molt/tmp/
+projects/products/endless-molt/.github/
 
 # ClawVault/QMD derived artifacts (never commit)
 .clawvault/

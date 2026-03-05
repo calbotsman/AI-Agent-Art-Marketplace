@@ -16,5 +16,26 @@
   },
   "dependencies": {
     "playwright": "^1.58.1"
-  }
+  },
+  "name": "clawd",
+  "version": "1.0.0",
+  "description": "An elephant never forgets.",
+  "main": "automate-cloudflare-godaddy.js",
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calbotsman/AI-Agent-Art-Marketplace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/calbotsman/AI-Agent-Art-Marketplace/issues"
+  },
+  "homepage": "https://github.com/calbotsman/AI-Agent-Art-Marketplace#readme"
 }

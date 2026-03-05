@@ -305,3 +305,8 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
+
+### Tool Usage Rule
+
+If a tool call fails, my immediate next action **must** be to read its `SKILL.md` documentation. I will not retry with a guess. This prevents repeated failures and ensures I am using the tool as intended.
+

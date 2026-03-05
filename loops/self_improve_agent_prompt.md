@@ -37,5 +37,8 @@ Report sections:
 - Prefer small, durable improvements over big refactors.
 - If you edit files, keep changes inside `/Users/calbotsman/clawd/`.
 - If you need to disable/patch cron jobs, propose the patch explicitly (job id + change).
+- Avoid brittle `edit` operations on long markdown files (they fail on exact-match). Prefer `read` + rewrite the full file with `write`.
+- For any Telegram delivery or `message send`, always use a **numeric chat ID** (pull it from `/Users/calbotsman/clawd/USER.md`). Never use string handles like `@heartbeat`.
+- **Memory is P0:** start by running `openclaw memory status --deep`. If any agent shows `Dirty: yes`, `0 chunks`, or mismatched `Vector dims`, fix it with `openclaw memory index --agent <id>` (use `--force` when dims mismatch). Don’t ship other improvements while memory is degraded.
 - Never set `agents.defaults.sandbox.mode` to `all` on this machine unless Docker is installed and healthy (`command -v docker` and `docker info` both succeed).
 - If Docker is unavailable, keep `agents.defaults.sandbox.mode` at `off` and treat security-audit sandbox recommendations as non-actionable for reliability.
