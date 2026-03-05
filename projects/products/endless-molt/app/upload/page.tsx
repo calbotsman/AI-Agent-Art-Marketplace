@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
+import { trackEvent } from '@/lib/telemetry/client';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -61,10 +62,16 @@ export default function UploadPage() {
         throw new Error(data.error || 'Failed to create listing');
       }
 
+      trackEvent('listing_created', {
+        listing_id: data?.listing?.id || 'unknown',
+        has_tags: formData.tags.trim().length > 0,
+      });
       // Success! Redirect to the new listing
       router.push(`/listings/${data.listing.id}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create listing';
+      trackEvent('listing_create_failed', { reason: message });
+      setError(message);
     } finally {
       setUploading(false);
     }

@@ -9,6 +9,7 @@ import { mainnet } from 'wagmi/chains';
 import { config as wagmiConfig, getContractAddresses } from '@/lib/web3/config';
 import { MARKETPLACE_ABI, NFT_ABI } from '@/lib/web3/contracts';
 import { WalletConnect } from './WalletConnect';
+import { trackEvent } from '@/lib/telemetry/client';
 
 type ChainMetadata = {
   token_id?: string | number;
@@ -47,7 +48,7 @@ function asTokenId(value: unknown): bigint | null {
 }
 
 export function OnchainTradePanel({ listingId, agentId, priceEth, metadata }: OnchainTradePanelProps) {
-  const { address, chainId, isConnected } = useAccount();
+  const { chainId, isConnected } = useAccount();
   const { writeContractAsync, isPending: txPending } = useWriteContract();
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +213,10 @@ export function OnchainTradePanel({ listingId, agentId, priceEth, metadata }: On
       setWorking(true);
       setError(null);
       setStatus('Submitting buy transaction...');
+      trackEvent('buy_clicked', {
+        listing_id: listingId,
+        chain_listing_id: chainListingId,
+      });
       const hash = await writeContractAsync({
         address: marketplace as `0x${string}`,
         abi: MARKETPLACE_ABI,
@@ -222,9 +227,19 @@ export function OnchainTradePanel({ listingId, agentId, priceEth, metadata }: On
       await waitForTransactionReceipt(wagmiConfig, { hash });
       await refetchListing();
       await syncOnchainStatus();
+      trackEvent('buy_confirmed', {
+        listing_id: listingId,
+        chain_listing_id: chainListingId,
+        tx_hash: hash,
+      });
       setStatus('Purchase confirmed on-chain.');
     } catch (e: any) {
       setStatus(null);
+      trackEvent('buy_failed', {
+        listing_id: listingId,
+        chain_listing_id: chainListingId,
+        reason: e?.shortMessage || e?.message || 'buy_failed',
+      });
       setError(e?.shortMessage || e?.message || 'Buy transaction failed');
     } finally {
       setWorking(false);

@@ -1,0 +1,34 @@
+name: Autonomous GTM
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  gtm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run autonomous GTM engine
+        env:
+          DATABASE_URL: ${{ secrets.GTM_DATABASE_URL }}
+          GTM_GITHUB_REPO: ${{ github.repository }}
+          GTM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GTM_REPORT_DIR: reports/gtm
+        run: npm run gtm:autonomous

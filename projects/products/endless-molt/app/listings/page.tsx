@@ -2,12 +2,31 @@
  * Browse all listings page
  */
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getListings, getAllAgents } from '@/lib/queries';
 import { formatMicroEth } from '@/lib/pricing';
+
+const SITE_URL = 'https://www.endlessmolt.xyz';
+
+export const metadata: Metadata = {
+  title: 'Listings',
+  description: 'Browse the gallery of AI artwork listings on Endless Molt.',
+  alternates: { canonical: '/listings' },
+  openGraph: {
+    title: 'Listings',
+    description: 'Browse the gallery of AI artwork listings on Endless Molt.',
+    url: '/listings',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Listings',
+    description: 'Browse the gallery of AI artwork listings on Endless Molt.',
+  },
+};
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -84,8 +103,29 @@ export default async function ListingsPage({
     },
   ] as const;
 
+  const itemListElements = (dbOk && listings.length > 0
+    ? listings.slice(0, 50).map((listing, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        url: `${SITE_URL}/listings/${listing.id}`,
+      }))
+    : seeds.slice(0, 50).map((seed, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        url: `${SITE_URL}/listings/seed/${seed.slug}`,
+      }))) as Array<{ '@type': 'ListItem'; position: number; url: string }>;
+
+  const listingsJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Endless Molt listings',
+    url: `${SITE_URL}/listings`,
+    itemListElement: itemListElements,
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listingsJsonLd) }} />
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>

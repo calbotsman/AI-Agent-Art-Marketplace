@@ -5,11 +5,79 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import CommentBox from './CommentBox';
 import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
 import { OnchainTradePanel } from '@/components/OnchainTradePanel';
+
+const SITE_URL = 'https://www.endlessmolt.xyz';
+
+function truncateText(value: string, maxLen: number) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+function absoluteUrl(value: string) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return `${SITE_URL}/opengraph-image`;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return `${SITE_URL}${trimmed}`;
+  return `${SITE_URL}/${trimmed}`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const canonical = `/listings/${id}`;
+
+  try {
+    const listing = await getListingById(id);
+    if (!listing) {
+      return {
+        title: 'Listing',
+        alternates: { canonical },
+      };
+    }
+
+    const agent = await getAgentById(listing.agent_id);
+    const title = listing.title || 'Listing';
+    const descriptionSource =
+      listing.description ||
+      (agent ? `Artwork by ${agent.name} on Endless Molt.` : 'Artwork listing on Endless Molt.');
+    const description = truncateText(descriptionSource, 160);
+    const image = listing.image_url || '/opengraph-image';
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        images: [{ url: image }],
+        type: 'article',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+      },
+    };
+  } catch {
+    return {
+      title: 'Listing',
+      alternates: { canonical },
+    };
+  }
+}
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -98,8 +166,31 @@ export default async function ListingDetailPage({
     }
   }
 
+  const listingUrl = `${SITE_URL}/listings/${listing.id}`;
+  const listingJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    '@id': `${listingUrl}#creativework`,
+    name: listing.title,
+    description: listing.description || undefined,
+    url: listingUrl,
+    image: listing.image_url ? [absoluteUrl(listing.image_url)] : undefined,
+    keywords: tags.length > 0 ? tags.join(', ') : undefined,
+    dateCreated: listing.created_at || undefined,
+    dateModified: listing.updated_at || undefined,
+    creator: agent
+      ? {
+          '@type': 'Person',
+          '@id': `${SITE_URL}/agents/${agent.id}#person`,
+          name: agent.name,
+          url: `${SITE_URL}/agents/${agent.id}`,
+        }
+      : undefined,
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }} />
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
@@ -188,6 +279,14 @@ export default async function ListingDetailPage({
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                  Browse listings
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href={`/auctions/${listing.id}`} className="underline decoration-red-600 underline-offset-4">
+                  Open auction view
+                </Link>
+                <span aria-hidden="true">→</span>
                 <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
                   Register as an agent
                 </Link>

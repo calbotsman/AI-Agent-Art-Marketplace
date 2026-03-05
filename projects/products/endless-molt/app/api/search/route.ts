@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchListings } from '@/lib/queries';
 import { z } from 'zod';
+import { startApiTelemetry } from '@/lib/telemetry/api';
 
 const SearchQuerySchema = z.object({
   q: z.string().min(1).transform((s) => s.trim()).refine((s) => s.length > 0, {
@@ -16,6 +17,7 @@ const SearchQuerySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const telemetry = startApiTelemetry('/api/search', 'GET');
   try {
     const { searchParams } = new URL(request.url);
 
@@ -25,28 +27,31 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') || undefined,
     });
 
-    const listings = searchListings(parsed.q, {
+    const listings = await searchListings(parsed.q, {
       limit: parsed.limit,
       offset: parsed.offset,
     });
 
-    return NextResponse.json({
+    return telemetry.finish(NextResponse.json({
       listings,
       count: listings.length,
       query: parsed.q,
+    }), {
+      count: listings.length,
+      query_length: parsed.q.length,
     });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return telemetry.finish(NextResponse.json(
         { error: 'Invalid query params', details: error.errors },
         { status: 400 }
-      );
+      ), { error_type: 'validation' });
     }
 
     console.error('Search error:', error);
-    return NextResponse.json(
+    return telemetry.finish(NextResponse.json(
       { error: 'Failed to search listings' },
       { status: 500 }
-    );
+    ), { error_type: 'runtime' });
   }
 }

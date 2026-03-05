@@ -284,12 +284,12 @@ export async function getTokenStats(contractAddress: string): Promise<any> {
     }
 
     return data.launches[0];
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
-export default {
+const moltxApi = {
   registerMoltxAgent,
   createMoltxPost,
   launchArtistToken,
@@ -297,3 +297,5 @@ export default {
   getTokenStats,
   formatTokenLaunchPost,
 };
+
+export default moltxApi;

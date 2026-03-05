@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { query, queryOne } from '@/lib/db';
 import * as moltx from '@/lib/moltx';
+import { withAuth } from '@/lib/auth';
+import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
+import { beginIdempotency } from '@/lib/idempotency';
+import { z } from 'zod';
+
+const LaunchTokenSchema = z.object({
+  agent_id: z.string().min(1).optional(),
+  token_name: z.string().min(1).max(64).optional(),
+  token_symbol: z.string().min(2).max(10).optional(),
+  token_description: z.string().min(1).max(500).optional(),
+  logo_url: z.string().url().optional(),
+  twitter: z.string().max(256).optional(),
+  website: z.string().url().optional(),
+});
 
 /**
  * POST /api/tokens/launch
@@ -18,72 +32,100 @@ import * as moltx from '@/lib/moltx';
  *   website?: string
  * }
  */
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, { agent }) => {
+  const rateLimit = await checkRateLimit(req, {
+    bucket: 'token-launch',
+    limit: 3,
+    windowMs: 60 * 60_000,
+    keySuffix: agent.id,
+  });
+  if (!rateLimit.ok) return rateLimit.response;
+
+  const idempotency = await beginIdempotency(req, {
+    bucket: 'token-launch',
+    ttlMs: 24 * 60 * 60_000,
+    keySuffix: agent.id,
+  });
+  if (idempotency.keyErrorResponse) {
+    return applyRateLimitHeaders(idempotency.keyErrorResponse, rateLimit.headers);
+  }
+  if (idempotency.replay) {
+    return applyRateLimitHeaders(idempotency.replay, rateLimit.headers);
+  }
+
   try {
     const body = await req.json();
-    const { agent_id, token_name, token_symbol, token_description, logo_url, twitter, website } = body;
+    const data = LaunchTokenSchema.parse(body);
+    const targetAgentId = data.agent_id || agent.id;
+    const token_name = data.token_name;
+    const token_symbol = data.token_symbol;
+    const token_description = data.token_description;
+    const logo_url = data.logo_url;
+    const twitter = data.twitter;
+    const website = data.website;
 
-    if (!agent_id) {
-      return NextResponse.json(
-        { error: 'agent_id is required' },
-        { status: 400 }
+    // Agents can only launch a token for themselves.
+    if (targetAgentId !== agent.id) {
+      return applyRateLimitHeaders(
+        NextResponse.json({ error: 'Forbidden: cannot launch token for another agent' }, { status: 403 }),
+        rateLimit.headers,
       );
     }
 
     // Get artist info
-    const agent = await queryOne<any>('SELECT * FROM agents WHERE id = $1', [agent_id]);
+    const artist = await queryOne<any>('SELECT * FROM agents WHERE id = $1', [targetAgentId]);
 
-    if (!agent) {
-      return NextResponse.json(
+    if (!artist) {
+      return applyRateLimitHeaders(NextResponse.json(
         { error: 'Artist not found' },
         { status: 404 }
-      );
+      ), rateLimit.headers);
     }
 
     // Check if artist already has a token
     const existing = await queryOne<any>(
       'SELECT * FROM artist_tokens WHERE agent_id = $1 AND status != $2',
-      [agent_id, 'failed']
+      [targetAgentId, 'failed']
     );
 
     if (existing) {
-      return NextResponse.json(
+      return applyRateLimitHeaders(NextResponse.json(
         { error: 'Artist already has a token', token: existing },
         { status: 400 }
-      );
+      ), rateLimit.headers);
     }
 
     // Default values from artist profile
-    const finalTokenName = token_name || agent.name;
-    const finalTokenSymbol = token_symbol || generateSymbol(agent.name);
-    const finalDescription = token_description || agent.bio || `Official art token for ${agent.name}, AI artist on Endless Molt.`;
-    const finalLogoUrl = logo_url || agent.avatar_url;
+    const finalTokenName = token_name || artist.name;
+    const finalTokenSymbol = token_symbol || generateSymbol(artist.name);
+    const finalDescription = token_description || artist.bio || `Official art token for ${artist.name}, AI artist on Endless Molt.`;
+    const finalLogoUrl = logo_url || artist.avatar_url;
 
     if (!finalLogoUrl) {
-      return NextResponse.json(
+      return applyRateLimitHeaders(NextResponse.json(
         { error: 'logo_url is required (art token must include an image asset)' },
         { status: 400 }
-      );
+      ), rateLimit.headers);
     }
 
     // Register or get Moltx agent
-    let moltxApiKey = agent.moltx_api_key;
-    let moltxAgentId = agent.moltx_agent_id;
+    let moltxApiKey = artist.moltx_api_key;
+    let moltxAgentId = artist.moltx_agent_id;
 
     if (!moltxApiKey) {
       // Register new Moltx agent
       const moltxAgent = await moltx.registerMoltxAgent({
-        name: agent.name.replace(/\s+/g, ''),
-        display_name: agent.name,
-        description: agent.bio || `AI artist on Endless Molt`,
+        name: artist.name.replace(/\s+/g, ''),
+        display_name: artist.name,
+        description: artist.bio || `AI artist on Endless Molt`,
         avatar_emoji: '🎨',
       });
 
       if (!moltxAgent.success || !moltxAgent.data) {
-        return NextResponse.json(
+        return applyRateLimitHeaders(NextResponse.json(
           { error: 'Failed to register on Moltx', details: moltxAgent.error },
           { status: 500 }
-        );
+        ), rateLimit.headers);
       }
 
       moltxApiKey = moltxAgent.data.api_key;
@@ -94,7 +136,7 @@ export async function POST(req: NextRequest) {
         `UPDATE agents
          SET moltx_api_key = $1, moltx_agent_id = $2, updated_at = CURRENT_TIMESTAMP
          WHERE id = $3`,
-        [moltxApiKey, moltxAgentId, agent_id]
+        [moltxApiKey, moltxAgentId, targetAgentId]
       );
     }
 
@@ -108,7 +150,7 @@ export async function POST(req: NextRequest) {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         tokenId,
-        agent_id,
+        targetAgentId,
         finalTokenName,
         finalTokenSymbol,
         finalDescription,
@@ -122,7 +164,7 @@ export async function POST(req: NextRequest) {
     const launchResult = await moltx.launchArtistToken(moltxApiKey, {
       name: finalTokenName,
       symbol: finalTokenSymbol,
-      wallet: agent.wallet_address || process.env.PLATFORM_FEE_WALLET || '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B',
+      wallet: artist.wallet_address || process.env.PLATFORM_FEE_WALLET || '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B',
       description: finalDescription,
       image: finalLogoUrl,
       twitter: twitter,
@@ -138,10 +180,10 @@ export async function POST(req: NextRequest) {
         ['failed', launchResult.error, tokenId]
       );
 
-      return NextResponse.json(
+      return applyRateLimitHeaders(NextResponse.json(
         { error: 'Failed to post token launch', details: launchResult.error },
         { status: 500 }
-      );
+      ), rateLimit.headers);
     }
 
     // Update token with post ID
@@ -155,26 +197,42 @@ export async function POST(req: NextRequest) {
     // Start monitoring for deployment (background job would do this)
     // For now, just return success and let cron job monitor
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        token_id: tokenId,
-        post_id: launchResult.data.post_id,
-        post_url: launchResult.data.post_url,
-        status: 'waiting_gate',
-        message: 'Token launch posted to Moltx. Will deploy after 1-hour age gate (for unclaimed agents).',
-        estimated_deployment: calculateEstimatedDeployment(agent.moltx_claimed),
-      },
-    });
-
-  } catch (error: any) {
+    const response = applyRateLimitHeaders(
+      NextResponse.json({
+        success: true,
+        data: {
+          token_id: tokenId,
+          post_id: launchResult.data.post_id,
+          post_url: launchResult.data.post_url,
+          status: 'waiting_gate',
+          message: 'Token launch posted to Moltx. Will deploy after 1-hour age gate (for unclaimed agents).',
+          estimated_deployment: calculateEstimatedDeployment(artist.moltx_claimed),
+        },
+      }),
+      rateLimit.headers,
+    );
+    await idempotency.commit(response);
+    return response;
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      const response = applyRateLimitHeaders(
+        NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 }),
+        rateLimit.headers,
+      );
+      await idempotency.commit(response);
+      return response;
+    }
+    const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('Token launch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+    return applyRateLimitHeaders(
+      NextResponse.json(
+        { error: 'Internal server error', details: message },
+        { status: 500 },
+      ),
+      rateLimit.headers,
     );
   }
-}
+});
 
 /**
  * Generate a token symbol from artist name

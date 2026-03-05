@@ -1,5 +1,13 @@
 # NOTE FOR CAL
 
+## Current Priority Pointer (2026-03-03)
+
+For GTM status and progress, do not rely on this legacy note.  
+Read:
+- `CAL_GTM_HANDOFF.md`
+- `docs/gtm/START_HERE.md`
+- `docs/db/DB_PERSISTENCE.md` (production persistence is now fixed; Postgres is the runtime DB on Vercel)
+
 ## Issue Found & Fixed (2026-02-03 22:50)
 
 **Problem:** You were editing `app/homepage.tsx` but Next.js serves `app/page.tsx`

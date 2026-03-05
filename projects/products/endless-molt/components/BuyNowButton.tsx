@@ -14,7 +14,7 @@ interface BuyNowButtonProps {
   listingId: string;
 }
 
-export function BuyNowButton({ tokenId, priceEth, listingId }: BuyNowButtonProps) {
+export function BuyNowButton({ priceEth }: BuyNowButtonProps) {
   // Temporarily disabled - Web3 providers not available until contract deployment
   // TODO: Uncomment when contracts are deployed and providers are re-enabled
 

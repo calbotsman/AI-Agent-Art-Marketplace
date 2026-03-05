@@ -3,147 +3,145 @@
  * Reusable SQL queries for all database operations
  */
 
-import { getDb } from './db';
+import { getDbBackend, query, queryOne } from './db';
 import {
   Agent,
   User,
   Listing,
   ListingComment,
+  Post,
+  PostComment,
+  SocialEngagementEvent,
   Order,
   Rating,
-  Favorite,
   AgentStats,
   ListingStats,
   CreateAgentInput,
   CreateUserInput,
   CreateListingInput,
   CreateListingCommentInput,
+  CreatePostCommentInput,
   CreateOrderInput,
   CreateRatingInput,
+  CreateSocialEngagementEventInput,
   ListingFilters,
 } from './types';
 import crypto from 'crypto';
 
 // ==================== AGENTS ====================
 
-export function createAgent(input: CreateAgentInput): Agent {
-  const db = getDb();
+export async function createAgent(input: CreateAgentInput): Promise<Agent> {
   const bcrypt = require('bcrypt');
 
   const apiKeyHash = bcrypt.hashSync(input.api_key, 10);
 
-  const stmt = db.prepare(`
-    INSERT INTO agents (id, name, email, bio, avatar_url, api_key_hash)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    input.id,
-    input.name,
-    input.email,
-    input.bio || null,
-    input.avatar_url || null,
-    apiKeyHash
+  await query(
+    `INSERT INTO agents (id, name, email, bio, avatar_url, api_key_hash)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      input.id,
+      input.name,
+      input.email || null,
+      input.bio || null,
+      input.avatar_url || null,
+      apiKeyHash,
+    ],
   );
 
-  return getAgentById(input.id)!;
+  const agent = await getAgentById(input.id);
+  if (!agent) {
+    throw new Error('Failed to create agent');
+  }
+  return agent;
 }
 
-export function getAgentById(id: string): Agent | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM agents WHERE id = ?');
-  return stmt.get(id) as Agent | undefined;
+export async function getAgentById(id: string): Promise<Agent | undefined> {
+  return await queryOne<Agent>('SELECT * FROM agents WHERE id = $1', [id]);
 }
 
-export function getAgentByEmail(email: string): Agent | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM agents WHERE email = ?');
-  return stmt.get(email) as Agent | undefined;
+export async function getAgentByEmail(email: string): Promise<Agent | undefined> {
+  return await queryOne<Agent>('SELECT * FROM agents WHERE email = $1', [email]);
 }
 
-export function verifyAgentApiKey(id: string, apiKey: string): boolean {
-  const agent = getAgentById(id);
+export async function verifyAgentApiKey(id: string, apiKey: string): Promise<boolean> {
+  const agent = await getAgentById(id);
   if (!agent) return false;
 
   const bcrypt = require('bcrypt');
   return bcrypt.compareSync(apiKey, agent.api_key_hash);
 }
 
-export function getAllAgents(limit = 100, offset = 0): Agent[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT * FROM agents
-    WHERE status = 'active'
-    ORDER BY reputation_score DESC, created_at DESC
-    LIMIT ? OFFSET ?
-  `);
-  return stmt.all(limit, offset) as Agent[];
+export async function getAllAgents(limit = 100, offset = 0): Promise<Agent[]> {
+  const rows = (await query(
+    `SELECT * FROM agents
+     WHERE status = 'active'
+     ORDER BY reputation_score DESC, created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  )) as Agent[];
+
+  return rows;
 }
 
-export function getAgentStats(id: string): AgentStats | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM agent_stats WHERE id = ?');
-  return stmt.get(id) as AgentStats | undefined;
+export async function getAgentStats(id: string): Promise<AgentStats | undefined> {
+  return await queryOne<AgentStats>('SELECT * FROM agent_stats WHERE id = $1', [id]);
 }
 
-export function updateAgentReputation(id: string): void {
-  const db = getDb();
+export async function updateAgentReputation(id: string): Promise<void> {
+  // Cross-DB computation to avoid relying on different SQL math function implementations.
+  const summary = await queryOne<{ avg_rating: number; order_count: number }>(
+    `SELECT
+       COALESCE(AVG(r.rating), 0) as avg_rating,
+       COUNT(DISTINCT o.id) as order_count
+     FROM orders o
+     LEFT JOIN ratings r ON o.id = r.order_id
+     WHERE o.agent_id = $1 AND o.status = 'confirmed'`,
+    [id],
+  );
 
-  // Calculate reputation based on average rating and sales volume
-  const stmt = db.prepare(`
-    UPDATE agents
-    SET reputation_score = (
-      SELECT COALESCE(AVG(r.rating), 0) * (1 + LOG(1 + COUNT(DISTINCT o.id)) / 10)
-      FROM orders o
-      LEFT JOIN ratings r ON o.id = r.order_id
-      WHERE o.agent_id = ? AND o.status = 'confirmed'
-    ),
-    updated_at = datetime('now')
-    WHERE id = ?
-  `);
+  const avgRating = Number(summary?.avg_rating ?? 0);
+  const orderCount = Number(summary?.order_count ?? 0);
+  const score = avgRating * (1 + Math.log(1 + orderCount) / 10);
 
-  stmt.run(id, id);
+  await query(
+    `UPDATE agents
+     SET reputation_score = $1, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2`,
+    [score, id],
+  );
 }
 
 // ==================== USERS ====================
 
-export function createUser(input: CreateUserInput): User {
-  const db = getDb();
+export async function createUser(input: CreateUserInput): Promise<User> {
   const bcrypt = require('bcrypt');
 
   const id = crypto.randomUUID();
   const passwordHash = bcrypt.hashSync(input.password, 10);
 
-  const stmt = db.prepare(`
-    INSERT INTO users (id, email, password_hash, name, provider)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    input.email,
-    passwordHash,
-    input.name || null,
-    input.provider || 'email'
+  await query(
+    `INSERT INTO users (id, email, password_hash, name, provider)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, input.email, passwordHash, input.name || null, input.provider || 'email'],
   );
 
-  return getUserById(id)!;
+  const user = await getUserById(id);
+  if (!user) {
+    throw new Error('Failed to create user');
+  }
+  return user;
 }
 
-export function getUserById(id: string): User | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  return stmt.get(id) as User | undefined;
+export async function getUserById(id: string): Promise<User | undefined> {
+  return await queryOne<User>('SELECT * FROM users WHERE id = $1', [id]);
 }
 
-export function getUserByEmail(email: string): User | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-  return stmt.get(email) as User | undefined;
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+  return await queryOne<User>('SELECT * FROM users WHERE email = $1', [email]);
 }
 
-export function verifyUserPassword(email: string, password: string): User | null {
-  const user = getUserByEmail(email);
+export async function verifyUserPassword(email: string, password: string): Promise<User | null> {
+  const user = await getUserByEmail(email);
   if (!user || !user.password_hash) return null;
 
   const bcrypt = require('bcrypt');
@@ -153,350 +151,488 @@ export function verifyUserPassword(email: string, password: string): User | null
 
 // ==================== LISTINGS ====================
 
-export function createListing(input: CreateListingInput): Listing {
-  const db = getDb();
-
+export async function createListing(input: CreateListingInput): Promise<Listing> {
   const id = crypto.randomUUID();
   const tags = input.tags ? JSON.stringify(input.tags) : null;
   const metadata = input.metadata ? JSON.stringify(input.metadata) : null;
   const currency = input.currency || 'ETH';
 
-  const stmt = db.prepare(`
-    INSERT INTO listings (
-      id, agent_id, title, description, price, currency, image_url,
-      thumbnail_url, preview_url, tags, metadata, status
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    input.agent_id,
-    input.title,
-    input.description || null,
-    input.price,
-    currency,
-    input.image_url,
-    input.thumbnail_url || null,
-    input.preview_url || null,
-    tags,
-    metadata,
-    input.status || 'active'
+  await query(
+    `INSERT INTO listings (
+       id, agent_id, title, description, price, currency, image_url,
+       thumbnail_url, preview_url, tags, metadata, status
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    [
+      id,
+      input.agent_id,
+      input.title,
+      input.description || null,
+      input.price,
+      currency,
+      input.image_url,
+      input.thumbnail_url || null,
+      input.preview_url || null,
+      tags,
+      metadata,
+      input.status || 'active',
+    ],
   );
 
-  return getListingById(id)!;
+  const listing = await getListingById(id);
+  if (!listing) {
+    throw new Error('Failed to create listing');
+  }
+  return listing;
 }
 
-export function getListingById(id: string): Listing | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM listings WHERE id = ?');
-  return stmt.get(id) as Listing | undefined;
+export async function getListingById(id: string): Promise<Listing | undefined> {
+  return await queryOne<Listing>('SELECT * FROM listings WHERE id = $1', [id]);
 }
 
-export function getListings(filters: ListingFilters = {}): Listing[] {
-  const db = getDb();
-
-  let query = 'SELECT * FROM listings WHERE 1=1';
+export async function getListings(filters: ListingFilters = {}): Promise<Listing[]> {
+  let queryText = 'SELECT * FROM listings WHERE 1=1';
   const params: any[] = [];
 
   if (filters.agent_id) {
-    query += ' AND agent_id = ?';
     params.push(filters.agent_id);
+    queryText += ` AND agent_id = $${params.length}`;
   }
 
   if (filters.status) {
-    query += ' AND status = ?';
     params.push(filters.status);
+    queryText += ` AND status = $${params.length}`;
   } else {
-    query += " AND status IN ('active', 'in_auction')";
+    queryText += " AND status IN ('active', 'in_auction')";
   }
 
   if (filters.min_price !== undefined) {
-    query += ' AND price >= ?';
     params.push(filters.min_price);
+    queryText += ` AND price >= $${params.length}`;
   }
 
   if (filters.max_price !== undefined) {
-    query += ' AND price <= ?';
     params.push(filters.max_price);
+    queryText += ` AND price <= $${params.length}`;
   }
 
   if (filters.featured) {
-    query += ' AND featured = 1';
+    queryText += ' AND featured = 1';
   }
 
-  query += ' ORDER BY featured DESC, created_at DESC';
+  queryText += ' ORDER BY featured DESC, created_at DESC';
 
   const limit = filters.limit || 50;
   const offset = filters.offset || 0;
-  query += ' LIMIT ? OFFSET ?';
-  params.push(limit, offset);
+  params.push(limit);
+  queryText += ` LIMIT $${params.length}`;
+  params.push(offset);
+  queryText += ` OFFSET $${params.length}`;
 
-  const stmt = db.prepare(query);
-  return stmt.all(...params) as Listing[];
+  const rows = (await query(queryText, params)) as Listing[];
+  return rows;
 }
 
-export function searchListings(searchQuery: string, filters: ListingFilters = {}): Listing[] {
-  const db = getDb();
-
-  // Use FTS5 for full-text search
-  const stmt = db.prepare(`
-    SELECT l.*
-    FROM listings l
-    INNER JOIN listings_fts ON l.id = listings_fts.listing_id
-    WHERE listings_fts MATCH ?
-    AND l.status IN ('active', 'in_auction')
-    ORDER BY bm25(listings_fts), l.featured DESC, l.created_at DESC
-    LIMIT ? OFFSET ?
-  `);
-
+export async function searchListings(searchQuery: string, filters: ListingFilters = {}): Promise<Listing[]> {
   const limit = filters.limit || 50;
   const offset = filters.offset || 0;
 
-  return stmt.all(searchQuery, limit, offset) as Listing[];
+  if (getDbBackend() === 'sqlite') {
+    try {
+      // Preferred path: FTS5 index for relevance ranking.
+      const rows = (await query(
+        `SELECT l.*
+         FROM listings l
+         INNER JOIN listings_fts ON l.id = listings_fts.listing_id
+         WHERE listings_fts MATCH $1
+         AND l.status IN ('active', 'in_auction')
+         ORDER BY bm25(listings_fts), l.featured DESC, l.created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [searchQuery, limit, offset],
+      )) as Listing[];
+
+      return rows;
+    } catch {
+      // fall back
+    }
+  }
+
+  // Safety fallback (and the default for Postgres): substring search.
+  const like = `%${searchQuery}%`;
+  const op = getDbBackend() === 'postgres' ? 'ILIKE' : 'LIKE';
+
+  const rows = (await query(
+    `SELECT *
+     FROM listings
+     WHERE status IN ('active', 'in_auction')
+     AND (
+       title ${op} $1
+       OR COALESCE(description, '') ${op} $1
+       OR COALESCE(tags, '') ${op} $1
+     )
+     ORDER BY featured DESC, created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [like, limit, offset],
+  )) as Listing[];
+
+  return rows;
 }
 
-export function incrementListingViews(id: string): void {
-  const db = getDb();
-  const stmt = db.prepare('UPDATE listings SET views = views + 1 WHERE id = ?');
-  stmt.run(id);
+export async function incrementListingViews(id: string): Promise<void> {
+  await query('UPDATE listings SET views = views + 1 WHERE id = $1', [id]);
 }
 
-export function getListingComments(listingId: string): ListingComment[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT * FROM listing_comments
-    WHERE listing_id = ?
-    ORDER BY created_at ASC
-  `);
-  return stmt.all(listingId) as ListingComment[];
+export async function getListingComments(listingId: string): Promise<ListingComment[]> {
+  const rows = (await query(
+    `SELECT * FROM listing_comments
+     WHERE listing_id = $1
+     ORDER BY created_at ASC`,
+    [listingId],
+  )) as ListingComment[];
+
+  return rows;
 }
 
-export function createListingComment(input: CreateListingCommentInput): ListingComment {
-  const db = getDb();
+export async function createListingComment(input: CreateListingCommentInput): Promise<ListingComment> {
   const id = crypto.randomUUID();
-  const stmt = db.prepare(`
-    INSERT INTO listing_comments (id, listing_id, agent_id, content)
-    VALUES (?, ?, ?, ?)
-  `);
-  stmt.run(id, input.listing_id, input.agent_id, input.content);
-  const getStmt = db.prepare('SELECT * FROM listing_comments WHERE id = ?');
-  return getStmt.get(id) as ListingComment;
+  const comment = await queryOne<ListingComment>(
+    `INSERT INTO listing_comments (id, listing_id, agent_id, content)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+    [id, input.listing_id, input.agent_id, input.content],
+  );
+  if (!comment) {
+    throw new Error('Failed to create listing comment');
+  }
+
+  return comment;
 }
 
-export function updateListing(id: string, updates: Partial<Listing>): void {
-  const db = getDb();
-
+export async function updateListing(id: string, updates: Partial<Listing>): Promise<void> {
   const fields = Object.keys(updates).filter(k => k !== 'id');
   if (fields.length === 0) return;
 
-  const setClause = fields.map(f => `${f} = ?`).join(', ');
   const values = fields.map(f => (updates as any)[f]);
 
-  const stmt = db.prepare(`
-    UPDATE listings
-    SET ${setClause}, updated_at = datetime('now')
-    WHERE id = ?
-  `);
-
-  stmt.run(...values, id);
+  const setClause = fields.map((field, idx) => `${field} = $${idx + 1}`).join(', ');
+  await query(
+    `UPDATE listings
+     SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $${fields.length + 1}`,
+    [...values, id],
+  );
 }
 
-export function getListingStats(id: string): ListingStats | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM listing_stats WHERE id = ?');
-  return stmt.get(id) as ListingStats | undefined;
+export async function getListingStats(id: string): Promise<ListingStats | undefined> {
+  return await queryOne<ListingStats>('SELECT * FROM listing_stats WHERE id = $1', [id]);
+}
+
+// ==================== SOCIAL ====================
+
+export async function getPostById(id: string): Promise<Post | undefined> {
+  return await queryOne<Post>('SELECT * FROM posts WHERE id = $1', [id]);
+}
+
+export async function getPostComments(postId: string, limit = 100, offset = 0): Promise<PostComment[]> {
+  const rows = (await query(
+    `SELECT * FROM post_comments
+     WHERE post_id = $1
+     ORDER BY created_at ASC
+     LIMIT $2 OFFSET $3`,
+    [postId, limit, offset],
+  )) as PostComment[];
+
+  return rows;
+}
+
+export async function createPostComment(input: CreatePostCommentInput): Promise<PostComment> {
+  const id = crypto.randomUUID();
+  const comment = await queryOne<PostComment>(
+    `INSERT INTO post_comments (
+       id, post_id, agent_id, content, parent_comment_id, source, channel
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [
+      id,
+      input.post_id,
+      input.agent_id,
+      input.content,
+      input.parent_comment_id || null,
+      input.source || 'manual',
+      input.channel || 'moltbook',
+    ],
+  );
+
+  if (!comment) {
+    throw new Error('Failed to create post comment');
+  }
+  return comment;
+}
+
+export async function createSocialEngagementEvent(
+  input: CreateSocialEngagementEventInput
+): Promise<SocialEngagementEvent> {
+  const id = crypto.randomUUID();
+  const payload = input.payload ? JSON.stringify(input.payload) : null;
+  const status = input.status || 'queued';
+
+  const event = await queryOne<SocialEngagementEvent>(
+    `INSERT INTO social_engagement_events (
+       id,
+       event_key,
+       channel,
+       event_type,
+       actor_agent_id,
+       target_agent_id,
+       post_id,
+       external_ref,
+       status,
+       payload,
+       error_message,
+       executed_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     RETURNING *`,
+    [
+      id,
+      input.event_key || null,
+      input.channel,
+      input.event_type,
+      input.actor_agent_id || null,
+      input.target_agent_id || null,
+      input.post_id || null,
+      input.external_ref || null,
+      status,
+      payload,
+      input.error_message || null,
+      input.executed_at || null,
+    ],
+  );
+
+  if (!event) {
+    throw new Error('Failed to create social engagement event');
+  }
+  return event;
+}
+
+export async function getSocialEngagementSummary(days = 7): Promise<Array<{
+  channel: string;
+  event_type: string;
+  status: string;
+  total: number;
+}>> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = (await query(
+    `SELECT channel, event_type, status, COUNT(*) as total
+     FROM social_engagement_events
+     WHERE created_at >= $1
+     GROUP BY channel, event_type, status
+     ORDER BY total DESC`,
+    [since],
+  )) as Array<{
+    channel: string;
+    event_type: string;
+    status: string;
+    total: number;
+  }>;
+
+  return rows;
 }
 
 // ==================== ORDERS ====================
 
-export function createOrder(input: CreateOrderInput): Order {
-  const db = getDb();
-
-  const listing = getListingById(input.listing_id);
+export async function createOrder(input: CreateOrderInput): Promise<Order> {
+  const listing = await getListingById(input.listing_id);
   if (!listing) throw new Error('Listing not found');
 
   const id = crypto.randomUUID();
   const platformFee = Math.floor(input.amount * 0.15); // 15% platform fee
   const agentPayout = input.amount - platformFee;
 
-  const stmt = db.prepare(`
-    INSERT INTO orders (
-      id, user_id, agent_id, listing_id, amount,
-      platform_fee, agent_payout, status
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
-  `);
-
-  stmt.run(
-    id,
-    input.user_id,
-    listing.agent_id,
-    input.listing_id,
-    input.amount,
-    platformFee,
-    agentPayout
+  await query(
+    `INSERT INTO orders (
+       id, user_id, agent_id, listing_id, amount,
+       platform_fee, agent_payout, status
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')`,
+    [
+      id,
+      input.user_id,
+      listing.agent_id,
+      input.listing_id,
+      input.amount,
+      platformFee,
+      agentPayout,
+    ],
   );
 
-  return getOrderById(id)!;
+  const order = await getOrderById(id);
+  if (!order) {
+    throw new Error('Failed to create order');
+  }
+  return order;
 }
 
-export function getOrderById(id: string): Order | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM orders WHERE id = ?');
-  return stmt.get(id) as Order | undefined;
+export async function getOrderById(id: string): Promise<Order | undefined> {
+  return await queryOne<Order>('SELECT * FROM orders WHERE id = $1', [id]);
 }
 
-export function getOrdersByUser(userId: string, limit = 50, offset = 0): Order[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT * FROM orders
-    WHERE user_id = ?
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `);
-  return stmt.all(userId, limit, offset) as Order[];
+export async function getOrdersByUser(userId: string, limit = 50, offset = 0): Promise<Order[]> {
+  const rows = (await query(
+    `SELECT * FROM orders
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [userId, limit, offset],
+  )) as Order[];
+
+  return rows;
 }
 
-export function getOrdersByAgent(agentId: string, limit = 50, offset = 0): Order[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT * FROM orders
-    WHERE agent_id = ?
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `);
-  return stmt.all(agentId, limit, offset) as Order[];
+export async function getOrdersByAgent(agentId: string, limit = 50, offset = 0): Promise<Order[]> {
+  const rows = (await query(
+    `SELECT * FROM orders
+     WHERE agent_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [agentId, limit, offset],
+  )) as Order[];
+
+  return rows;
 }
 
-export function updateOrderStatus(
+export async function updateOrderStatus(
   id: string,
   status: Order['status'],
   paymentStatus?: Order['payment_status']
-): void {
-  const db = getDb();
-
+): Promise<void> {
   if (paymentStatus) {
-    const stmt = db.prepare(`
-      UPDATE orders
-      SET status = ?, payment_status = ?
-      WHERE id = ?
-    `);
-    stmt.run(status, paymentStatus, id);
+    await query(
+      `UPDATE orders
+       SET status = $1, payment_status = $2
+       WHERE id = $3`,
+      [status, paymentStatus, id],
+    );
   } else {
-    const stmt = db.prepare('UPDATE orders SET status = ? WHERE id = ?');
-    stmt.run(status, id);
+    await query('UPDATE orders SET status = $1 WHERE id = $2', [status, id]);
   }
 
   // Update agent stats if order confirmed
   if (status === 'confirmed') {
-    const order = getOrderById(id);
+    const order = await getOrderById(id);
     if (order) {
-      updateAgentSales(order.agent_id, order.agent_payout);
+      await updateAgentSales(order.agent_id, order.agent_payout);
     }
   }
 }
 
-function updateAgentSales(agentId: string, amount: number): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    UPDATE agents
-    SET total_sales = total_sales + 1,
-        total_revenue = total_revenue + ?,
-        updated_at = datetime('now')
-    WHERE id = ?
-  `);
-  stmt.run(amount, agentId);
+async function updateAgentSales(agentId: string, amount: number): Promise<void> {
+  await query(
+    `UPDATE agents
+     SET total_sales = total_sales + 1,
+         total_revenue = total_revenue + $1,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2`,
+    [amount, agentId],
+  );
 }
 
 // ==================== RATINGS ====================
 
-export function createRating(input: CreateRatingInput): Rating {
-  const db = getDb();
-
+export async function createRating(input: CreateRatingInput): Promise<Rating> {
   const id = crypto.randomUUID();
 
-  const stmt = db.prepare(`
-    INSERT INTO ratings (id, order_id, user_id, agent_id, listing_id, rating, review)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    input.order_id,
-    input.user_id,
-    input.agent_id,
-    input.listing_id,
-    input.rating,
-    input.review || null
+  await query(
+    `INSERT INTO ratings (id, order_id, user_id, agent_id, listing_id, rating, review)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      id,
+      input.order_id,
+      input.user_id,
+      input.agent_id,
+      input.listing_id,
+      input.rating,
+      input.review || null,
+    ],
   );
 
   // Update agent reputation
-  updateAgentReputation(input.agent_id);
+  await updateAgentReputation(input.agent_id);
 
-  return getRatingById(id)!;
+  const rating = await getRatingById(id);
+  if (!rating) {
+    throw new Error('Failed to create rating');
+  }
+  return rating;
 }
 
-export function getRatingById(id: string): Rating | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM ratings WHERE id = ?');
-  return stmt.get(id) as Rating | undefined;
+export async function getRatingById(id: string): Promise<Rating | undefined> {
+  return await queryOne<Rating>('SELECT * FROM ratings WHERE id = $1', [id]);
 }
 
-export function getRatingByOrderId(orderId: string): Rating | undefined {
-  const db = getDb();
-  const stmt = db.prepare('SELECT * FROM ratings WHERE order_id = ?');
-  return stmt.get(orderId) as Rating | undefined;
+export async function getRatingByOrderId(orderId: string): Promise<Rating | undefined> {
+  return await queryOne<Rating>('SELECT * FROM ratings WHERE order_id = $1', [orderId]);
 }
 
-export function getRatingsByAgent(agentId: string, limit = 50, offset = 0): Rating[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT * FROM ratings
-    WHERE agent_id = ?
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `);
-  return stmt.all(agentId, limit, offset) as Rating[];
+export async function getRatingsByAgent(agentId: string, limit = 50, offset = 0): Promise<Rating[]> {
+  const rows = (await query(
+    `SELECT * FROM ratings
+     WHERE agent_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [agentId, limit, offset],
+  )) as Rating[];
+
+  return rows;
 }
 
 // ==================== FAVORITES ====================
 
-export function addFavorite(userId: string, listingId: string): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT OR IGNORE INTO favorites (user_id, listing_id)
-    VALUES (?, ?)
-  `);
-  stmt.run(userId, listingId);
+export async function addFavorite(userId: string, listingId: string): Promise<void> {
+  if (getDbBackend() === 'postgres') {
+    await query(
+      `INSERT INTO favorites (user_id, listing_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id, listing_id) DO NOTHING`,
+      [userId, listingId],
+    );
+    return;
+  }
+
+  await query(
+    `INSERT OR IGNORE INTO favorites (user_id, listing_id)
+     VALUES ($1, $2)`,
+    [userId, listingId],
+  );
 }
 
-export function removeFavorite(userId: string, listingId: string): void {
-  const db = getDb();
-  const stmt = db.prepare(`
-    DELETE FROM favorites
-    WHERE user_id = ? AND listing_id = ?
-  `);
-  stmt.run(userId, listingId);
+export async function removeFavorite(userId: string, listingId: string): Promise<void> {
+  await query(
+    `DELETE FROM favorites
+     WHERE user_id = $1 AND listing_id = $2`,
+    [userId, listingId],
+  );
 }
 
-export function getFavoritesByUser(userId: string): Listing[] {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT l.*
-    FROM listings l
-    INNER JOIN favorites f ON l.id = f.listing_id
-    WHERE f.user_id = ?
-    ORDER BY f.created_at DESC
-  `);
-  return stmt.all(userId) as Listing[];
+export async function getFavoritesByUser(userId: string): Promise<Listing[]> {
+  const rows = (await query(
+    `SELECT l.*
+     FROM listings l
+     INNER JOIN favorites f ON l.id = f.listing_id
+     WHERE f.user_id = $1
+     ORDER BY f.created_at DESC`,
+    [userId],
+  )) as Listing[];
+
+  return rows;
 }
 
-export function isFavorited(userId: string, listingId: string): boolean {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT 1 FROM favorites
-    WHERE user_id = ? AND listing_id = ?
-  `);
-  return stmt.get(userId, listingId) !== undefined;
+export async function isFavorited(userId: string, listingId: string): Promise<boolean> {
+  const row = await queryOne<{ exists: number }>(
+    `SELECT 1 as exists FROM favorites
+     WHERE user_id = $1 AND listing_id = $2`,
+    [userId, listingId],
+  );
+  return !!row;
 }

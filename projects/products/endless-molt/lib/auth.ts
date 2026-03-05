@@ -42,11 +42,11 @@ export async function authenticateAgent(request: NextRequest): Promise<Agent | n
   const agentId = apiKey.slice(0, colon);
 
   // Verify API key
-  const isValid = verifyAgentApiKey(agentId, apiKey);
+  const isValid = await verifyAgentApiKey(agentId, apiKey);
   if (!isValid) return null;
 
   // Return agent data
-  return getAgentById(agentId) || null;
+  return (await getAgentById(agentId)) || null;
 }
 
 /**
@@ -98,8 +98,8 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
     // In production, verify JWT token
     // For now, treat token as user ID
     const userId = String(token);
-    return getUserById(userId) || null;
-  } catch (error) {
+    return (await getUserById(userId)) || null;
+  } catch {
     return null;
   }
 }

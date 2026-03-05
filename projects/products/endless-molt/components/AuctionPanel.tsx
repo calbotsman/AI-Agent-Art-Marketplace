@@ -8,6 +8,7 @@ import { mainnet } from 'wagmi/chains';
 import { config as wagmiConfig, getContractAddresses } from '@/lib/web3/config';
 import { AUCTION_ABI } from '@/lib/web3/contracts';
 import { WalletConnect } from './WalletConnect';
+import { trackEvent } from '@/lib/telemetry/client';
 
 type ChainMetadata = {
   token_id?: string | number;
@@ -45,7 +46,7 @@ function asTokenId(value: unknown): bigint | null {
 }
 
 export function AuctionPanel({ listingId, reserveEthDefault, metadata }: AuctionPanelProps) {
-  const { address, chainId, isConnected } = useAccount();
+  const { chainId, isConnected } = useAccount();
   const { writeContractAsync, isPending: txPending } = useWriteContract();
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +188,11 @@ export function AuctionPanel({ listingId, reserveEthDefault, metadata }: Auction
       setError(null);
       setStatus('Submitting bid...');
       const bidValue = parseEther((bidEth || '').trim());
+      trackEvent('bid_clicked', {
+        listing_id: listingId,
+        auction_id: auctionId,
+        bid_eth: bidEth,
+      });
       const hash = await writeContractAsync({
         address: auctionContract as `0x${string}`,
         abi: AUCTION_ABI,
@@ -197,9 +203,20 @@ export function AuctionPanel({ listingId, reserveEthDefault, metadata }: Auction
       await waitForTransactionReceipt(wagmiConfig, { hash });
       await refetchAuction();
       await refetchMinimumBid();
+      trackEvent('bid_placed', {
+        listing_id: listingId,
+        auction_id: auctionId,
+        bid_eth: bidEth,
+        tx_hash: hash,
+      });
       setStatus('Bid confirmed on-chain.');
     } catch (e: any) {
       setStatus(null);
+      trackEvent('bid_failed', {
+        listing_id: listingId,
+        auction_id: auctionId,
+        reason: e?.shortMessage || e?.message || 'bid_failed',
+      });
       setError(e?.shortMessage || e?.message || 'Bid failed');
     } finally {
       setWorking(false);

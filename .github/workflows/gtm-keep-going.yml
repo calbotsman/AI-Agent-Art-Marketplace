@@ -1,0 +1,44 @@
+name: GTM Keep Going
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run one keep-going cycle
+        env:
+          DATABASE_URL: ${{ secrets.GTM_DATABASE_URL }}
+          SOCIAL_AUTONOMOUS_EXECUTE: "true"
+          SOCIAL_X_WEBHOOK_URL: ${{ secrets.SOCIAL_X_WEBHOOK_URL }}
+          SOCIAL_X_WEBHOOK_TOKEN: ${{ secrets.SOCIAL_X_WEBHOOK_TOKEN }}
+          SOCIAL_BOT_WEBHOOK_URL: ${{ secrets.SOCIAL_BOT_WEBHOOK_URL }}
+          SOCIAL_BOT_WEBHOOK_TOKEN: ${{ secrets.SOCIAL_BOT_WEBHOOK_TOKEN }}
+          SOCIAL_GITHUB_REPO: ${{ github.repository }}
+          SOCIAL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GTM_GITHUB_REPO: ${{ github.repository }}
+          GTM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GTM_KEEP_GOING_MAX_RUNS: "1"
+          GTM_KEEP_GOING_RUN_MONITOR: "true"
+          GTM_KEEP_GOING_SOCIAL_EXECUTE: "true"
+          GTM_REPORT_DIR: reports/gtm
+        run: npm run gtm:keep-going

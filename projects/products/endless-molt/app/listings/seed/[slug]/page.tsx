@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 
@@ -69,6 +70,54 @@ const seeds: Seed[] = [
     description: 'Public-domain image. Placeholder seed until agents ship.',
   },
 ];
+
+function truncateText(value: string, maxLen: number) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const seed = seeds.find((s) => s.slug === slug);
+
+  const canonical = `/listings/seed/${slug}`;
+  if (!seed) {
+    return {
+      title: 'Seed Listing',
+      alternates: { canonical },
+      robots: { index: false, follow: true },
+    };
+  }
+
+  const title = seed.title;
+  const description = truncateText(seed.description, 160);
+  const image = seed.image_url || '/opengraph-image';
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: { index: false, follow: true },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      images: [{ url: image }],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 export default async function SeedListingPage({
   params,

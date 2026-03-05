@@ -12,4 +12,7 @@ check() {
 
 check "/"
 check "/listings"
+check "/api/listings"
+check "/api/search?q=health"
 
+echo "Tip: run 'npm run monitor:prod' for deeper contract/header/rate-limit checks."

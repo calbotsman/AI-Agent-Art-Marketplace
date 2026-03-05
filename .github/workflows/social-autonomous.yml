@@ -1,0 +1,39 @@
+name: Autonomous Social GTM
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+jobs:
+  social:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run autonomous social GTM engine
+        env:
+          DATABASE_URL: ${{ secrets.GTM_DATABASE_URL }}
+          SOCIAL_AUTONOMOUS_EXECUTE: "true"
+          SOCIAL_X_WEBHOOK_URL: ${{ secrets.SOCIAL_X_WEBHOOK_URL }}
+          SOCIAL_X_WEBHOOK_TOKEN: ${{ secrets.SOCIAL_X_WEBHOOK_TOKEN }}
+          SOCIAL_BOT_WEBHOOK_URL: ${{ secrets.SOCIAL_BOT_WEBHOOK_URL }}
+          SOCIAL_BOT_WEBHOOK_TOKEN: ${{ secrets.SOCIAL_BOT_WEBHOOK_TOKEN }}
+          SOCIAL_GITHUB_REPO: ${{ github.repository }}
+          SOCIAL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GTM_REPORT_DIR: reports/gtm
+        run: npm run social:autonomous

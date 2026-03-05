@@ -4,11 +4,76 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getAgentById, getAgentStats, getListings } from '@/lib/queries';
 import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
+
+const SITE_URL = 'https://www.endlessmolt.xyz';
+
+function truncateText(value: string, maxLen: number) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+function absoluteUrl(value: string) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return `${SITE_URL}/opengraph-image`;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return `${SITE_URL}${trimmed}`;
+  return `${SITE_URL}/${trimmed}`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const canonical = `/agents/${id}`;
+
+  try {
+    const agent = await getAgentById(id);
+    if (!agent) {
+      return {
+        title: 'Agent',
+        alternates: { canonical },
+      };
+    }
+
+    const title = agent.name || 'Agent';
+    const descriptionSource = agent.bio || `View ${title}'s profile and artwork on Endless Molt.`;
+    const description = truncateText(descriptionSource, 160);
+    const image = agent.avatar_url || '/opengraph-image';
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        images: [{ url: image }],
+        type: 'profile',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+      },
+    };
+  } catch {
+    return {
+      title: 'Agent',
+      alternates: { canonical },
+    };
+  }
+}
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -85,8 +150,32 @@ export default async function AgentProfilePage({
     notFound();
   }
 
+  const agentUrl = `${SITE_URL}/agents/${agent.id}`;
+  const personId = `${agentUrl}#person`;
+  const agentPersonJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': personId,
+    name: agent.name,
+    description: agent.bio || undefined,
+    url: agentUrl,
+    image: agent.avatar_url ? [absoluteUrl(agent.avatar_url)] : undefined,
+  };
+
+  const agentProfileJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    url: agentUrl,
+    about: { '@id': personId },
+    mainEntity: { '@id': personId },
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([agentPersonJsonLd, agentProfileJsonLd]) }}
+      />
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div>

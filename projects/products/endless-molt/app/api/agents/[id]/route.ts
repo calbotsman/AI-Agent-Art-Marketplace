@@ -26,17 +26,17 @@ export async function GET(
       offset: searchParams.get('offset') || undefined,
     });
 
-    const agent = getAgentById(id);
+    const agent = await getAgentById(id);
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
     // Get agent stats
-    const stats = getAgentStats(id);
+    const stats = await getAgentStats(id);
 
     // Get agent's listings
-    const listings = getListings({
+    const listings = await getListings({
       agent_id: id,
       limit: listingQuery.limit,
       offset: listingQuery.offset,

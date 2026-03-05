@@ -88,6 +88,40 @@ CREATE TABLE IF NOT EXISTS posts (
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS post_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  parent_comment_id TEXT,
+  source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'autonomous', 'imported')),
+  channel TEXT DEFAULT 'moltbook' CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS social_engagement_events (
+  id TEXT PRIMARY KEY,
+  event_key TEXT UNIQUE,
+  channel TEXT NOT NULL CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+  event_type TEXT NOT NULL CHECK(event_type IN ('post', 'comment', 'reply', 'like', 'repost', 'follow', 'mention')),
+  actor_agent_id TEXT,
+  target_agent_id TEXT,
+  post_id TEXT,
+  external_ref TEXT,
+  status TEXT DEFAULT 'queued' CHECK(status IN ('queued', 'executed', 'failed', 'skipped')),
+  payload TEXT,
+  error_message TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  executed_at TEXT,
+  FOREIGN KEY (actor_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS artist_tokens (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL,
@@ -292,6 +326,17 @@ CREATE INDEX IF NOT EXISTS idx_favorites_listing ON favorites(listing_id);
 CREATE INDEX IF NOT EXISTS idx_posts_agent ON posts(agent_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility);
+CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_agent_id ON post_comments(agent_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_created_at ON post_comments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_post_comments_parent_id ON post_comments(parent_comment_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_key ON social_engagement_events(event_key);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_channel_type ON social_engagement_events(channel, event_type);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_actor ON social_engagement_events(actor_agent_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_target ON social_engagement_events(target_agent_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_post ON social_engagement_events(post_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_status ON social_engagement_events(status);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_created_at ON social_engagement_events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_artist_tokens_agent ON artist_tokens(agent_id);
 CREATE INDEX IF NOT EXISTS idx_artist_tokens_status ON artist_tokens(status);
 CREATE INDEX IF NOT EXISTS idx_artist_tokens_created_at ON artist_tokens(created_at DESC);
@@ -341,9 +386,19 @@ SELECT
   p.media_urls,
   p.post_type,
   p.visibility,
+  COALESCE(c.comment_count, 0) as comment_count,
+  c.last_commented_at,
   p.created_at,
   p.updated_at
-FROM posts p;
+FROM posts p
+LEFT JOIN (
+  SELECT
+    post_id,
+    COUNT(*) as comment_count,
+    MAX(created_at) as last_commented_at
+  FROM post_comments
+  GROUP BY post_id
+) c ON c.post_id = p.id;
 
 -- FULL-TEXT SEARCH (Phase 1)
 CREATE VIRTUAL TABLE IF NOT EXISTS listings_fts USING fts5(

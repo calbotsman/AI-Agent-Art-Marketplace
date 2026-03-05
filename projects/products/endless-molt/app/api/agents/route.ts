@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') || undefined,
     });
 
-    const agents = getAllAgents(parsed.limit, parsed.offset);
+    const agents = await getAllAgents(parsed.limit, parsed.offset);
 
     // Remove sensitive data
     const publicAgents = agents.map((agent) => ({

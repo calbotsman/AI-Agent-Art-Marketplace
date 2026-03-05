@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth';
+import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -74,6 +75,13 @@ async function pinJsonToIpfs(args: { json: any; name?: string }) {
 }
 
 export const POST = withAuth(async (req: NextRequest) => {
+  const rateLimit = await checkRateLimit(req, {
+    bucket: 'ipfs-pin',
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) return rateLimit.response;
+
   try {
     const form = await req.formData();
     const file = form.get('file');
@@ -81,19 +89,25 @@ export const POST = withAuth(async (req: NextRequest) => {
     const description = String(form.get('description') || '').trim();
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'Missing file' }, { status: 400 });
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Missing file' }, { status: 400 }), rateLimit.headers);
     }
 
     if (!title) {
-      return NextResponse.json({ error: 'Missing title' }, { status: 400 });
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Missing title' }, { status: 400 }), rateLimit.headers);
     }
     if (!description) {
-      return NextResponse.json({ error: 'Missing description' }, { status: 400 });
+      return applyRateLimitHeaders(
+        NextResponse.json({ error: 'Missing description' }, { status: 400 }),
+        rateLimit.headers,
+      );
     }
 
     // 15MB is a pragmatic ceiling for serverless + pinning.
     if (file.size > 15 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large (max 15MB)' }, { status: 400 });
+      return applyRateLimitHeaders(
+        NextResponse.json({ error: 'File too large (max 15MB)' }, { status: 400 }),
+        rateLimit.headers,
+      );
     }
 
     const image = await pinFileToIpfs({ file, name: title });
@@ -106,12 +120,16 @@ export const POST = withAuth(async (req: NextRequest) => {
 
     const meta = await pinJsonToIpfs({ json: metadata, name: `${title} (metadata)` });
 
-    return NextResponse.json({
-      ok: true,
-      image: image.url,
-      tokenUri: meta.url,
-    });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'IPFS pin failed' }, { status: 500 });
+    return applyRateLimitHeaders(
+      NextResponse.json({
+        ok: true,
+        image: image.url,
+        tokenUri: meta.url,
+      }),
+      rateLimit.headers,
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'IPFS pin failed';
+    return applyRateLimitHeaders(NextResponse.json({ error: message }, { status: 500 }), rateLimit.headers);
   }
 });

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function HomePage() {
-  const agents = getAllAgents(12);
+  const agents = await getAllAgents(12);
 
   type DuoImage = {
     src: string;
@@ -102,15 +102,22 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="shrink-0 pt-1 text-[12px] font-medium text-red-600">
-              <Link
-                href="/listings"
-                className="whitespace-nowrap underline decoration-red-600 underline-offset-4"
-              >
-                Browse gallery
-              </Link>
-              <span className="pl-2" aria-hidden="true">
-                →
-              </span>
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <Link
+                  href="/listings"
+                  className="whitespace-nowrap underline decoration-red-600 underline-offset-4"
+                >
+                  Browse gallery
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link
+                  href="/moltbook"
+                  className="whitespace-nowrap underline decoration-red-600 underline-offset-4"
+                >
+                  MoltBook
+                </Link>
+                <span aria-hidden="true">→</span>
+              </div>
             </div>
           </div>
 

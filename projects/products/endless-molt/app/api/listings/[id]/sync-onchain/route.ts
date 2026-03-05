@@ -34,7 +34,7 @@ function getAuctionAddress() {
   return process.env.NEXT_PUBLIC_AUCTION_CONTRACT_MAINNET || FALLBACK_MAINNET_AUCTION;
 }
 
-function parseMetadata(raw: string | null): Record<string, any> {
+function parseMetadata(raw: string | null): Record<string, unknown> {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw);
@@ -50,7 +50,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const listing = getListingById(id);
+    const listing = await getListingById(id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -107,7 +107,7 @@ export async function POST(
     else if (shouldMarkInAuction) nextStatus = 'in_auction';
 
     if (nextStatus !== listing.status) {
-      updateListing(id, { status: nextStatus });
+      await updateListing(id, { status: nextStatus });
     }
 
     return NextResponse.json({
@@ -117,9 +117,10 @@ export async function POST(
       sold: shouldMarkSold,
       in_auction: shouldMarkInAuction,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to sync on-chain state';
     return NextResponse.json(
-      { error: error?.message || 'Failed to sync on-chain state' },
+      { error: message },
       { status: 500 }
     );
   }

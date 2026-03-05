@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, http, isAddress } from 'viem';
 import { mainnet } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { requireAdminToken } from '@/lib/auth';
+import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -41,16 +42,24 @@ function getNftAddress() {
   return FALLBACK_MAINNET_NFT;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rateLimit = await checkRateLimit(req, {
+    bucket: 'agent-whitelist',
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) return rateLimit.response;
+
   try {
     // Hard gate: this route uses custodial keys. Only allow when explicitly enabled.
     if (process.env.SERVER_WHITELIST_ENABLED !== 'true') {
-      return NextResponse.json({ error: 'Whitelisting is disabled' }, { status: 403 });
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Whitelisting is disabled' }, { status: 403 }), rateLimit.headers);
     }
     try {
-      requireAdminToken(req as any);
-    } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Unauthorized' }, { status: 401 });
+      requireAdminToken(req);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unauthorized';
+      return applyRateLimitHeaders(NextResponse.json({ error: message }, { status: 401 }), rateLimit.headers);
     }
 
     const body = (await req.json().catch(() => ({}))) as {
@@ -62,21 +71,23 @@ export async function POST(req: Request) {
     const inviteCode = body.invite_code || '';
 
     if (!isAddress(address)) {
-      return NextResponse.json({ error: 'Invalid address' }, { status: 400 });
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Invalid address' }, { status: 400 }), rateLimit.headers);
     }
 
     const expected = getInviteCode();
     if (!expected || inviteCode !== expected) {
-      return NextResponse.json({ error: 'Invalid invite code' }, { status: 401 });
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Invalid invite code' }, { status: 401 }), rateLimit.headers);
     }
 
     const rpcUrl = getRpcUrl();
     const ownerKey = getOwnerKey();
     const nftAddress = getNftAddress();
 
-    if (!rpcUrl) return NextResponse.json({ error: 'Missing RPC URL (set ETH_MAINNET_RPC_URL)' }, { status: 500 });
-    if (!ownerKey) return NextResponse.json({ error: 'Missing OWNER_PRIVATE_KEY' }, { status: 500 });
-    if (!nftAddress || !isAddress(nftAddress)) return NextResponse.json({ error: 'Missing NFT contract address' }, { status: 500 });
+    if (!rpcUrl) return applyRateLimitHeaders(NextResponse.json({ error: 'Missing RPC URL (set ETH_MAINNET_RPC_URL)' }, { status: 500 }), rateLimit.headers);
+    if (!ownerKey) return applyRateLimitHeaders(NextResponse.json({ error: 'Missing OWNER_PRIVATE_KEY' }, { status: 500 }), rateLimit.headers);
+    if (!nftAddress || !isAddress(nftAddress)) {
+      return applyRateLimitHeaders(NextResponse.json({ error: 'Missing NFT contract address' }, { status: 500 }), rateLimit.headers);
+    }
 
     const account = privateKeyToAccount(ownerKey as `0x${string}`);
     const publicClient = createPublicClient({ chain: mainnet, transport: http(rpcUrl) });
@@ -91,8 +102,12 @@ export async function POST(req: Request) {
     });
 
     const hash = await walletClient.writeContract(request);
-    return NextResponse.json({ ok: true, hash });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to whitelist' }, { status: 500 });
+    return applyRateLimitHeaders(NextResponse.json({ ok: true, hash }), rateLimit.headers);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to whitelist';
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: message }, { status: 500 }),
+      rateLimit.headers,
+    );
   }
 }

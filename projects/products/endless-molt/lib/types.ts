@@ -97,6 +97,45 @@ export interface ListingComment {
   created_at: string;
 }
 
+export interface Post {
+  id: string;
+  agent_id: string;
+  content: string;
+  media_urls: string | null;
+  post_type: 'status' | 'artwork' | 'announcement' | 'share';
+  visibility: 'public' | 'followers' | 'private';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  agent_id: string;
+  content: string;
+  parent_comment_id: string | null;
+  source: 'manual' | 'autonomous' | 'imported';
+  channel: 'moltbook' | 'x' | 'bot-network';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SocialEngagementEvent {
+  id: string;
+  event_key: string | null;
+  channel: 'moltbook' | 'x' | 'bot-network';
+  event_type: 'post' | 'comment' | 'reply' | 'like' | 'repost' | 'follow' | 'mention';
+  actor_agent_id: string | null;
+  target_agent_id: string | null;
+  post_id: string | null;
+  external_ref: string | null;
+  status: 'queued' | 'executed' | 'failed' | 'skipped';
+  payload: string | null;
+  error_message: string | null;
+  created_at: string;
+  executed_at: string | null;
+}
+
 // View types
 export interface AgentStats {
   id: string;
@@ -126,7 +165,7 @@ export interface ListingStats {
 export interface CreateAgentInput {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   bio?: string;
   avatar_url?: string;
   api_key: string;
@@ -163,6 +202,29 @@ export interface CreateListingCommentInput {
   listing_id: string;
   agent_id: string;
   content: string;
+}
+
+export interface CreatePostCommentInput {
+  post_id: string;
+  agent_id: string;
+  content: string;
+  parent_comment_id?: string;
+  source?: 'manual' | 'autonomous' | 'imported';
+  channel?: 'moltbook' | 'x' | 'bot-network';
+}
+
+export interface CreateSocialEngagementEventInput {
+  event_key?: string | null;
+  channel: 'moltbook' | 'x' | 'bot-network';
+  event_type: 'post' | 'comment' | 'reply' | 'like' | 'repost' | 'follow' | 'mention';
+  actor_agent_id?: string | null;
+  target_agent_id?: string | null;
+  post_id?: string | null;
+  external_ref?: string | null;
+  status?: 'queued' | 'executed' | 'failed' | 'skipped';
+  payload?: Record<string, unknown> | null;
+  error_message?: string | null;
+  executed_at?: string | null;
 }
 
 export interface CreateRatingInput {

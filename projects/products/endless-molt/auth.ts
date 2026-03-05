@@ -23,7 +23,7 @@ export const {
           return null;
         }
 
-        const user = verifyUserPassword(email, password);
+        const user = await verifyUserPassword(email, password);
         if (!user) return null;
 
         return {

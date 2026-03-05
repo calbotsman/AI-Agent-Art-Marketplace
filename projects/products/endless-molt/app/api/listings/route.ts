@@ -9,6 +9,9 @@ import { getListings, createListing } from '@/lib/queries';
 import { withAuth } from '@/lib/auth';
 import { z } from 'zod';
 import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
+import { startApiTelemetry } from '@/lib/telemetry/api';
+import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
+import { beginIdempotency } from '@/lib/idempotency';
 
 const ListListingsQuerySchema = z.object({
   agent_id: z.string().min(1).optional(),
@@ -25,6 +28,7 @@ const ListListingsQuerySchema = z.object({
 
 // GET /api/listings - Browse listings with filters
 export async function GET(request: NextRequest) {
+  const telemetry = startApiTelemetry('/api/listings', 'GET');
   try {
     const { searchParams } = new URL(request.url);
 
@@ -43,28 +47,30 @@ export async function GET(request: NextRequest) {
       parsed.max_price !== undefined &&
       parsed.min_price > parsed.max_price
     ) {
-      return NextResponse.json(
+      return telemetry.finish(NextResponse.json(
         { error: 'Invalid price range: min_price cannot exceed max_price' },
         { status: 400 }
-      );
+      ));
     }
 
-    const listings = getListings(parsed);
+    const listings = await getListings(parsed);
 
-    return NextResponse.json({ listings, count: listings.length });
+    return telemetry.finish(NextResponse.json({ listings, count: listings.length }), {
+      count: listings.length,
+    });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
+      return telemetry.finish(NextResponse.json(
         { error: 'Invalid query params', details: error.errors },
         { status: 400 }
-      );
+      ), { error_type: 'validation' });
     }
 
     console.error('Listings fetch error:', error);
-    return NextResponse.json(
+    return telemetry.finish(NextResponse.json(
       { error: 'Failed to fetch listings' },
       { status: 500 }
-    );
+    ), { error_type: 'runtime' });
   }
 }
 
@@ -87,6 +93,35 @@ const CreateListingSchema = z.object({
 });
 
 export const POST = withAuth(async (request, { agent }) => {
+  const telemetry = startApiTelemetry('/api/listings', 'POST');
+  const rateLimit = await checkRateLimit(request, {
+    bucket: 'listings-create',
+    limit: 30,
+    windowMs: 60_000,
+    keySuffix: agent.id,
+  });
+  if (!rateLimit.ok) {
+    return telemetry.finish(rateLimit.response, { error_type: 'rate_limit' });
+  }
+
+  const idempotency = await beginIdempotency(request, {
+    bucket: 'listings-create',
+    ttlMs: 24 * 60 * 60_000,
+    keySuffix: agent.id,
+  });
+  if (idempotency.keyErrorResponse) {
+    return telemetry.finish(
+      applyRateLimitHeaders(idempotency.keyErrorResponse, rateLimit.headers),
+      { error_type: 'validation' },
+    );
+  }
+  if (idempotency.replay) {
+    return telemetry.finish(
+      applyRateLimitHeaders(idempotency.replay, rateLimit.headers),
+      { idempotent_replay: true },
+    );
+  }
+
   try {
     const body = await request.json();
     const data = CreateListingSchema.parse(body);
@@ -99,26 +134,48 @@ export const POST = withAuth(async (request, { agent }) => {
       priceMicros = usdCentsToMicroEth(data.price || 0, 3000);
     }
 
-    const listing = createListing({
+    const listing = await createListing({
       ...data,
       price: priceMicros,
       currency: 'ETH',
       agent_id: agent.id,
     });
 
-    return NextResponse.json({ listing }, { status: 201 });
+    const response = telemetry.finish(
+      applyRateLimitHeaders(NextResponse.json({ listing }, { status: 201 }), rateLimit.headers),
+      {
+        agent_id: agent.id,
+        listing_id: listing.id,
+      },
+    );
+    await idempotency.commit(response);
+    return response;
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
+      const response = telemetry.finish(
+        applyRateLimitHeaders(
+          NextResponse.json(
+            { error: 'Invalid input', details: error.errors },
+            { status: 400 },
+          ),
+          rateLimit.headers,
+        ),
+        { error_type: 'validation' },
       );
+      await idempotency.commit(response);
+      return response;
     }
 
     console.error('Listing creation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create listing' },
-      { status: 500 }
+    return telemetry.finish(
+      applyRateLimitHeaders(
+        NextResponse.json(
+          { error: 'Failed to create listing' },
+          { status: 500 },
+        ),
+        rateLimit.headers,
+      ),
+      { error_type: 'runtime' },
     );
   }
 });
