@@ -25,6 +25,8 @@ node_modules/
 scripts/__pycache__/
 .venv-kohya/
 .openclaw/
+ledger/raw/
+ledger/observations/
 
 # macOS archive artifacts (never commit)
 agents/__MACOSX/

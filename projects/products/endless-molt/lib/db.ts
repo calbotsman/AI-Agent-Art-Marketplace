@@ -21,7 +21,9 @@ function debugDb() {
 }
 
 function stripWrappingQuotes(value: string): string {
-  return value.trim().replace(/^['"]|['"]$/g, '');
+  // Vercel CLI sometimes writes values like `"'postgresql://...'"` into `.env.local`.
+  // Strip all wrapping quote characters so URL scheme detection works reliably.
+  return value.trim().replace(/^['"]+|['"]+$/g, '');
 }
 
 function isPostgresUrl(value: string) {
