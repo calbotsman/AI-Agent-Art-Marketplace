@@ -46,12 +46,30 @@ function parseIntEnv(name, fallback, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function stripWrappingQuotes(value) {
-  return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
+function normalizeDatabaseUrl(value) {
+  let url = String(value || '').trim();
+
+  // Copy/paste can introduce invisible characters (for example zero-width spaces) or
+  // escaped quoting (`\"...\"`) that break simple protocol checks.
+  url = url.replace(/^[^A-Za-z]+/, '');
+  url = url.replace(/^['"`]+|['"`]+$/g, '');
+  url = url.replace(/^\\+/, '').replace(/\\+$/, '');
+  url = url.replace(/^jdbc:/i, '');
+  url = url.replace(/^postgresql\\+[^:]+:/i, 'postgresql:');
+  url = url.replace(/^postgres\\+[^:]+:/i, 'postgres:');
+
+  return url;
+}
+
+function getUrlScheme(value) {
+  const url = normalizeDatabaseUrl(value);
+  const match = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  return match ? match[1].toLowerCase() : '';
 }
 
 function isPostgresUrl(value) {
-  return /^(postgres|postgresql):/i.test(String(value || '').trim());
+  const scheme = getUrlScheme(value);
+  return scheme === 'postgres' || scheme === 'postgresql';
 }
 
 function toSqliteDatetime(date) {
@@ -469,7 +487,9 @@ class PostgresStore {
 }
 
 async function openStore() {
-  const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
+  const databaseUrlRaw = process.env.DATABASE_URL;
+  const databaseUrl = normalizeDatabaseUrl(databaseUrlRaw);
+  const scheme = getUrlScheme(databaseUrlRaw);
   if (isPostgresUrl(databaseUrl)) {
     const store = new PostgresStore(databaseUrl);
     await store.connect();
@@ -477,6 +497,13 @@ async function openStore() {
   }
 
   const sqlitePath = path.join(process.cwd(), 'database', 'endless-molt.db');
+  try {
+    await fs.access(sqlitePath);
+  } catch {
+    throw new Error(
+      `First-sale sprint requires a Postgres DATABASE_URL in CI. Got scheme=${scheme || 'unknown'}; sqlite file missing at ${sqlitePath}.`,
+    );
+  }
   return { source: `sqlite:${sqlitePath}`, store: new SqliteStore(sqlitePath) };
 }
 
