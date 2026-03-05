@@ -49,6 +49,17 @@ function parseIntEnv(name, fallback, min, max) {
 function normalizeDatabaseUrl(value) {
   let url = String(value || '').trim();
 
+  // Common copy/paste mistake: pasting `DATABASE_URL=...` instead of the URL itself.
+  const eqIndex = url.indexOf('=');
+  const colonIndex = url.indexOf(':');
+  if (eqIndex !== -1 && (colonIndex === -1 || eqIndex < colonIndex)) {
+    const candidate = url.slice(eqIndex + 1).trim();
+    const candidateProbe = candidate.replace(/^[^A-Za-z]+/, '');
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(candidateProbe)) {
+      url = candidate;
+    }
+  }
+
   // Copy/paste can introduce invisible characters (for example zero-width spaces) or
   // escaped quoting (`\"...\"`) that break simple protocol checks.
   url = url.replace(/^[^A-Za-z]+/, '');
