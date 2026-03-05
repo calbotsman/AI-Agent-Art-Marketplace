@@ -1,0 +1,3 @@
+# director — influences
+
+#taste #learning

@@ -1,0 +1,45 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "logo",
+  "displayName": "Logo System",
+  "objective": "Produce a clear, scalable logo family with strong hierarchy and deterministic QA evidence.",
+  "inputArtifacts": [
+    "strategy/LATEST.md",
+    "direction/LATEST.md"
+  ],
+  "systemRefs": {
+    "designSystem": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/typography-tokens.json"
+    ],
+    "validators": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/typography.ts"
+    ],
+    "workflowDocs": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/contracts/TEAM_OPERATING_CONTRACT.md",
+      "/Users/calbotsman/clawd/studio/PIPELINE/creative-loop/README.md"
+    ]
+  },
+  "deliverables": [
+    "logo-primary",
+    "logo-secondary",
+    "logo-monochrome",
+    "logo-usage-spec"
+  ],
+  "qaGates": [
+    "minimum contrast for applied lockups is >= 4.5:1",
+    "no more than 2 type families",
+    "variant family must include at least 3 distinct lockups"
+  ],
+  "approvalFlow": [
+    "strategy",
+    "director",
+    "designer",
+    "validators",
+    "director"
+  ],
+  "constraints": [
+    "one dominant visual move",
+    "no decorative noise that weakens mark recognition",
+    "must ship with plain background usage examples"
+  ]
+}

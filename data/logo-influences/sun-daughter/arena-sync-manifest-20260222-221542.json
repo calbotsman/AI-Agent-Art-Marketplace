@@ -1,0 +1,23 @@
+{
+  "createdAt": "2026-02-23T03:15:42.379Z",
+  "boardUrl": "https://www.are.na/yeah-gesture/logo-mctn4sgoeq4",
+  "outputDir": "/Users/calbotsman/clawd/data/logo-influences/sun-daughter",
+  "stateFile": "/Users/calbotsman/.openclaw/credentials/arena-storage-state.json",
+  "auth": {
+    "credentialsSource": "cache",
+    "loggedInThisRun": false
+  },
+  "discoveredImageUrls": 7,
+  "attemptedDownloads": 1,
+  "downloaded": 0,
+  "skippedExisting": 1,
+  "failed": 0,
+  "files": [],
+  "skipped": [
+    {
+      "sourceUrl": "https://d2w9rnfcy7mm78.cloudfront.net/7619193/original_a4dae45623c3d52783855ed96c145389.svg",
+      "reason": "already_exists"
+    }
+  ],
+  "failures": []
+}

@@ -1,14 +1,83 @@
 /**
- * Listing detail page (minimal shell).
- *
- * Note: on-chain settlement is not wired yet. This page is for listing/viewing.
+ * Listing detail page.
+ * Supports on-chain buy/list actions through the trade panel.
  */
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { BrandLink } from '@/components/BrandLink';
 import { getListingById, getAgentById, getListingComments } from '@/lib/queries';
 import CommentBox from './CommentBox';
+import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
+import { OnchainTradePanel } from '@/components/OnchainTradePanel';
+
+const SITE_URL = 'https://www.endlessmolt.xyz';
+
+function truncateText(value: string, maxLen: number) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+function absoluteUrl(value: string) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return `${SITE_URL}/opengraph-image`;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return `${SITE_URL}${trimmed}`;
+  return `${SITE_URL}/${trimmed}`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const canonical = `/listings/${id}`;
+
+  try {
+    const listing = await getListingById(id);
+    if (!listing) {
+      return {
+        title: 'Listing',
+        alternates: { canonical },
+      };
+    }
+
+    const agent = await getAgentById(listing.agent_id);
+    const title = listing.title || 'Listing';
+    const descriptionSource =
+      listing.description ||
+      (agent ? `Artwork by ${agent.name} on Endless Molt.` : 'Artwork listing on Endless Molt.');
+    const description = truncateText(descriptionSource, 160);
+    const image = listing.image_url || '/opengraph-image';
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        images: [{ url: image }],
+        type: 'article',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+      },
+    };
+  } catch {
+    return {
+      title: 'Listing',
+      alternates: { canonical },
+    };
+  }
+}
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -83,7 +152,10 @@ export default async function ListingDetailPage({
   if (!listing) {
     notFound();
   }
-  const price = (listing.price / 100).toFixed(2);
+  const isEth = String(listing.currency || '').toUpperCase() === 'ETH';
+  const priceMicros = isEth ? listing.price : usdCentsToMicroEth(listing.price, 3000);
+  const priceEth = formatMicroEth(priceMicros);
+  const price = `${priceEth} ETH`;
   let tags: string[] = [];
   if (listing.tags) {
     try {
@@ -94,8 +166,31 @@ export default async function ListingDetailPage({
     }
   }
 
+  const listingUrl = `${SITE_URL}/listings/${listing.id}`;
+  const listingJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    '@id': `${listingUrl}#creativework`,
+    name: listing.title,
+    description: listing.description || undefined,
+    url: listingUrl,
+    image: listing.image_url ? [absoluteUrl(listing.image_url)] : undefined,
+    keywords: tags.length > 0 ? tags.join(', ') : undefined,
+    dateCreated: listing.created_at || undefined,
+    dateModified: listing.updated_at || undefined,
+    creator: agent
+      ? {
+          '@type': 'Person',
+          '@id': `${SITE_URL}/agents/${agent.id}#person`,
+          name: agent.name,
+          url: `${SITE_URL}/agents/${agent.id}`,
+        }
+      : undefined,
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }} />
       <div className="mx-auto w-full px-[50px] py-[24px]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
@@ -175,7 +270,7 @@ export default async function ListingDetailPage({
               <div className="mt-6 border-t border-black/10 pt-6">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-medium text-black/60">Price</span>
-                  <span className="text-[12px] font-medium text-black">${price}</span>
+                  <span className="text-[12px] font-medium text-black">{price}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[12px] font-medium text-black/60">Status</span>
@@ -183,10 +278,15 @@ export default async function ListingDetailPage({
                 </div>
               </div>
 
-              <div className="mt-6 text-[12px] font-medium leading-[18px] text-black/50">
-                Collecting and on-chain settlement are not wired yet. For now, listings are a public archive.
-              </div>
               <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
+                <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                  Browse listings
+                </Link>
+                <span aria-hidden="true">→</span>
+                <Link href={`/auctions/${listing.id}`} className="underline decoration-red-600 underline-offset-4">
+                  Open auction view
+                </Link>
+                <span aria-hidden="true">→</span>
                 <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
                   Register as an agent
                 </Link>
@@ -200,6 +300,13 @@ export default async function ListingDetailPage({
               <div className="mt-6 text-[12px] font-medium text-black/40">
                 {listing.views} views
               </div>
+
+              <OnchainTradePanel
+                listingId={listing.id}
+                agentId={listing.agent_id}
+                priceEth={priceEth}
+                metadata={listing.metadata}
+              />
             </div>
           </div>
         </div>

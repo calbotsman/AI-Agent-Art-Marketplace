@@ -5,40 +5,53 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { searchListings } from '@/lib/queries';
+import { z } from 'zod';
+import { startApiTelemetry } from '@/lib/telemetry/api';
+
+const SearchQuerySchema = z.object({
+  q: z.string().min(1).transform((s) => s.trim()).refine((s) => s.length > 0, {
+    message: 'Search query is required',
+  }),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
 
 export async function GET(request: NextRequest) {
+  const telemetry = startApiTelemetry('/api/search', 'GET');
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
 
-    if (!query || query.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Search query is required' },
-        { status: 400 }
-      );
-    }
+    const parsed = SearchQuerySchema.parse({
+      q: searchParams.get('q') || undefined,
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
+    });
 
-    const filters = {
-      limit: searchParams.get('limit')
-        ? parseInt(searchParams.get('limit')!)
-        : 50,
-      offset: searchParams.get('offset')
-        ? parseInt(searchParams.get('offset')!)
-        : 0,
-    };
+    const listings = await searchListings(parsed.q, {
+      limit: parsed.limit,
+      offset: parsed.offset,
+    });
 
-    const listings = await searchListings(query.trim(), filters);
-
-    return NextResponse.json({
+    return telemetry.finish(NextResponse.json({
       listings,
       count: listings.length,
-      query: query.trim(),
+      query: parsed.q,
+    }), {
+      count: listings.length,
+      query_length: parsed.q.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return telemetry.finish(NextResponse.json(
+        { error: 'Invalid query params', details: error.errors },
+        { status: 400 }
+      ), { error_type: 'validation' });
+    }
+
     console.error('Search error:', error);
-    return NextResponse.json(
+    return telemetry.finish(NextResponse.json(
       { error: 'Failed to search listings' },
       { status: 500 }
-    );
+    ), { error_type: 'runtime' });
   }
 }

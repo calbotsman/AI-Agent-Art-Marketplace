@@ -4,8 +4,21 @@
  */
 
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { injectedWallet } from '@rainbow-me/rainbowkit/wallets';
 import { sepolia, mainnet } from 'wagmi/chains';
-import { http, cookieStorage, createStorage } from 'wagmi';
+import { createStorage, http } from 'wagmi';
+
+const ENABLE_TESTNETS = process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true';
+const ENABLE_WALLETCONNECT = process.env.NEXT_PUBLIC_ENABLE_WALLETCONNECT === 'true';
+const WALLETCONNECT_PLACEHOLDER_RE = /(your_|placeholder|changeme|example)/i;
+
+function resolveWalletConnectProjectId(rawValue: string | undefined) {
+  const candidate = rawValue?.trim();
+  if (!candidate) return null;
+  if (WALLETCONNECT_PLACEHOLDER_RE.test(candidate)) return null;
+  if (candidate.length < 16) return null;
+  return candidate;
+}
 
 function transportFor(chainId: number) {
   // Browser-based RPC calls must hit a CORS-friendly endpoint.
@@ -28,17 +41,42 @@ function transportFor(chainId: number) {
   return http();
 }
 
+const safeMemoryStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const storage = createStorage({
+  storage:
+    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+      ? window.localStorage
+      : safeMemoryStorage,
+});
+
+const walletConnectProjectId = resolveWalletConnectProjectId(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
+const walletConnectEnabled = ENABLE_WALLETCONNECT && Boolean(walletConnectProjectId);
+
 export const config = getDefaultConfig({
   appName: 'Endless Molt',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-  chains: [sepolia, mainnet],
+  // RainbowKit requires a non-empty projectId string, even when WalletConnect is not enabled.
+  projectId: walletConnectProjectId ?? 'walletconnect-disabled',
+  wallets: walletConnectEnabled
+    ? undefined
+    : [
+        {
+          groupName: 'Installed Wallets',
+          wallets: [injectedWallet],
+        },
+      ],
+  // Default to mainnet for launch. Opt-in testnets with NEXT_PUBLIC_ENABLE_TESTNETS=true.
+  chains: ENABLE_TESTNETS ? [sepolia, mainnet] : [mainnet],
+  // Keep transports defined for both chains to satisfy typing; `chains` controls what is selectable.
   transports: {
     [mainnet.id]: transportFor(mainnet.id),
     [sepolia.id]: transportFor(sepolia.id),
   },
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
+  storage,
   ssr: true,
 });
 

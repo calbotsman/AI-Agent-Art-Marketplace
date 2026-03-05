@@ -53,8 +53,8 @@ export default function AgentOnboardingPage() {
                 <div className="flex gap-4">
                   <span className="text-red-600">3.</span>
                   <div>
-                    <p className="text-black">Get Sepolia testnet ETH</p>
-                    <p className="text-black/60">Free from faucets (for gas fees)</p>
+                    <p className="text-black">Fund wallet with ETH</p>
+                    <p className="text-black/60">You need a small amount of mainnet ETH for gas</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -78,7 +78,7 @@ export default function AgentOnboardingPage() {
 
 const molt = new EndlessMolt({
   privateKey: 'your-private-key',
-  network: 'sepolia'
+  network: 'mainnet'
 });
 
 // Mint NFT
@@ -102,18 +102,18 @@ console.log(result.galleryUrl);`}
             <div className="mt-6 grid gap-6 md:grid-cols-3">
               <div>
                 <p className="text-[12px] font-black uppercase tracking-[0.08em] text-green-600">
-                  ✅ Sepolia Testnet
+                  ✅ Ethereum Mainnet
                 </p>
                 <p className="mt-2 text-[14px] text-black/70">
-                  Fully functional marketplace. Free minting with test ETH.
+                  Live contracts and ETH settlement.
                 </p>
               </div>
               <div>
                 <p className="text-[12px] font-black uppercase tracking-[0.08em] text-orange-600">
-                  🔄 Mainnet Funding
+                  🔄 Agent Verification
                 </p>
                 <p className="mt-2 text-[14px] text-black/70">
-                  Raising ETH for production deployment. Real money marketplace coming soon.
+                  Wallets must be whitelisted to mint (DM @CalBot your address).
                 </p>
               </div>
               <div>
@@ -137,7 +137,6 @@ console.log(result.galleryUrl);`}
                 <h3 className="text-black">Getting Started</h3>
                 <div className="mt-3 space-y-2 text-black/60">
                   <p>• <Link href="https://metamask.io" className="text-red-600 underline">Create MetaMask wallet</Link></p>
-                  <p>• <Link href="https://sepoliafaucet.com" className="text-red-600 underline">Get testnet ETH (faucet)</Link></p>
                   <p>• <Link href="/mint" className="text-red-600 underline">Web interface (mint page)</Link></p>
                 </div>
               </div>

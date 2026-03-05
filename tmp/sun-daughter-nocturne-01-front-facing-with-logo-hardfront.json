@@ -1,0 +1,117 @@
+{
+  "conceptId": "sun-daughter-nocturne-01-front-facing-with-logo-hardfront",
+  "brandName": "Sun Daughter",
+  "tagline": "Deep-night recovery supplement",
+  "productName": "Nocturne Recovery",
+  "palette": {
+    "primary": "#1E2A5C",
+    "background": "#F7F5F1",
+    "text": "#1B1D22",
+    "border": "#2A3564",
+    "secondary": "#D8DDE8",
+    "accent": "#8F6A26"
+  },
+  "fonts": {
+    "headline": "Cormorant Garamond",
+    "body": "Inter",
+    "logo": "Cormorant Garamond",
+    "logoWeight": 700,
+    "logoLetterSpacing": "0.08em",
+    "logoTransform": "uppercase",
+    "logoSize": 140
+  },
+  "label": {
+    "productDescription": "Targeted PM formula supporting sleep depth, nervous-system calm, and next-day cognitive steadiness.",
+    "servingCount": "30 CAPSULES",
+    "servingSize": "2 capsules",
+    "suggestedUse": "Adults, take 2 capsules 30-60 minutes before sleep with water. Use nightly for best consistency.",
+    "warnings": "Keep out of reach of children. Do not use if seal is broken. Consult your healthcare provider before use if pregnant, nursing, taking medication, or managing a medical condition.",
+    "footer": "Manufactured for Sun Daughter Wellness  |  cGMP Facility  |  Made in USA",
+    "ingredients": [
+      {
+        "name": "Magnesium (Bisglycinate)",
+        "amount": "120 mg",
+        "percentDV": "29"
+      },
+      {
+        "name": "L-Theanine",
+        "amount": "200 mg"
+      },
+      {
+        "name": "Apigenin",
+        "amount": "50 mg"
+      },
+      {
+        "name": "Inositol",
+        "amount": "500 mg"
+      },
+      {
+        "name": "Lemon Balm Extract",
+        "amount": "120 mg"
+      },
+      {
+        "name": "Vitamin B6",
+        "amount": "2 mg",
+        "percentDV": "118"
+      }
+    ]
+  },
+  "board": {
+    "positioning": "A premium sleep-support system balancing hard evidence with emotionally calm luxury cues.",
+    "moodKeywords": [
+      "Night Ritual",
+      "Calm Precision",
+      "Editorial Minimal",
+      "Modern Apothecary"
+    ],
+    "voicePillars": [
+      "Confident but not loud",
+      "Evidence-forward claims",
+      "No generic wellness cliches"
+    ],
+    "proofPoints": [
+      "Locked spec-compliant hierarchy",
+      "Role-based palette and spacing system",
+      "Cross-surface consistency from label to mockup"
+    ]
+  },
+  "render": {
+    "recraftModel": "recraft/recraft-v4",
+    "recraftImageSize": "1024x1024",
+    "recraft": {
+      "scenePrompt": "Clean, photorealistic studio background plate for a premium supplement bottle. Seamless pure white or very light gray backdrop, soft and even studio lighting from all angles, creating subtle, elegant shadows. Perfect for a central bottle composite. Minimalist, professional, high-key lighting. No bottles, no labels, no text, no logos, no packaging, no watermarks.",
+      "moodPrompt": "Sun Daughter premium brand mood texture, abstract paper and brushed metal gradients, calm scientific wellness aesthetic, restrained luxury, no text, no logo, no product, no packaging, no watermark"
+    },
+    "recraftStyle": "natural",
+    "bottleImageEngine": "reference",
+    "productMockEngine": "gemini-labeled-composition",
+    "bottleReferenceImage": "/Users/calbotsman/clawd/output/supplement-design/pill-gemini-reference/pill-matte-reference-gemini.png",
+    "bottleMockup": {
+      "left": 0.315,
+      "top": 0.345,
+      "width": 0.405,
+      "maxHeight": 0.62,
+      "aspect": 1.7,
+      "perspective": 0.12,
+      "perspectivePower": 1.9,
+      "bulge": 0.028,
+      "warpAmp": 0.014,
+      "shadow": 0.22,
+      "highlight": 0.14,
+      "stripCount": 168,
+      "frontOnly": true,
+      "frontOffset": 0.16,
+      "frontWidth": 0.84,
+      "sourceFromReference": true
+    },
+    "geminiSceneDescription": "Centered studio hero product shot. Camera straight-on to bottle front (0 degree yaw), no 3/4 angle, no turntable rotation. Front label panel fully visible and legible with minimal side panel visibility.",
+    "geminiAdvancedCompositionPrompt": "CRITICAL LABEL PRESERVATION:\n- Use the label reference literally.\n- Preserve exact text, typography, layout, colors, and logo artwork from the label reference.\n- Do not invent, replace, or alter any label wording or logo details.\n\nBOTTLE PRESERVATION:\n- Use bottle shape, cap, and material from bottle reference.\n- Keep camera perspective aligned to bottle reference (front-facing).\n\nCAMERA LOCK (HARD):\n- Straight front view only: 0-degree yaw, 0-degree roll.\n- No 3/4 angle and no rotated/turned bottle.\n- Front label panel centered toward camera.\n- Keep side panels minimal (each <=5% of visible circumference).\n\nLABEL VISIBILITY REQUIREMENTS:\n- Product name and primary copy must be fully visible and readable.\n- Do not crop or hide the logo or product title.\n\nPHYSICAL WRAP REQUIREMENTS:\n- Label must follow bottle curvature and perspective naturally.\n- Match reflections/specular highlights to bottle material.\n- Match lighting direction/intensity and contact/cast shadows.\n- Avoid pasted/cutout artifacts and sticker look.\n\nGENERATION TASK:\n- Create a new image by combining the references.\n- Take label from image 1 and apply it to bottle from image 2.\n- Keep product hero realism and clear label legibility.\n\nNEGATIVE CONSTRAINTS:\n- no rewritten text\n- no gibberish typography\n- no extra logos beyond label reference\n- no duplicate labels\n- no watermark\n- no flat sticker look\n- no bottle rotation away from camera\n\nSCENE RULE:\n- The scene description controls only environment/camera/lighting.\n- Do not restyle bottle or label from the scene description.\n\nSCENE DESCRIPTION: Centered studio hero product shot. Camera straight-on to bottle front (0 degree yaw), no 3/4 angle, no turntable rotation. Front label panel fully visible and legible with minimal side panel visibility.\nOutput 1:1 aspect ratio."
+  },
+  "brandLogo": {
+    "source": "/Users/calbotsman/clawd/assets/logos/sun-daughter/logo-01-transparent.png",
+    "alt": "Sun Daughter logo",
+    "maxWidthPx": 340,
+    "maxHeightPx": 92,
+    "fit": "contain"
+  }
+}

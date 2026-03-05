@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-02-24T13:47:33.349Z",
+  "sourceCatalog": "/Users/calbotsman/clawd/data/logo-influences/meta/logo-catalog.jsonl",
+  "totalRefs": 48,
+  "lowConfidenceRefs": 48,
+  "topTags": [
+    {
+      "tag": "needs-review",
+      "count": 48,
+      "ratio": 1,
+      "examples": [
+        "arena-logo-0001-1b0941322548.jpg",
+        "arena-logo-0001-8c35805e1c31.jpg",
+        "arena-logo-0001-ac96f40bb146.png",
+        "arena-logo-0002-a36dd11954a6.webp",
+        "arena-logo-0002-e18109401d68.jpg",
+        "arena-logo-0003-3017dff6dddd.jpg"
+      ],
+      "confidenceAvg": 0,
+      "lowConfidenceCount": 48
+    },
+    {
+      "tag": "transparent-bg",
+      "count": 13,
+      "ratio": 0.271,
+      "examples": [
+        "arena-logo-0001-ac96f40bb146.png",
+        "arena-logo-0003-85902886a12f.png",
+        "arena-logo-0006-01bf90562770.png",
+        "arena-logo-direct-427c868a4b4d.png",
+        "arena-logo-direct-488ef0337b64.png",
+        "arena-logo-direct-57b43318ebb9.png"
+      ],
+      "confidenceAvg": 0,
+      "lowConfidenceCount": 13
+    }
+  ],
+  "recommendations": [
+    "No single high-momentum signal exceeds threshold; run a balanced batch across geometric, typographic, and mark-first variants."
+  ]
+}

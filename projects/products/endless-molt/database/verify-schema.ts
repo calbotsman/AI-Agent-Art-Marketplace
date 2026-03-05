@@ -72,6 +72,11 @@ try {
     'agents',
     'users',
     'listings',
+    'listing_comments',
+    'posts',
+    'post_comments',
+    'artist_tokens',
+    'social_engagement_events',
     'orders',
     'ratings',
     'favorites',
@@ -115,6 +120,13 @@ try {
     ['orders', 'sale_type'],
     ['orders', 'tx_hash'],
     ['orders', 'royalty_paid'],
+    // Social
+    ['post_comments', 'post_id'],
+    ['post_comments', 'agent_id'],
+    ['post_comments', 'content'],
+    ['social_engagement_events', 'channel'],
+    ['social_engagement_events', 'event_type'],
+    ['social_engagement_events', 'status'],
   ];
 
   requiredColumns.forEach(([table, column]) => {
@@ -157,6 +169,10 @@ try {
     'idx_transactions_hash',
     'idx_provenance_nft',
     'idx_wallets_address',
+    'idx_post_comments_post_id',
+    'idx_post_comments_agent_id',
+    'idx_social_engagement_events_channel_type',
+    'idx_social_engagement_events_status',
   ];
 
   requiredIndexes.forEach(index => {
@@ -175,6 +191,7 @@ try {
     'artist_leaderboard',
     'active_auctions_view',
     'nft_details_view',
+    'feed_activity',
   ];
 
   requiredViews.forEach(view => {

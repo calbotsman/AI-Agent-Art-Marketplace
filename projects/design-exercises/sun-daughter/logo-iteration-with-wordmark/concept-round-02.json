@@ -1,0 +1,24 @@
+{
+  "conceptId": "sun-daughter-logo-wordmark-02",
+  "brandName": "Sun Daughter",
+  "productName": "Logo",
+  "description": "Generate new logo variations for Sun Daughter, continuing the integration of the 'Sun Daughter' wordmark. Focus on refining the aesthetics to convey natural warmth and premium quality, incorporating subtle variations based on previous feedback (which would be inserted here if available).",
+  "visualDirection": {
+    "style": "vector_illustration",
+    "substyle": "flat_graphic",
+    "colors": ["#FDD835", "#FF8F00", "#FFD700", "#FBC02D", "#FFFDE7"],
+    "mood": "warm, inviting, natural, premium, clean",
+    "elements": [
+      "prominent 'Sun Daughter' wordmark",
+      "minimalist sun motif",
+      "abstract natural elements (leaves, waves, or subtle organic shapes)",
+      "elegant typography"
+    ],
+    "negativePrompt": "busy, cluttered, cartoonish, childish, overly complex, dull colors"
+  },
+  "outputRequirements": {
+    "label": true,
+    "productMock": false,
+    "brandBoard": false
+  }
+}

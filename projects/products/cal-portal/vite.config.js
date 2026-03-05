@@ -80,6 +80,15 @@ export default defineConfig(() => {
     value: null,
   }
 
+  function extractJsonFromCliOutput(stdout) {
+    // Some OpenClaw commands print "doctor warnings" before the JSON payload.
+    // We only parse the JSON portion.
+    const s = (stdout || '').toString()
+    const i = s.indexOf('{')
+    if (i < 0) return null
+    try { return JSON.parse(s.slice(i)) } catch { return null }
+  }
+
   function runOpenclaw(args) {
     return new Promise((resolve) => {
       execFile('openclaw', args, { timeout: 15000 }, (err, stdout, stderr) => {
@@ -138,11 +147,31 @@ export default defineConfig(() => {
                 }
 
                 // Refresh cache (may take a few seconds due to doctor warnings).
+                // SECURITY: do not expose auth token fragments in the UI.
                 modelsCache.inFlight = true
-                const out = await runOpenclaw(['models', 'list'])
+                const out = await runOpenclaw(['models', 'status', '--json'])
                 modelsCache.inFlight = false
                 modelsCache.ts = now
-                modelsCache.value = { ok: out.ok, code: out.code, stdout: out.stdout, stderr: out.stderr }
+                const parsed = out.ok ? extractJsonFromCliOutput(out.stdout) : null
+
+                // Only return non-sensitive model configuration.
+                const safe = parsed ? {
+                  defaultModel: parsed.defaultModel || null,
+                  resolvedDefault: parsed.resolvedDefault || null,
+                  fallbacks: Array.isArray(parsed.fallbacks) ? parsed.fallbacks : [],
+                  imageModel: parsed.imageModel || null,
+                  imageFallbacks: Array.isArray(parsed.imageFallbacks) ? parsed.imageFallbacks : [],
+                  allowed: Array.isArray(parsed.allowed) ? parsed.allowed : [],
+                  aliasesCount: parsed.aliases ? Object.keys(parsed.aliases).length : 0,
+                } : null
+
+                modelsCache.value = {
+                  ok: Boolean(out.ok && safe),
+                  code: out.code,
+                  models: safe,
+                  // Keep stderr for debugging *locally*; never include stdout because it may contain token fragments.
+                  stderr: (out.stderr || '').toString().slice(0, 2000),
+                }
                 return json(res, 200, { cached: false, ...modelsCache.value })
               }
 

@@ -1,0 +1,14 @@
+{
+  "conceptId": "test-lora-001",
+  "brandName": "Sun Daughter",
+  "productName": "LoRA Test Product",
+  "render": {
+    "recraftModel": "recraft/recraft-v4",
+    "recraftImageSize": "1024x1024",
+    "recraft": {
+      "scenePrompt": "A minimalist and clean studio background with soft natural light, designed to enhance product photography. No product, no text, no logo.",
+      "moodPrompt": "Abstract soft pastel gradients, calm and inviting, no text, no logo, no product."
+    },
+    "recraftStyle": "vivid"
+  }
+}

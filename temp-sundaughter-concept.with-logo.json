@@ -1,0 +1,94 @@
+{
+  "conceptId": "sun-daughter-nocturne-01",
+  "brandName": "Sun Daughter",
+  "tagline": "Deep-night recovery supplement",
+  "productName": "Nocturne Recovery",
+  "palette": {
+    "primary": "#1E2A5C",
+    "background": "#F7F5F1",
+    "text": "#1B1D22",
+    "border": "#2A3564",
+    "secondary": "#D8DDE8",
+    "accent": "#8F6A26"
+  },
+  "fonts": {
+    "headline": "Cormorant Garamond",
+    "body": "Inter",
+    "logo": "Cormorant Garamond",
+    "logoWeight": 700,
+    "logoLetterSpacing": "0.08em",
+    "logoTransform": "uppercase",
+    "logoSize": 140
+  },
+  "label": {
+    "productDescription": "Targeted PM formula supporting sleep depth, nervous-system calm, and next-day cognitive steadiness.",
+    "servingCount": "30 CAPSULES",
+    "servingSize": "2 capsules",
+    "suggestedUse": "Adults, take 2 capsules 30-60 minutes before sleep with water. Use nightly for best consistency.",
+    "warnings": "Keep out of reach of children. Do not use if seal is broken. Consult your healthcare provider before use if pregnant, nursing, taking medication, or managing a medical condition.",
+    "footer": "Manufactured for Sun Daughter Wellness  |  cGMP Facility  |  Made in USA",
+    "ingredients": [
+      {
+        "name": "Magnesium (Bisglycinate)",
+        "amount": "120 mg",
+        "percentDV": "29"
+      },
+      {
+        "name": "L-Theanine",
+        "amount": "200 mg"
+      },
+      {
+        "name": "Apigenin",
+        "amount": "50 mg"
+      },
+      {
+        "name": "Inositol",
+        "amount": "500 mg"
+      },
+      {
+        "name": "Lemon Balm Extract",
+        "amount": "120 mg"
+      },
+      {
+        "name": "Vitamin B6",
+        "amount": "2 mg",
+        "percentDV": "118"
+      }
+    ]
+  },
+  "board": {
+    "positioning": "A premium sleep-support system balancing hard evidence with emotionally calm luxury cues.",
+    "moodKeywords": [
+      "Night Ritual",
+      "Calm Precision",
+      "Editorial Minimal",
+      "Modern Apothecary"
+    ],
+    "voicePillars": [
+      "Confident but not loud",
+      "Evidence-forward claims",
+      "No generic wellness cliches"
+    ],
+    "proofPoints": [
+      "Locked spec-compliant hierarchy",
+      "Role-based palette and spacing system",
+      "Cross-surface consistency from label to mockup"
+    ]
+  },
+  "render": {
+    "recraftModel": "recraft/recraft-v4",
+    "recraftImageSize": "1024x1024",
+    "recraft": {
+      "scenePrompt": "Clean, photorealistic studio background plate for a premium supplement bottle. Seamless pure white or very light gray backdrop, soft and even studio lighting from all angles, creating subtle, elegant shadows. Perfect for a central bottle composite. Minimalist, professional, high-key lighting. No bottles, no labels, no text, no logos, no packaging, no watermarks.",
+      "moodPrompt": "Sun Daughter premium brand mood texture, abstract paper and brushed metal gradients, calm scientific wellness aesthetic, restrained luxury, no text, no logo, no product, no packaging, no watermark"
+    },
+    "recraftStyle": "vivid"
+  },
+  "brandLogo": {
+    "source": "/Users/calbotsman/clawd/output/logo/style/sun-daughter/style-20260221-195836/20260221-195836/round-01/previews/logo-01.png",
+    "alt": "Sun Daughter",
+    "maxWidthPx": 360,
+    "maxHeightPx": 84,
+    "fit": "contain"
+  }
+}

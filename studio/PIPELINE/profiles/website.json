@@ -1,0 +1,48 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "website",
+  "displayName": "Web Surface",
+  "objective": "Produce web-facing design outputs with clear hierarchy, strong type rhythm, and reusable system rules.",
+  "inputArtifacts": [
+    "strategy/LATEST.md",
+    "direction/LATEST.md"
+  ],
+  "systemRefs": {
+    "designSystem": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/typography-tokens.json",
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/layout-tokens.json"
+    ],
+    "validators": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/typography.ts",
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/layout.ts"
+    ],
+    "workflowDocs": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/contracts/TEAM_OPERATING_CONTRACT.md",
+      "/Users/calbotsman/clawd/studio/PIPELINE/creative-loop/README.md"
+    ]
+  },
+  "deliverables": [
+    "page-layout-spec",
+    "component-rules",
+    "responsive-behavior-notes",
+    "design-qa-report"
+  ],
+  "qaGates": [
+    "body text contrast >= 4.5:1",
+    "type hierarchy step ratio >= 1.15",
+    "layout overflow must be false in desktop and mobile variants",
+    "component spacing follows one consistent scale"
+  ],
+  "approvalFlow": [
+    "strategy",
+    "director",
+    "designer",
+    "validators",
+    "director"
+  ],
+  "constraints": [
+    "one hero visual move per page section",
+    "no generic template styling without system rationale",
+    "must include mobile behavior from the same token system"
+  ]
+}

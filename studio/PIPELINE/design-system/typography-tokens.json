@@ -1,0 +1,94 @@
+{
+  "$schemaVersion": "1.0.0",
+  "description": "Canonical typography tokens for autonomous supplement label rendering in Clawd pipeline.",
+  "scale": {
+    "basePx": 14,
+    "ratio": 1.2,
+    "minPx": 8
+  },
+  "roles": {
+    "brandLogo": {
+      "familyCategory": "display",
+      "sizePx": 56,
+      "weight": 700,
+      "lineHeight": 1.0,
+      "trackingEm": 0.06,
+      "case": "uppercase"
+    },
+    "productName": {
+      "familyCategory": "headline",
+      "sizePx": 42,
+      "weight": 700,
+      "lineHeight": 1.1,
+      "trackingEm": 0.0,
+      "case": "title"
+    },
+    "productDescription": {
+      "familyCategory": "body",
+      "sizePx": 14,
+      "weight": 400,
+      "lineHeight": 1.5,
+      "trackingEm": 0.0,
+      "case": "sentence"
+    },
+    "servingCount": {
+      "familyCategory": "headline",
+      "sizePx": 16,
+      "weight": 600,
+      "lineHeight": 1.2,
+      "trackingEm": 0.05,
+      "case": "uppercase"
+    },
+    "factsHeader": {
+      "familyCategory": "headline",
+      "sizePx": 20,
+      "weight": 800,
+      "lineHeight": 1.1,
+      "trackingEm": 0.02,
+      "case": "uppercase"
+    },
+    "factsBody": {
+      "familyCategory": "body",
+      "sizePx": 11,
+      "weight": 500,
+      "lineHeight": 1.35,
+      "trackingEm": 0.0,
+      "case": "sentence"
+    },
+    "sectionTitle": {
+      "familyCategory": "headline",
+      "sizePx": 11,
+      "weight": 700,
+      "lineHeight": 1.2,
+      "trackingEm": 0.1,
+      "case": "uppercase"
+    },
+    "warnings": {
+      "familyCategory": "body",
+      "sizePx": 9,
+      "weight": 400,
+      "lineHeight": 1.5,
+      "trackingEm": 0.0,
+      "case": "sentence"
+    },
+    "microcopy": {
+      "familyCategory": "body",
+      "sizePx": 9,
+      "weight": 400,
+      "lineHeight": 1.4,
+      "trackingEm": 0.0,
+      "case": "sentence"
+    }
+  },
+  "constraints": {
+    "maxFontFamilies": 2,
+    "lineLength": {
+      "bodyMinChars": 28,
+      "bodyMaxChars": 58
+    },
+    "hierarchyMinStepRatio": 1.15,
+    "contrastRatioMin": 4.5,
+    "headlineContrastRatioMin": 3.0,
+    "orphanPolicy": "no_single_word_last_line"
+  }
+}

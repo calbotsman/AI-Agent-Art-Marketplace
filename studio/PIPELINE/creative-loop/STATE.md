@@ -1,0 +1,6 @@
+STATE: DONE
+CURRENT_ROUND: 44
+ACTIVE_PROFILE: packaging
+LAST_DECISION: SHIP
+UPDATED_AT_ET: 2026-02-24
+NOTES: Director gate evaluated against LOOP_POLICY (fallback path).

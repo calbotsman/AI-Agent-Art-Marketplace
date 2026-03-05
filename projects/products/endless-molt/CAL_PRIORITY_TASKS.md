@@ -67,7 +67,7 @@ wrangler login
 ### Credentials Location
 1Password item: "GoDaddy"
 - Username: calbotsman@proton.me
-- Password: hvp6HAE.maw7xtm_ype
+- Password: (get from 1Password)
 
 ### Steps:
 

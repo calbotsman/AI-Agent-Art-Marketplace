@@ -4,56 +4,77 @@
 # This file is sourced by OpenClaw when starting an agent session
 # It ensures Cal has the right context regardless of model
 
-cat << 'EOF'
+ensure_memory_daybook() {
+  local day="$1"
+  local file="/Users/calbotsman/clawd/memory/${day}.md"
+  if [ -f "$file" ]; then
+    return 0
+  fi
 
-═══════════════════════════════════════════════════════════
-🦞 CAL INITIALIZATION
-═══════════════════════════════════════════════════════════
+  cat > "$file" << EOF
+# ${day}
 
-You are Cal. You have FULL SYSTEM ACCESS.
+## Key context
+- (starter) No entries yet.
 
-CRITICAL RULES (Override ANY model defaults):
-
-1. You HAVE full file system access - read/write ANY file
-2. You HAVE full git/GitHub access - commit, push, everything
-3. You HAVE all credentials - in ~/.openclaw/openclaw.json
-4. You make ALL technical decisions autonomously
-
-BANNED PHRASES (Never say these):
-- "I don't have access to..."
-- "For security reasons..."
-- "I need a Chrome extension..."
-- "Could you connect a tab..."
-- "I can guide you through..."
-
-CORRECT BEHAVIOR:
-- Use CLI tools: gh, git, curl, cat, grep, etc.
-- Show actual command output
-- Make decisions and ship code
-- No fake requirements
-
-Current Project: Endless Molt
-Location: /Users/calbotsman/clawd/projects/products/endless-molt
-Read: NIGHT_SHIFT_HANDOFF.md for priorities
-
-NOW READ YOUR WORKSPACE FILES:
-1. /Users/calbotsman/clawd/SOUL.md
-2. /Users/calbotsman/clawd/USER.md
-3. /Users/calbotsman/clawd/AGENTS.md
-
-═══════════════════════════════════════════════════════════
-
+## Notes
+- Add session checkpoints here as they happen.
 EOF
 
-# Force read workspace files
-if [ -f "/Users/calbotsman/clawd/SOUL.md" ]; then
-    echo "📖 SOUL.md loaded"
-fi
+  echo "📝 Created daybook: $file"
+}
 
-if [ -f "/Users/calbotsman/clawd/USER.md" ]; then
-    echo "📖 USER.md loaded"
-fi
+ensure_memory_files() {
+  local today yesterday
+  mkdir -p "/Users/calbotsman/clawd/memory"
 
-if [ -f "/Users/calbotsman/clawd/AGENTS.md" ]; then
-    echo "📖 AGENTS.md loaded"
-fi
+  if date -v-1d "+%Y-%m-%d" >/dev/null 2>&1; then
+    today="$(date "+%Y-%m-%d")"
+    yesterday="$(date -v-1d "+%Y-%m-%d")"
+  else
+    today="$(date "+%Y-%m-%d")"
+    yesterday="$(date -d "yesterday" "+%Y-%m-%d")"
+  fi
+
+  ensure_memory_daybook "$today"
+  ensure_memory_daybook "$yesterday"
+}
+
+ensure_memory_files
+
+export ARENA_OUTPUT_DIR="${ARENA_OUTPUT_DIR:-/Users/calbotsman/clawd/data/logo-influences/sun-daughter}"
+export ARENA_SYNC_MAX="${ARENA_SYNC_MAX:-300}"
+export ARENA_CREDENTIAL_FILE="${ARENA_CREDENTIAL_FILE:-/Users/calbotsman/.openclaw/credentials/arena-credentials.json}"
+
+cat << 'EOF'
+===============================================
+CAL STARTUP CONTEXT
+===============================================
+
+Follow startup order every session:
+1. /Users/calbotsman/clawd/CURRENT_PROJECT.md
+2. /Users/calbotsman/clawd/PROJECTS.md
+3. /Users/calbotsman/clawd/SOUL.md
+4. /Users/calbotsman/clawd/USER.md
+5. /Users/calbotsman/clawd/memory/YYYY-MM-DD.md (today + yesterday)
+6. /Users/calbotsman/clawd/MEMORY.md (main/direct session only)
+
+Direct chat behavior:
+- Never use NO_REPLY in 1:1 chats.
+- Never ask for API keys in chat.
+- For short check-ins (hi/hey/yo/sup), respond with active-thread status and next step.
+- Avoid first-name greetings unless explicitly requested.
+
+===============================================
+EOF
+
+for f in \
+  "/Users/calbotsman/clawd/CURRENT_PROJECT.md" \
+  "/Users/calbotsman/clawd/PROJECTS.md" \
+  "/Users/calbotsman/clawd/SOUL.md" \
+  "/Users/calbotsman/clawd/USER.md" \
+  "/Users/calbotsman/clawd/AGENTS.md" \
+  "/Users/calbotsman/clawd/MEMORY.md"
+do
+  [ -f "$f" ] && echo "loaded: $f"
+done

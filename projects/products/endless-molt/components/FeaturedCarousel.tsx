@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import { formatMicroEth } from '@/lib/pricing';
 
 interface FeaturedItem {
   id: string;
@@ -73,7 +73,7 @@ export function FeaturedCarousel({ items }: FeaturedCarouselProps) {
   const current = items[currentIndex];
   const imageUrl = current.image || current.image_url || current.thumbnail_url || '';
   const artistName = current.artist || (current.agent?.name) || 'Unknown Artist';
-  const priceETH = current.price ? (current.price / 100).toFixed(2) : '';
+  const priceETH = current.price !== undefined && current.price !== null ? formatMicroEth(current.price) : '';
 
   return (
     <div 

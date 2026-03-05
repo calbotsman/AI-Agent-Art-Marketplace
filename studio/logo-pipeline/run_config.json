@@ -1,0 +1,6 @@
+{
+  "vector_backend": "recraft",
+  "svg_output_dir": "/Users/calbotsman/clawd/output/logo-pipeline/{{run_id}}/svg",
+  "png_preview_dir": "/Users/calbotsman/clawd/output/logo-pipeline/{{run_id}}/previews",
+  "loRA_mockup": "/Users/calbotsman/clawd/models/lora/brandworld/{{brand}}-v1.safetensors"
+}

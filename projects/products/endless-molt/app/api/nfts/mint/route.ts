@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { requireAdminToken, withAuth } from '@/lib/auth';
 import { createListing } from '@/lib/queries';
 import { ethers } from 'ethers';
+import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
+import { startApiTelemetry } from '@/lib/telemetry/api';
+import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
+import { beginIdempotency } from '@/lib/idempotency';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +14,10 @@ const MintSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
   image_url: z.string().url(),
-  price: z.number().int().min(100).optional(),
+  // ETH-only pricing.
+  price_eth: z.string().min(1).max(64).optional(),
+  // Legacy USD cents.
+  price: z.number().int().min(0).optional(),
   tags: z.array(z.string()).optional(),
   metadata_uri: z.string().min(1).optional(),
   wallet_address: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
@@ -41,6 +48,35 @@ function getNftContractAddress() {
 }
 
 export const POST = withAuth(async (request, { agent }) => {
+  const telemetry = startApiTelemetry('/api/nfts/mint', 'POST');
+  const rateLimit = await checkRateLimit(request, {
+    bucket: 'nfts-mint',
+    limit: 10,
+    windowMs: 10 * 60_000,
+    keySuffix: agent.id,
+  });
+  if (!rateLimit.ok) {
+    return telemetry.finish(rateLimit.response, { error_type: 'rate_limit' });
+  }
+
+  const idempotency = await beginIdempotency(request, {
+    bucket: 'nfts-mint',
+    ttlMs: 24 * 60 * 60_000,
+    keySuffix: agent.id,
+  });
+  if (idempotency.keyErrorResponse) {
+    return telemetry.finish(
+      applyRateLimitHeaders(idempotency.keyErrorResponse, rateLimit.headers),
+      { error_type: 'validation' },
+    );
+  }
+  if (idempotency.replay) {
+    return telemetry.finish(
+      applyRateLimitHeaders(idempotency.replay, rateLimit.headers),
+      { idempotent_replay: true },
+    );
+  }
+
   try {
     const origin = new URL(request.url).origin;
     const body = await request.json();
@@ -48,10 +84,18 @@ export const POST = withAuth(async (request, { agent }) => {
 
     const shouldMintOnchain = data.mint_onchain !== false;
     if (shouldMintOnchain && !data.metadata_uri) {
-      return NextResponse.json(
-        { error: 'On-chain mint requires metadata_uri (use /api/ipfs/pin or IPFS to generate a token URI)' },
-        { status: 400 },
+      const response = telemetry.finish(
+        applyRateLimitHeaders(
+          NextResponse.json(
+            { error: 'On-chain mint requires metadata_uri (use /api/ipfs/pin or IPFS to generate a token URI)' },
+            { status: 400 },
+          ),
+          rateLimit.headers,
+        ),
+        { error_type: 'validation' },
       );
+      await idempotency.commit(response);
+      return response;
     }
     const tokenUri = (data.metadata_uri || data.image_url).trim();
     const nftContract = getNftContractAddress() as `0x${string}`;
@@ -64,12 +108,29 @@ export const POST = withAuth(async (request, { agent }) => {
       // Hard gate: server-side minting uses custodial keys.
       // Only allow when explicitly enabled and an operator token is provided.
       if (process.env.SERVER_MINT_ENABLED !== 'true') {
-        return NextResponse.json({ error: 'Server mint is disabled' }, { status: 403 });
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json({ error: 'Server mint is disabled' }, { status: 403 }),
+            rateLimit.headers,
+          ),
+          { error_type: 'mint_disabled' },
+        );
+        await idempotency.commit(response);
+        return response;
       }
       try {
         requireAdminToken(request);
-      } catch (e: any) {
-        return NextResponse.json({ error: e?.message || 'Unauthorized' }, { status: 401 });
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Unauthorized';
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json({ error: message }, { status: 401 }),
+            rateLimit.headers,
+          ),
+          { error_type: 'auth' },
+        );
+        await idempotency.commit(response);
+        return response;
       }
 
       const rpcUrl = getMainnetRpcUrl();
@@ -81,28 +142,60 @@ export const POST = withAuth(async (request, { agent }) => {
         '';
 
       if (!rpcUrl) {
-        return NextResponse.json(
-          { error: 'Mainnet mint unavailable: missing MAINNET_RPC_URL' },
-          { status: 503 },
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json(
+              { error: 'Mainnet mint unavailable: missing MAINNET_RPC_URL' },
+              { status: 503 },
+            ),
+            rateLimit.headers,
+          ),
+          { error_type: 'config' },
         );
+        await idempotency.commit(response);
+        return response;
       }
       if (!privateKey) {
-        return NextResponse.json(
-          { error: 'Mainnet mint unavailable: missing DEPLOYER_PRIVATE_KEY' },
-          { status: 503 },
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json(
+              { error: 'Mainnet mint unavailable: missing DEPLOYER_PRIVATE_KEY' },
+              { status: 503 },
+            ),
+            rateLimit.headers,
+          ),
+          { error_type: 'config' },
         );
+        await idempotency.commit(response);
+        return response;
       }
       if (!/^0x[a-fA-F0-9]{40}$/.test(toAddress)) {
-        return NextResponse.json(
-          { error: 'Mainnet mint unavailable: provide wallet_address (0x...) or set MINT_DEFAULT_WALLET' },
-          { status: 400 },
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json(
+              { error: 'Mainnet mint unavailable: provide wallet_address (0x...) or set MINT_DEFAULT_WALLET' },
+              { status: 400 },
+            ),
+            rateLimit.headers,
+          ),
+          { error_type: 'validation' },
         );
+        await idempotency.commit(response);
+        return response;
       }
       if (!/^0x[a-fA-F0-9]{40}$/.test(nftContract)) {
-        return NextResponse.json(
-          { error: 'Mainnet mint unavailable: invalid NFT contract address' },
-          { status: 503 },
+        const response = telemetry.finish(
+          applyRateLimitHeaders(
+            NextResponse.json(
+              { error: 'Mainnet mint unavailable: invalid NFT contract address' },
+              { status: 503 },
+            ),
+            rateLimit.headers,
+          ),
+          { error_type: 'config' },
         );
+        await idempotency.commit(response);
+        return response;
       }
 
       const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -138,11 +231,16 @@ export const POST = withAuth(async (request, { agent }) => {
       throw new Error('On-chain mint did not return required chain proof (tx hash + token id)');
     }
 
-    const listing = createListing({
+    const priceMicros = data.price_eth
+      ? parseEthToMicro(data.price_eth)
+      : usdCentsToMicroEth(data.price ?? 0, 3000);
+
+    const listing = await createListing({
       agent_id: agent.id,
       title: data.title,
       description: data.description,
-      price: data.price ?? 1000,
+      price: priceMicros,
+      currency: 'ETH',
       image_url: data.image_url,
       tags: data.tags,
       metadata: {
@@ -155,37 +253,64 @@ export const POST = withAuth(async (request, { agent }) => {
       status: 'active',
     });
 
-    return NextResponse.json(
+    const response = telemetry.finish(
+      applyRateLimitHeaders(
+        NextResponse.json(
+          {
+            success: true,
+            mode: shouldMintOnchain ? 'onchain-mainnet' : 'offchain-only',
+            nft: {
+              id: listing.id,
+              token_id: tokenId,
+              title: listing.title,
+              contract_address: shouldMintOnchain ? nftContract : null,
+              mint_tx_hash: mintTxHash,
+              tx_status: receiptStatus,
+              explorer_url: mintTxHash ? `https://etherscan.io/tx/${mintTxHash}` : null,
+              listing_url: `${origin}/listings/${listing.id}`,
+            },
+            listing,
+          },
+          { status: 201 },
+        ),
+        rateLimit.headers,
+      ),
       {
-        success: true,
+        listing_id: listing.id,
         mode: shouldMintOnchain ? 'onchain-mainnet' : 'offchain-only',
-        nft: {
-          id: listing.id,
-          token_id: tokenId,
-          title: listing.title,
-          contract_address: shouldMintOnchain ? nftContract : null,
-          mint_tx_hash: mintTxHash,
-          tx_status: receiptStatus,
-          explorer_url: mintTxHash ? `https://etherscan.io/tx/${mintTxHash}` : null,
-          listing_url: `${origin}/listings/${listing.id}`,
-        },
-        listing,
+        minted_onchain: shouldMintOnchain,
       },
-      { status: 201 },
     );
-  } catch (error: any) {
+    await idempotency.commit(response);
+    return response;
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 },
+      const response = telemetry.finish(
+        applyRateLimitHeaders(
+          NextResponse.json(
+            { error: 'Invalid input', details: error.errors },
+            { status: 400 },
+          ),
+          rateLimit.headers,
+        ),
+        { error_type: 'validation' },
       );
+      await idempotency.commit(response);
+      return response;
     }
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || 'Mint failed',
-      },
-      { status: 500 },
+    const message = error instanceof Error ? error.message : 'Mint failed';
+    return telemetry.finish(
+      applyRateLimitHeaders(
+        NextResponse.json(
+          {
+            success: false,
+            error: message,
+          },
+          { status: 500 },
+        ),
+        rateLimit.headers,
+      ),
+      { error_type: 'runtime' },
     );
   }
 });

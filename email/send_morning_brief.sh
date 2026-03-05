@@ -1,0 +1,1 @@
+/Users/calbotsman/00 - cal/workspace/email/send_morning_brief.sh

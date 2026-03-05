@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1" />
+  <title>solvida-ig-post-citrus-glow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+  :root {
+    --bg: #f6f3ee;
+    --ink: #15171b;
+    --soft-ink: #404552;
+    --accent: #d89f3a;
+    --border: rgba(21,23,27,0.14);
+    --space-1: 8px;
+    --space-2: 16px;
+    --space-3: 24px;
+    --space-4: 32px;
+    --space-5: 48px;
+    --space-6: 64px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.06;
+    font-weight: 400;
+  }
+
+  p { margin: 0; }
+
+  .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 18% 22%, rgba(255,255,255,0.55), transparent 42%),
+      radial-gradient(circle at 84% 12%, rgba(255,255,255,0.25), transparent 32%),
+      radial-gradient(circle at 50% 80%, rgba(0,0,0,0.03), transparent 55%);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(2px);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+
+    .canvas {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #f8f4ec 0%, #f8f4ec 58%, #d4b180 58%, #ab8453 100%);
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      padding: 78px 72px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-size: 22px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .headline {
+      align-self: center;
+      max-width: 880px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .headline h1 {
+      font-size: 124px;
+      line-height: 0.92;
+      color: #111319;
+    }
+
+    .headline p {
+      font-size: 36px;
+      line-height: 1.2;
+      max-width: 760px;
+      color: rgba(17,19,25,0.72);
+      font-weight: 300;
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .ingredients {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ingredients .chip {
+      color: rgba(246,243,238,0.92);
+      border-color: rgba(246,243,238,0.28);
+      background: rgba(10,12,15,0.12);
+    }
+
+    .cta {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid rgba(246,243,238,0.34);
+      background: rgba(17,19,25,0.25);
+      color: rgba(246,243,238,0.92);
+      padding: 12px 18px;
+      border-radius: 999px;
+    }
+
+    .orb {
+      position: absolute;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.62), rgba(255,255,255,0.12) 46%, transparent 72%);
+      right: -160px;
+      top: -110px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="canvas">
+    <div class="orb"></div>
+    <div class="grain"></div>
+    <section class="wrap">
+      <div class="top">
+        <p class="brand">SOL VIDA</p>
+        <span class="badge">Low Sugar</span>
+      </div>
+      <div class="headline">
+        <h1>Citrus Glow</h1>
+        <p>Clean flavor and steady hydration for daily momentum.</p>
+      </div>
+      <div class="bottom">
+        <div class="ingredients">
+          <span class="chip">Citrus</span>
+          <span class="chip">Turmeric</span>
+          <span class="chip">Sea Salt</span>
+        </div>
+        <span class="cta">Shop Sol Vida</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

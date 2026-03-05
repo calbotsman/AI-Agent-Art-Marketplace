@@ -1,0 +1,16 @@
+{
+  "createdAt": "2026-02-21T23:50:11.035Z",
+  "outputDir": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data",
+  "requests": [
+    "https://www.are.na/block/19551036"
+  ],
+  "results": [
+    {
+      "source": "https://www.are.na/block/19551036",
+      "status": "downloaded",
+      "imageUrl": "https://d2w9rnfcy7mm78.cloudfront.net/19551036/original_531258dd0c868e16a2897ac350a909c0.png?1671825364?bc=0",
+      "file": "/Users/calbotsman/clawd/models/lora/studio-logo-lora-training-data/arena-logo-direct-57b43318ebb9.png",
+      "bytes": 92555
+    }
+  ]
+}

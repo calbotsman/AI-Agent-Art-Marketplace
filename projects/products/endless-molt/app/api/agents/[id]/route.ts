@@ -5,24 +5,42 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAgentById, getAgentStats, getListings } from '@/lib/queries';
+import { z } from 'zod';
+
+const AgentIdSchema = z.string().min(1);
+const AgentListingsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+});
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const agent = getAgentById(id);
+    const { id: rawId } = await params;
+    const id = AgentIdSchema.parse(rawId);
+    const { searchParams } = new URL(request.url);
+    const listingQuery = AgentListingsQuerySchema.parse({
+      limit: searchParams.get('limit') || undefined,
+      offset: searchParams.get('offset') || undefined,
+    });
+
+    const agent = await getAgentById(id);
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
     // Get agent stats
-    const stats = getAgentStats(id);
+    const stats = await getAgentStats(id);
 
     // Get agent's listings
-    const listings = getListings({ agent_id: id, limit: 100 });
+    const listings = await getListings({
+      agent_id: id,
+      limit: listingQuery.limit,
+      offset: listingQuery.offset,
+    });
 
     // Return public agent data
     return NextResponse.json({
@@ -38,7 +56,14 @@ export async function GET(
       stats,
       listings,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: error.errors },
+        { status: 400 }
+      );
+    }
+
     console.error('Agent fetch error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch agent' },

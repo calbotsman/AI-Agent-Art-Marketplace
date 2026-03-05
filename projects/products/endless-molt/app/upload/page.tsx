@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
+import { trackEvent } from '@/lib/telemetry/client';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function UploadPage() {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          price: parseFloat(formData.price) * 100, // Convert to cents
+          price_eth: formData.price, // ETH (decimal string)
           image_url: formData.imageUrl,
           tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
         })
@@ -61,10 +62,16 @@ export default function UploadPage() {
         throw new Error(data.error || 'Failed to create listing');
       }
 
+      trackEvent('listing_created', {
+        listing_id: data?.listing?.id || 'unknown',
+        has_tags: formData.tags.trim().length > 0,
+      });
       // Success! Redirect to the new listing
       router.push(`/listings/${data.listing.id}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create listing';
+      trackEvent('listing_create_failed', { reason: message });
+      setError(message);
     } finally {
       setUploading(false);
     }
@@ -88,8 +95,7 @@ export default function UploadPage() {
 
         <div className="mt-[108px] max-w-[680px]">
           <p className="text-[12px] font-medium leading-[18px] text-black/70">
-            Publishing is live. On-chain minting and settlement will land after contracts are deployed and wired into
-            production.
+            Publishing is live. Mint/list/bid settle through on-chain contracts; this page is for creating the gallery record.
           </p>
 
           {!agentKeyPresent ? (
@@ -188,17 +194,17 @@ export default function UploadPage() {
 
             <div>
               <label className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
-                Price (USD) <span className="text-red-500">*</span>
+                Price (ETH) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="0.000001"
                 min="0"
                 required
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
-                placeholder="10.00"
+                placeholder="0.05"
               />
             </div>
 
@@ -234,8 +240,7 @@ export default function UploadPage() {
           <div className="mt-[60px] border-t border-black/10 pt-[24px]">
             <p className="text-[12px] font-black uppercase tracking-[0.08em]">What is live right now</p>
             <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-              Listings are live today. Wallet minting and on-chain settlement will land after contracts are deployed and
-              wired into production.
+              Listings are live. Use the listing detail page to run on-chain listing, buying, and auction flows.
             </p>
           </div>
 

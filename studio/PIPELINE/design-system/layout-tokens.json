@@ -1,0 +1,55 @@
+{
+  "$schemaVersion": "1.0.0",
+  "description": "Canonical layout tokens for autonomous supplement label rendering in Clawd pipeline.",
+  "canvas": {
+    "widthPx": 1650,
+    "heightPx": 600,
+    "overflow": "hidden"
+  },
+  "grid": {
+    "templateColumns": [
+      "1fr",
+      "300px",
+      "1fr"
+    ],
+    "columnGapPx": 0,
+    "panelDividerPx": 2
+  },
+  "panels": {
+    "left": {
+      "paddingPx": {
+        "top": 32,
+        "right": 32,
+        "bottom": 32,
+        "left": 32
+      }
+    },
+    "center": {
+      "paddingPx": {
+        "top": 24,
+        "right": 20,
+        "bottom": 24,
+        "left": 20
+      }
+    },
+    "right": {
+      "paddingPx": {
+        "top": 32,
+        "right": 32,
+        "bottom": 32,
+        "left": 32
+      },
+      "stackGapPx": 20
+    }
+  },
+  "limits": {
+    "maxIngredientRows": 8,
+    "allowOverflow": false,
+    "maxCollisionCount": 0
+  },
+  "factsTable": {
+    "rowRulePx": 1,
+    "headerRulePx": 1,
+    "titleRulePx": 8
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "./profile.schema.json",
+  "id": "packaging",
+  "displayName": "Supplement Packaging",
+  "objective": "Produce spec-locked supplement packaging outputs with strict rail compliance and validation evidence.",
+  "inputArtifacts": [
+    "strategy/LATEST.md",
+    "direction/LATEST.md"
+  ],
+  "systemRefs": {
+    "designSystem": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/typography-tokens.json",
+      "/Users/calbotsman/clawd/studio/PIPELINE/design-system/layout-tokens.json"
+    ],
+    "validators": [
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/typography.ts",
+      "/Users/calbotsman/clawd/studio/PIPELINE/validators/layout.ts"
+    ],
+    "workflowDocs": [
+      "/Users/calbotsman/clawd/Cyborg_Label_Spec.md",
+      "/Users/calbotsman/clawd/studio/Standards/SUPPLEMENT_DESIGN_TOOLING.md",
+      "/Users/calbotsman/clawd/studio/PIPELINE/contracts/TEAM_OPERATING_CONTRACT.md"
+    ],
+    "commands": [
+      "npm run design:supplement -- --config <concept-json>"
+    ]
+  },
+  "deliverables": [
+    "label.png",
+    "label.pdf",
+    "product-mock.png",
+    "brand-board.png",
+    "manifest.json"
+  ],
+  "qaGates": [
+    "canvas must be 1650x600",
+    "grid must remain 1fr 300px 1fr",
+    "ingredient rows must be <= 8",
+    "overflow must be false and collision count must be 0"
+  ],
+  "approvalFlow": [
+    "strategy",
+    "director",
+    "designer",
+    "validators",
+    "director"
+  ],
+  "constraints": [
+    "treat Cyborg label template as read-only reference",
+    "do not exceed packaging content rails",
+    "all shipped packaging must include validation evidence"
+  ]
+}

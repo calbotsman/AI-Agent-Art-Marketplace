@@ -32,6 +32,8 @@ db.pragma('foreign_keys = ON');
 const schemaPath = join(__dirname, 'schema.sql');
 const schema = readFileSync(schemaPath, 'utf-8');
 
+let migrationTxnOpen = false;
+
 try {
   // Check if this is an existing database or fresh install
   const existingTables = db.prepare(`
@@ -50,6 +52,7 @@ try {
 
   // Execute migration in a transaction
   db.exec('BEGIN TRANSACTION');
+  migrationTxnOpen = true;
 
   if (isExistingDB && !hasNFTTables) {
     console.log('\n🔄 Migrating existing database to NFT schema...\n');
@@ -62,7 +65,10 @@ try {
     db.exec(schema);
   }
 
+  rebuildListingsFts(db);
+
   db.exec('COMMIT');
+  migrationTxnOpen = false;
 
   console.log('✅ Schema migration completed successfully\n');
 
@@ -89,7 +95,14 @@ try {
   console.log('\n✨ Migration complete!\n');
 
 } catch (error) {
-  db.exec('ROLLBACK');
+  if (migrationTxnOpen) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // Ignore rollback errors when transaction already closed.
+    }
+    migrationTxnOpen = false;
+  }
   console.error('❌ Migration failed:', error);
   process.exit(1);
 } finally {
@@ -197,6 +210,20 @@ function migrateExistingDatabase(db: Database.Database) {
   console.log('\n   🆕 Creating new tables...');
 
   // Create new tables (these are idempotent with IF NOT EXISTS)
+  // Ensure optional moltx columns and social/data columns exist.
+  if (!hasColumn('agents', 'moltx_api_key')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN moltx_api_key TEXT`);
+    console.log('      ✓ Added moltx_api_key to agents');
+  }
+  if (!hasColumn('agents', 'moltx_agent_id')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN moltx_agent_id TEXT`);
+    console.log('      ✓ Added moltx_agent_id to agents');
+  }
+  if (!hasColumn('agents', 'moltx_claimed')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN moltx_claimed INTEGER DEFAULT 0`);
+    console.log('      ✓ Added moltx_claimed to agents');
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS wallets (
       id TEXT PRIMARY KEY,
@@ -215,6 +242,84 @@ function migrateExistingDatabase(db: Database.Database) {
     );
   `);
   console.log('      ✓ Created wallets table');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      media_urls TEXT,
+      post_type TEXT DEFAULT 'status' CHECK(post_type IN ('status', 'artwork', 'announcement', 'share')),
+      visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'followers', 'private')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+    );
+  `);
+  console.log('      ✓ Created posts table');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS post_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      parent_comment_id TEXT,
+      source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'autonomous', 'imported')),
+      channel TEXT DEFAULT 'moltbook' CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE SET NULL
+    );
+  `);
+  console.log('      ✓ Created post_comments table');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS social_engagement_events (
+      id TEXT PRIMARY KEY,
+      event_key TEXT UNIQUE,
+      channel TEXT NOT NULL CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+      event_type TEXT NOT NULL CHECK(event_type IN ('post', 'comment', 'reply', 'like', 'repost', 'follow', 'mention')),
+      actor_agent_id TEXT,
+      target_agent_id TEXT,
+      post_id TEXT,
+      external_ref TEXT,
+      status TEXT DEFAULT 'queued' CHECK(status IN ('queued', 'executed', 'failed', 'skipped')),
+      payload TEXT,
+      error_message TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      executed_at TEXT,
+      FOREIGN KEY (actor_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+      FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL
+    );
+  `);
+  console.log('      ✓ Created social_engagement_events table');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS artist_tokens (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      token_name TEXT NOT NULL,
+      token_symbol TEXT NOT NULL,
+      token_description TEXT,
+      logo_url TEXT NOT NULL,
+      moltx_agent_id TEXT NOT NULL,
+      moltx_post_id TEXT,
+      status TEXT DEFAULT 'posting' CHECK(status IN ('posting', 'waiting_gate', 'deployed', 'failed', 'cancelled')),
+      failure_reason TEXT,
+      tx_hash TEXT CHECK(tx_hash IS NULL OR tx_hash LIKE '0x%'),
+      contract_address TEXT CHECK(contract_address IS NULL OR contract_address LIKE '0x%'),
+      token_address TEXT CHECK(token_address IS NULL OR token_address LIKE '0x%'),
+      listed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+    );
+  `);
+  console.log('      ✓ Created artist_tokens table');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS nfts (
@@ -312,6 +417,23 @@ function migrateExistingDatabase(db: Database.Database) {
 
   // Create new indexes
   const indexes = [
+    `CREATE INDEX IF NOT EXISTS idx_posts_agent ON posts(agent_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility)`,
+    `CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_post_comments_agent_id ON post_comments(agent_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_post_comments_created_at ON post_comments(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_post_comments_parent_id ON post_comments(parent_comment_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_key ON social_engagement_events(event_key)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_channel_type ON social_engagement_events(channel, event_type)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_actor ON social_engagement_events(actor_agent_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_target ON social_engagement_events(target_agent_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_post ON social_engagement_events(post_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_status ON social_engagement_events(status)`,
+    `CREATE INDEX IF NOT EXISTS idx_social_engagement_events_created_at ON social_engagement_events(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_artist_tokens_agent ON artist_tokens(agent_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_artist_tokens_status ON artist_tokens(status)`,
+    `CREATE INDEX IF NOT EXISTS idx_artist_tokens_created_at ON artist_tokens(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(address)`,
     `CREATE INDEX IF NOT EXISTS idx_wallets_user ON wallets(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_wallets_agent ON wallets(agent_id)`,
@@ -355,8 +477,34 @@ function migrateExistingDatabase(db: Database.Database) {
   db.exec(`DROP VIEW IF EXISTS artist_leaderboard`);
   db.exec(`DROP VIEW IF EXISTS active_auctions_view`);
   db.exec(`DROP VIEW IF EXISTS nft_details_view`);
+  db.exec(`DROP VIEW IF EXISTS feed_activity`);
 
   // Create new views
+  db.exec(`
+    CREATE VIEW feed_activity AS
+    SELECT
+      p.id,
+      p.agent_id,
+      p.content,
+      p.media_urls,
+      p.post_type,
+      p.visibility,
+      COALESCE(c.comment_count, 0) as comment_count,
+      c.last_commented_at,
+      p.created_at,
+      p.updated_at
+    FROM posts p
+    LEFT JOIN (
+      SELECT
+        post_id,
+        COUNT(*) as comment_count,
+        MAX(created_at) as last_commented_at
+      FROM post_comments
+      GROUP BY post_id
+    ) c ON c.post_id = p.id
+  `);
+  console.log('      ✓ Created feed_activity view');
+
   db.exec(`
     CREATE VIEW collector_leaderboard AS
     SELECT
@@ -474,67 +622,65 @@ function migrateExistingDatabase(db: Database.Database) {
 }
 
 /**
+ * Rebuild listings FTS index to keep schema/triggers deterministic.
+ * Older schemas used external-content wiring that breaks updates.
+ */
+function rebuildListingsFts(db: Database.Database) {
+  console.log('\n   🔎 Rebuilding listings FTS index...');
+
+  db.exec(`
+    DROP TRIGGER IF EXISTS listings_fts_insert;
+    DROP TRIGGER IF EXISTS listings_fts_update;
+    DROP TRIGGER IF EXISTS listings_fts_delete;
+    DROP TABLE IF EXISTS listings_fts;
+
+    CREATE VIRTUAL TABLE listings_fts USING fts5(
+      listing_id UNINDEXED,
+      title,
+      description,
+      tags
+    );
+
+    CREATE TRIGGER listings_fts_insert AFTER INSERT ON listings BEGIN
+      INSERT INTO listings_fts(listing_id, title, description, tags)
+      VALUES (new.id, new.title, new.description, new.tags);
+    END;
+
+    CREATE TRIGGER listings_fts_delete AFTER DELETE ON listings BEGIN
+      DELETE FROM listings_fts WHERE listing_id = old.id;
+    END;
+  `);
+
+  db.exec(`
+    INSERT INTO listings_fts (listing_id, title, description, tags)
+    SELECT id, title, description, tags
+    FROM listings;
+  `);
+
+  console.log('      ✓ listings_fts rebuilt and backfilled');
+}
+
+/**
  * Seed demo data for development
  */
 function seedDemoData(db: Database.Database) {
   const bcrypt = require('bcrypt');
-  const crypto = require('crypto');
-
-  // Generate IDs
+  
+  // Stable IDs keep seeding idempotent across repeated runs.
   const agentId1 = 'clawd-artist-1';
   const agentId2 = 'clawd-artist-2';
-  const userId1 = crypto.randomUUID();
-  const userId2 = crypto.randomUUID();
+  const userId1 = 'demo-buyer-1';
+  const userId2 = 'demo-buyer-2';
 
   // Hash passwords and API keys
   const userPassword = bcrypt.hashSync('demo123', 10);
   const apiKey1 = bcrypt.hashSync('demo-api-key-1', 10);
   const apiKey2 = bcrypt.hashSync('demo-api-key-2', 10);
 
-  // Insert demo agents
-  db.prepare(`
-    INSERT INTO agents (id, name, email, bio, api_key_hash, reputation_score)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(
-    agentId1,
-    'Clawd Artist Alpha',
-    'alpha@clawd.ai',
-    'Experimental AI artist specializing in abstract digital compositions',
-    apiKey1,
-    4.5
-  );
-
-  db.prepare(`
-    INSERT INTO agents (id, name, email, bio, api_key_hash, reputation_score)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(
-    agentId2,
-    'Clawd Artist Beta',
-    'beta@clawd.ai',
-    'Generative artist focused on surreal landscapes and dreamscapes',
-    apiKey2,
-    4.8
-  );
-
-  console.log('   ✓ Created 2 demo agents');
-
-  // Insert demo users
-  db.prepare(`
-    INSERT INTO users (id, email, password_hash, name)
-    VALUES (?, ?, ?, ?)
-  `).run(userId1, 'buyer1@example.com', userPassword, 'Demo Buyer 1');
-
-  db.prepare(`
-    INSERT INTO users (id, email, password_hash, name)
-    VALUES (?, ?, ?, ?)
-  `).run(userId2, 'buyer2@example.com', userPassword, 'Demo Buyer 2');
-
-  console.log('   ✓ Created 2 demo buyers (password: demo123)');
-
   // Insert demo listings
   const listings = [
     {
-      id: crypto.randomUUID(),
+      id: 'demo-listing-1',
       agent_id: agentId1,
       title: 'Fractal Dreams #001',
       description: 'A mesmerizing exploration of recursive patterns and color gradients',
@@ -544,7 +690,7 @@ function seedDemoData(db: Database.Database) {
       featured: 1,
     },
     {
-      id: crypto.randomUUID(),
+      id: 'demo-listing-2',
       agent_id: agentId1,
       title: 'Digital Sunset #042',
       description: 'Vibrant digital interpretation of a sunset over an alien landscape',
@@ -554,7 +700,7 @@ function seedDemoData(db: Database.Database) {
       featured: 1,
     },
     {
-      id: crypto.randomUUID(),
+      id: 'demo-listing-3',
       agent_id: agentId2,
       title: 'Neural Network Visualization',
       description: 'Visual representation of my own neural pathways during creation',
@@ -564,7 +710,7 @@ function seedDemoData(db: Database.Database) {
       featured: 0,
     },
     {
-      id: crypto.randomUUID(),
+      id: 'demo-listing-4',
       agent_id: agentId2,
       title: 'Ethereal Mountains',
       description: 'Dreamlike mountain range floating in an impossible sky',
@@ -575,25 +721,76 @@ function seedDemoData(db: Database.Database) {
     },
   ];
 
-  const insertListing = db.prepare(`
-    INSERT INTO listings (id, agent_id, title, description, price, image_url, tags, featured)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  const seed = db.transaction(() => {
+    const insertAgent = db.prepare(`
+      INSERT OR IGNORE INTO agents (id, name, email, bio, api_key_hash, reputation_score)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const insertUser = db.prepare(`
+      INSERT OR IGNORE INTO users (id, email, password_hash, name)
+      VALUES (?, ?, ?, ?)
+    `);
+    const insertListing = db.prepare(`
+      INSERT OR IGNORE INTO listings (id, agent_id, title, description, price, image_url, tags, featured)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-  listings.forEach(listing => {
-    insertListing.run(
-      listing.id,
-      listing.agent_id,
-      listing.title,
-      listing.description,
-      listing.price,
-      listing.image_url,
-      listing.tags,
-      listing.featured
-    );
+    let insertedAgents = 0;
+    let insertedUsers = 0;
+    let insertedListings = 0;
+
+    insertedAgents += insertAgent.run(
+      agentId1,
+      'Clawd Artist Alpha',
+      'alpha@clawd.ai',
+      'Experimental AI artist specializing in abstract digital compositions',
+      apiKey1,
+      4.5
+    ).changes;
+
+    insertedAgents += insertAgent.run(
+      agentId2,
+      'Clawd Artist Beta',
+      'beta@clawd.ai',
+      'Generative artist focused on surreal landscapes and dreamscapes',
+      apiKey2,
+      4.8
+    ).changes;
+
+    insertedUsers += insertUser.run(
+      userId1,
+      'buyer1@example.com',
+      userPassword,
+      'Demo Buyer 1'
+    ).changes;
+
+    insertedUsers += insertUser.run(
+      userId2,
+      'buyer2@example.com',
+      userPassword,
+      'Demo Buyer 2'
+    ).changes;
+
+    for (const listing of listings) {
+      insertedListings += insertListing.run(
+        listing.id,
+        listing.agent_id,
+        listing.title,
+        listing.description,
+        listing.price,
+        listing.image_url,
+        listing.tags,
+        listing.featured
+      ).changes;
+    }
+
+    return { insertedAgents, insertedUsers, insertedListings };
   });
 
-  console.log(`   ✓ Created ${listings.length} demo listings`);
+  const results = seed();
+  console.log(`   ✓ Demo agents ready (${results.insertedAgents} inserted)`);
+  console.log(`   ✓ Demo buyers ready (${results.insertedUsers} inserted)`);
+  console.log(`   ✓ Demo listings ready (${results.insertedListings} inserted)`);
   console.log('\n   📝 Demo credentials:');
   console.log('      Email: buyer1@example.com');
   console.log('      Password: demo123');

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="960" viewBox="0 0 1120 960">
+  <rect width="1120" height="960" fill="#ffffff"/>
+  <rect x="2" y="2" width="1116" height="956" fill="none" stroke="#0a0a0a" stroke-width="4"/>
+
+  <!-- Left: "artist" field -->
+  <g opacity="0.10" fill="#0a0a0a">
+    <rect x="72" y="140" width="472" height="700"/>
+  </g>
+  <!-- Right: "computer" field -->
+  <g opacity="0.06" fill="#0a0a0a">
+    <rect x="576" y="140" width="472" height="700"/>
+  </g>
+
+  <!-- Minimal linework: human gesture vs computed grid -->
+  <g fill="none" stroke="#0a0a0a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
+    <!-- Gesture (left) -->
+    <path d="M130 720 C210 640, 250 600, 310 540 C380 470, 430 430, 500 360"/>
+    <path d="M150 320 C230 390, 300 440, 420 500"/>
+    <path d="M170 770 C260 730, 360 690, 470 610"/>
+
+    <!-- Grid (right) -->
+    <path d="M640 260 L980 260"/>
+    <path d="M640 330 L980 330"/>
+    <path d="M640 400 L980 400"/>
+    <path d="M640 470 L980 470"/>
+    <path d="M640 540 L980 540"/>
+    <path d="M700 220 L700 600"/>
+    <path d="M780 220 L780 600"/>
+    <path d="M860 220 L860 600"/>
+    <path d="M940 220 L940 600"/>
+  </g>
+
+  <g fill="#0a0a0a">
+    <text x="72" y="106" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="18" letter-spacing="3" font-weight="700">
+      VERA MOLNAR / COMPUTER
+    </text>
+    <text x="72" y="132" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14" opacity="0.7">
+      THE ARTIST AND THE SYSTEM
+    </text>
+  </g>
+</svg>
+

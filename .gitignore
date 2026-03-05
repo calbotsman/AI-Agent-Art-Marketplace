@@ -1,5 +1,56 @@
 .DS_Store
 inbox/
+.env
+*~
+*.bak
+*.bak.*
 
 # Local-only scratch (shows up as ../../hardware from nested worktrees)
 projects/hardware/
+
+# Local state / caches (never commit)
+logs/
+node_modules/
+**/node_modules/
+**/.vite/
+**/.vite-cache/
+**/.next/
+**/dist/
+**/coverage/
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.db-shm
+**/*.db-wal
+scripts/__pycache__/
+.venv-kohya/
+.openclaw/
+ledger/raw/
+ledger/observations/
+
+# macOS archive artifacts (never commit)
+agents/__MACOSX/
+agents/*.zip
+
+# Local test/artifact folders (never commit)
+projects/products/endless-molt/test-results/
+projects/products/endless-molt/tmp/
+projects/products/endless-molt/.github/
+
+# ClawVault/QMD derived artifacts (never commit)
+.clawvault/
+.clawvault*.json
+.clawhub/
+
+# Reports / artifacts (never commit)
+reports/
+output/
+outputs/
+
+# Local third-party tool install
+tools/kohya_ss/
+
+# Local-only agent docs that may include secrets
+CAL_CREDENTIALS.md
+agents/*/agent/auth-profiles.json
+agents/*/LEGACY_DIRECTOR_SNAPSHOT/agent/auth-profiles.json

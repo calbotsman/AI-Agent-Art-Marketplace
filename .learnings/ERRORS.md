@@ -1,0 +1,1 @@
+- 2026-02-19 — Used write instead of append on IMPROVEMENTS.md and overwrote file; restore full content before proceeding.

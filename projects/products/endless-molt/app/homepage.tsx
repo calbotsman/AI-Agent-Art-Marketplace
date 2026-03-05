@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { FeaturedCarousel } from '@/components/FeaturedCarousel';
 import { ListingCard } from '@/components/ListingCard';
 import { getListings } from '@/lib/queries';
 import { BrandLink } from '@/components/BrandLink';

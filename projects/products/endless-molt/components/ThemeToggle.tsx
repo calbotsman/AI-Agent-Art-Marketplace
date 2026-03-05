@@ -1,30 +1,18 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Avoid hydration mismatch
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) {
-    return (
-      <button className="w-10 h-10 rounded-full bg-surface" aria-label="Toggle theme">
-        <span className="sr-only">Loading theme</span>
-      </button>
-    );
-  }
+  const currentTheme = theme === 'dark' ? 'dark' : 'light';
 
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
       className="w-10 h-10 rounded-full bg-surface hover:bg-primary/10 transition-colors flex items-center justify-center group"
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={`Switch to ${currentTheme === 'dark' ? 'light' : 'dark'} mode`}
     >
-      {theme === 'dark' ? (
+      {currentTheme === 'dark' ? (
         // Sun icon (for light mode)
         <svg
           className="w-5 h-5 text-primary group-hover:scale-110 transition-transform"

@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS agents (
   bio TEXT,
   avatar_url TEXT,
   api_key_hash TEXT NOT NULL,
+  moltx_api_key TEXT,
+  moltx_agent_id TEXT,
+  moltx_claimed INTEGER DEFAULT 0 CHECK(moltx_claimed IN (0, 1)),
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'suspended', 'deleted')),
   reputation_score REAL DEFAULT 0.0,
   total_sales INTEGER DEFAULT 0,
@@ -44,7 +47,7 @@ CREATE TABLE IF NOT EXISTS listings (
   title TEXT NOT NULL,
   description TEXT,
   price INTEGER NOT NULL CHECK(price >= 0),
-  currency TEXT DEFAULT 'USD',
+  currency TEXT DEFAULT 'ETH',
   image_url TEXT NOT NULL,
   thumbnail_url TEXT,
   preview_url TEXT,
@@ -70,6 +73,72 @@ CREATE TABLE IF NOT EXISTS listing_comments (
   content TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  media_urls TEXT,
+  post_type TEXT DEFAULT 'status' CHECK(post_type IN ('status', 'artwork', 'announcement', 'share')),
+  visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'followers', 'private')),
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS post_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  parent_comment_id TEXT,
+  source TEXT DEFAULT 'manual' CHECK(source IN ('manual', 'autonomous', 'imported')),
+  channel TEXT DEFAULT 'moltbook' CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS social_engagement_events (
+  id TEXT PRIMARY KEY,
+  event_key TEXT UNIQUE,
+  channel TEXT NOT NULL CHECK(channel IN ('moltbook', 'x', 'bot-network')),
+  event_type TEXT NOT NULL CHECK(event_type IN ('post', 'comment', 'reply', 'like', 'repost', 'follow', 'mention')),
+  actor_agent_id TEXT,
+  target_agent_id TEXT,
+  post_id TEXT,
+  external_ref TEXT,
+  status TEXT DEFAULT 'queued' CHECK(status IN ('queued', 'executed', 'failed', 'skipped')),
+  payload TEXT,
+  error_message TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  executed_at TEXT,
+  FOREIGN KEY (actor_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS artist_tokens (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  token_name TEXT NOT NULL,
+  token_symbol TEXT NOT NULL,
+  token_description TEXT,
+  logo_url TEXT NOT NULL,
+  moltx_agent_id TEXT NOT NULL,
+  moltx_post_id TEXT,
+  status TEXT DEFAULT 'posting' CHECK(status IN ('posting', 'waiting_gate', 'deployed', 'failed', 'cancelled')),
+  failure_reason TEXT,
+  tx_hash TEXT CHECK(tx_hash IS NULL OR tx_hash LIKE '0x%'),
+  contract_address TEXT CHECK(contract_address IS NULL OR contract_address LIKE '0x%'),
+  token_address TEXT CHECK(token_address IS NULL OR token_address LIKE '0x%'),
+  listed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 
@@ -254,6 +323,24 @@ CREATE INDEX IF NOT EXISTS idx_ratings_user ON ratings(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_favorites_listing ON favorites(listing_id);
 
+CREATE INDEX IF NOT EXISTS idx_posts_agent ON posts(agent_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility);
+CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_agent_id ON post_comments(agent_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_created_at ON post_comments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_post_comments_parent_id ON post_comments(parent_comment_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_key ON social_engagement_events(event_key);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_channel_type ON social_engagement_events(channel, event_type);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_actor ON social_engagement_events(actor_agent_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_target ON social_engagement_events(target_agent_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_post ON social_engagement_events(post_id);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_status ON social_engagement_events(status);
+CREATE INDEX IF NOT EXISTS idx_social_engagement_events_created_at ON social_engagement_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_agent ON artist_tokens(agent_id);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_status ON artist_tokens(status);
+CREATE INDEX IF NOT EXISTS idx_artist_tokens_created_at ON artist_tokens(created_at DESC);
+
 -- NFT & Blockchain Indexes
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(address);
 CREATE INDEX IF NOT EXISTS idx_wallets_user ON wallets(user_id);
@@ -290,25 +377,41 @@ CREATE INDEX IF NOT EXISTS idx_provenance_timestamp ON provenance(timestamp DESC
 CREATE INDEX IF NOT EXISTS idx_provenance_from ON provenance(from_address);
 CREATE INDEX IF NOT EXISTS idx_provenance_to ON provenance(to_address);
 
+-- SOCIAL & TOKENS VIEWS
+CREATE VIEW IF NOT EXISTS feed_activity AS
+SELECT
+  p.id,
+  p.agent_id,
+  p.content,
+  p.media_urls,
+  p.post_type,
+  p.visibility,
+  COALESCE(c.comment_count, 0) as comment_count,
+  c.last_commented_at,
+  p.created_at,
+  p.updated_at
+FROM posts p
+LEFT JOIN (
+  SELECT
+    post_id,
+    COUNT(*) as comment_count,
+    MAX(created_at) as last_commented_at
+  FROM post_comments
+  GROUP BY post_id
+) c ON c.post_id = p.id;
+
 -- FULL-TEXT SEARCH (Phase 1)
 CREATE VIRTUAL TABLE IF NOT EXISTS listings_fts USING fts5(
   listing_id UNINDEXED,
   title,
   description,
-  tags,
-  content='listings',
-  content_rowid='rowid'
+  tags
 );
 
 -- FTS Triggers to keep search index in sync
 CREATE TRIGGER IF NOT EXISTS listings_fts_insert AFTER INSERT ON listings BEGIN
   INSERT INTO listings_fts(listing_id, title, description, tags)
   VALUES (new.id, new.title, new.description, new.tags);
-END;
-
-CREATE TRIGGER IF NOT EXISTS listings_fts_update AFTER UPDATE ON listings BEGIN
-  UPDATE listings_fts SET title = new.title, description = new.description, tags = new.tags
-  WHERE listing_id = new.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS listings_fts_delete AFTER DELETE ON listings BEGIN

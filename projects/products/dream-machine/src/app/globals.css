@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --dm-bg-0: #07070a;
+  --dm-bg-1: #0e1020;
+  --dm-bg-2: #15162b;
+  --dm-accent: #f2c94c;
+}
+
+@theme inline {
+  --color-dm-bg: radial-gradient(1000px 800px at 20% 10%, var(--dm-bg-2), transparent 60%),
+    radial-gradient(900px 700px at 90% 20%, rgba(242, 201, 76, 0.18), transparent 55%),
+    linear-gradient(180deg, var(--dm-bg-0), var(--dm-bg-1));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: #000;
+  color: #fff;
+}
+
+.bg-dm-bg {
+  background-image: var(--color-dm-bg);
+}

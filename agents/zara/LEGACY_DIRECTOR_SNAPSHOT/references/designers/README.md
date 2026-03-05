@@ -1,0 +1,3 @@
+# director — designers
+
+#taste #learning
