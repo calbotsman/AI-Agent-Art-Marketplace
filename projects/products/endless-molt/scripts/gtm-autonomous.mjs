@@ -24,6 +24,10 @@ function stripWrappingQuotes(value) {
   return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
 }
 
+function isPostgresUrl(value) {
+  return /^(postgres|postgresql):/i.test(String(value || '').trim());
+}
+
 function parseTimestamp(value) {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -228,7 +232,7 @@ function loadDataFromSqlite(filePath) {
 
 async function loadData() {
   const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
-  if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
+  if (isPostgresUrl(databaseUrl)) {
     return loadDataFromPostgres(databaseUrl);
   }
 
