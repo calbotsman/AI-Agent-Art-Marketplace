@@ -46,6 +46,10 @@ function stripWrappingQuotes(value) {
   return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
 }
 
+function isPostgresUrl(value) {
+  return /^(postgres|postgresql):/i.test(String(value || '').trim());
+}
+
 function toSqliteDatetime(date) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
@@ -858,7 +862,7 @@ async function maybeCreateGithubIssue(reportMarkdown, resultSummary) {
 
 async function createStore() {
   const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
-  if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
+  if (isPostgresUrl(databaseUrl)) {
     const store = new PostgresStore(databaseUrl);
     await store.connect();
     return { source: 'postgres', store };
