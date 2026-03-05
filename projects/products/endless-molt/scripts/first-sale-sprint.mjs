@@ -46,6 +46,10 @@ function parseIntEnv(name, fallback, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function stripWrappingQuotes(value) {
+  return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
+}
+
 function toSqliteDatetime(date) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
@@ -461,7 +465,7 @@ class PostgresStore {
 }
 
 async function openStore() {
-  const databaseUrl = process.env.DATABASE_URL || '';
+  const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
   if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
     const store = new PostgresStore(databaseUrl);
     await store.connect();

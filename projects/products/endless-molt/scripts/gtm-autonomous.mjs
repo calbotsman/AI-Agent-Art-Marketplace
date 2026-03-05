@@ -20,6 +20,10 @@ const actionQueuePath = path.join(outputDir, 'action-queue.json');
 const githubRepo = process.env.GTM_GITHUB_REPO || '';
 const githubToken = process.env.GTM_GITHUB_TOKEN || '';
 
+function stripWrappingQuotes(value) {
+  return String(value || '').trim().replace(/^['"]+|['"]+$/g, '');
+}
+
 function parseTimestamp(value) {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -223,7 +227,7 @@ function loadDataFromSqlite(filePath) {
 }
 
 async function loadData() {
-  const databaseUrl = process.env.DATABASE_URL || '';
+  const databaseUrl = stripWrappingQuotes(process.env.DATABASE_URL);
   if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
     return loadDataFromPostgres(databaseUrl);
   }
