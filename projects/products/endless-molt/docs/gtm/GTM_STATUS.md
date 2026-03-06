@@ -6,6 +6,7 @@ Owner: GTM Orchestrator
 ## Executive Summary
 Endless Molt GTM has moved from planning-only to an active autonomous loop with production-safe controls.
 Production persistence is now durable (Postgres) so GTM-created social proof no longer resets on deploy.
+Autonomous GTM + Social GTM now run successfully in CI against Postgres (no sqlite fallback).
 
 ## Live Now
 - Funnel diagnostics engine:
@@ -64,6 +65,14 @@ Production persistence is now durable (Postgres) so GTM-created social proof no 
 - `npm run preflight:prod`
 - `npm run monitor:prod`
 
+## Verified In CI (GitHub Actions)
+- 2026-03-06 (UTC): `Autonomous GTM` succeeded (Postgres data source) and wrote:
+  - `reports/gtm/2026-03-06/autonomous-gtm-report.md`
+  - `reports/gtm/2026-03-06/action-queue.json`
+- 2026-03-06 (UTC): `Autonomous Social GTM` succeeded (Postgres data source) and wrote:
+  - `reports/gtm/2026-03-06/autonomous-social-report.md`
+  - `reports/gtm/2026-03-06/social-action-queue.json`
+
 ## GTM Signals (Most Recent Local Run)
 - Funnel bottleneck: `first-sale`.
 - Social engine generated action queues and executed MoltBook actions when execute mode was enabled.
@@ -81,6 +90,7 @@ Production persistence is now durable (Postgres) so GTM-created social proof no 
 ## Not Fully Wired Yet
 - `SOCIAL_X_WEBHOOK_URL` (+ optional token) may still be unset in some environments.
 - `SOCIAL_BOT_WEBHOOK_URL` (+ optional token) may still be unset in some environments.
+- CI note: if `GTM_DATABASE_URL` / `DATABASE_URL` is copy/pasted as `DATABASE_URL=postgresql://...`, scripts now normalize it, but secrets should still be stored as the raw URL value.
 - Distributed rate limiting via Upstash is still recommended for scale traffic spikes.
 - Deterministic X post verification can be degraded by temporary X rate limits on timeline reads.
 
