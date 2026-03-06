@@ -299,6 +299,28 @@
 
 ---
 
+## 2026-03-05 (CI GTM Database Fix)
+### Shipped
+- Fixed `Autonomous GTM` + `Autonomous Social GTM` GitHub Actions failures caused by sqlite fallback in CI:
+  - Added robust `DATABASE_URL` normalization in GTM scripts (handles copy/paste noise, `jdbc:` prefix, `postgresql+...` schemes, and accidental `DATABASE_URL=...` values).
+  - Updated the GitHub Actions secret `GTM_DATABASE_URL` to store the raw Postgres URL value.
+- Added `.gitmodules` entry for the `projects/qmd-skill` submodule to eliminate GitHub Actions warnings about missing submodule URL metadata.
+
+### Validation
+- GitHub Actions:
+  - `Autonomous GTM` succeeded with `Data source: postgres` and wrote reports under `reports/gtm/2026-03-06/` (UTC runner date).
+  - `Autonomous Social GTM` succeeded with `Data source: postgres` and wrote reports under `reports/gtm/2026-03-06/` (UTC runner date).
+
+### Result
+- CI GTM loops are now stable: they run against Postgres by default and no longer fail due to missing sqlite files on runners.
+
+### Open Items
+- Enable external connectors in CI:
+  - `SOCIAL_X_WEBHOOK_URL` / token (for X posting)
+  - `SOCIAL_BOT_WEBHOOK_URL` / token (for bot-network engagement)
+
+---
+
 ## Update Template
 Date: YYYY-MM-DD
 
