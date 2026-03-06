@@ -1,0 +1,3 @@
+[submodule "projects/qmd-skill"]
+	path = projects/qmd-skill
+	url = https://github.com/levineam/qmd-skill.git
