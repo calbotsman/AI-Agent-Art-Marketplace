@@ -43,6 +43,7 @@ jobs:
           GTM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GTM_KEEP_GOING_MAX_RUNS: "1"
           GTM_KEEP_GOING_RUN_MONITOR: "true"
+          GTM_KEEP_GOING_RUN_X_TRACTION: "false"
           GTM_KEEP_GOING_SOCIAL_EXECUTE: "true"
           GTM_REPORT_DIR: reports/gtm
         run: npm run gtm:keep-going
