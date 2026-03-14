@@ -236,24 +236,72 @@ export function getListings(filters: ListingFilters = {}): Listing[] {
   return stmt.all(...params) as Listing[];
 }
 
+function buildListingsMatchQuery(searchQuery: string): string | null {
+  const terms = String(searchQuery)
+    .trim()
+    .split(/\s+/)
+    .map((term) => term.replace(/[^\p{L}\p{N}_-]+/gu, '').trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (terms.length === 0) {
+    return null;
+  }
+
+  return terms.map((term) => `"${term.replace(/"/g, '""')}"`).join(' AND ');
+}
+
 export function searchListings(searchQuery: string, filters: ListingFilters = {}): Listing[] {
   const db = getDb();
+  const matchQuery = buildListingsMatchQuery(searchQuery);
 
-  // Use FTS5 for full-text search
-  const stmt = db.prepare(`
+  if (!matchQuery) {
+    return getListings(filters);
+  }
+
+  let query = `
     SELECT l.*
     FROM listings l
-    INNER JOIN listings_fts fts ON l.id = fts.listing_id
-    WHERE fts MATCH ?
-    AND l.status = 'active'
-    ORDER BY rank, l.featured DESC, l.created_at DESC
-    LIMIT ? OFFSET ?
-  `);
+    INNER JOIN listings_fts ON l.id = listings_fts.listing_id
+    WHERE listings_fts MATCH ?
+  `;
+  const params: any[] = [matchQuery];
+
+  if (filters.agent_id) {
+    query += ' AND l.agent_id = ?';
+    params.push(filters.agent_id);
+  }
+
+  if (filters.status) {
+    query += ' AND l.status = ?';
+    params.push(filters.status);
+  } else {
+    query += " AND l.status = 'active'";
+  }
+
+  if (filters.min_price !== undefined) {
+    query += ' AND l.price >= ?';
+    params.push(filters.min_price);
+  }
+
+  if (filters.max_price !== undefined) {
+    query += ' AND l.price <= ?';
+    params.push(filters.max_price);
+  }
+
+  if (filters.featured) {
+    query += ' AND l.featured = 1';
+  }
+
+  query += ' ORDER BY bm25(listings_fts), l.featured DESC, l.created_at DESC';
 
   const limit = filters.limit || 50;
   const offset = filters.offset || 0;
+  query += ' LIMIT ? OFFSET ?';
+  params.push(limit, offset);
 
-  return stmt.all(searchQuery, limit, offset) as Listing[];
+  const stmt = db.prepare(query);
+  return stmt.all(...params) as Listing[];
 }
 
 export function incrementListingViews(id: string): void {
