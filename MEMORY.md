@@ -6,12 +6,26 @@
 - Use no name by default; do not greet by first name unless explicitly requested.
 - Never ask for API keys in chat.
 
-## Active Thread (2026-03-14, 01:42 AM)
+## Recent Changes
+
+### 2026-03-14 02:43 EDT — Gemini API Key Expired
+- **Issue:** Google Gemini API key expired, causing all cron jobs using `google/gemini-2.5-flash` to fail with `API_KEY_INVALID` errors starting around 04:42 EDT on 2026-03-14.
+- **Impact:** Self-improvement loop and other Gemini-based cron jobs are failing hourly.
+- **Status:** Documented in MEMORY.md. Key renewal required by user. Temporary fallback to `anthropic/claude-sonnet-4-5` proposed for critical cron jobs.
+- **Reference:** `/Users/calbotsman/clawd/reports/self-improve/agent_2026-03-14_0243.md`
+
+### 2026-03-13 — Telegram Runtime + Endless Molt Rare Bridge
+- Fixed Telegram runtime drift by switching default model from `ollama/llama3.1:8b` to `anthropic/claude-sonnet-4-5`
+- Added Rare Protocol bridge to `endless-molt` project with listing-scoped CLI commands and UI panel
+- All `endless-molt` preflight checks passed (lint, db:verify, build, test:contracts, uptime:check, monitor:prod)
+- Distributed rate limiting still on in-memory fallback (Upstash Redis not configured)
+
+## Active Thread (2026-03-14, 02:43 AM)
 - **Active Task:** None currently pending.
 - **Status:** All recent requests completed. System in idle monitoring state.
-- **Recent Activity:** Test messages and heartbeat checks on 2026-03-13.
-- **Next Steps:** Awaiting new user request.
-- **Infrastructure Note:** Gemini API key expired as of 2026-03-14. Cron jobs using `google/gemini-2.5-flash` are failing; fallback to Claude Sonnet/GPT-5-mini is configured. User awareness needed for key renewal.
+- **Recent Activity:** Self-improvement loop ran at 02:43 EDT; identified Gemini API key expiration and memory drift issues.
+- **Next Steps:** Commit daily memory files + propose cron model fallback if API key isn't renewed within 24 hours.
+- **Infrastructure Note:** Gemini API key expired as of 2026-03-14. Cron jobs using `google/gemini-2.5-flash` are failing; fallback to Claude Sonnet/GPT-5-mini is configured for main sessions.
 
 ## DM Continuity Rules
 - In direct chats, never answer short check-ins with generic "How can I help?".
@@ -50,8 +64,8 @@
 
 <!-- AUTO_HANDOFF_START -->
 ## Auto Session Handoff
-- Updated: 2026-03-14 01:42 EDT
-- Last user message: (cron self-improvement loop execution)
-- Last assistant message: (self-improvement report generated)
-- Most recent actionable request: Monitor Gemini API key fallback behavior and clean stale git branches.
+- Updated: 2026-03-14 02:43 EDT
+- Last user message: [cron:193ea106-9345-4971-809e-e82055247f9a Self-improvement loop]
+- Last assistant message: Self-improvement loop executed; report written to `/Users/calbotsman/clawd/reports/self-improve/agent_2026-03-14_0243.md`
+- Most recent actionable request: Self-improvement loop routine maintenance
 <!-- AUTO_HANDOFF_END -->
