@@ -5,6 +5,14 @@
 # Periodically summarize recent activity and log learnings.
 # This helps maintain session continuity and provides an audit trail of self-improvement.
 
+## Pending User Actions
+
+- [ ] **Renew Gemini API key** (expired 2026-03-14; affects TCR Morning Briefing + other Gemini jobs)
+  - Get new key: https://aistudio.google.com/apikey
+  - Set: `openclaw configure --set ai.gemini.apiKey="<new-key>"`
+
+## Standard Heartbeat Flow
+
 1) Ensure `/Users/calbotsman/clawd/memory/` directory exists.
 2) If `/Users/calbotsman/clawd/memory/$(date +%Y-%m-%d).md` does not exist, create it.
 3) Read `/Users/calbotsman/clawd/memory/$(date +%Y-%m-%d).md` (today's memory) and `/Users/calbotsman/clawd/MEMORY.md` (long-term memory).

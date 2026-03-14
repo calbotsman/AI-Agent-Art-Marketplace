@@ -15,3 +15,4 @@
 4) If you make changes in git, include:
 - `git diff`
 - and the command outputs for any tests you ran.
+- **Crucially, include the `manifest.json` path from supplement design outputs. Confirm `checks.recraftV4Used: true` for strict Recraft V4 runs.**
