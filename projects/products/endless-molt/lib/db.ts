@@ -13,13 +13,36 @@ function debugDb() {
   return process.env.DEBUG_DB === 'true';
 }
 
+function normalizeSqlitePath(input?: string) {
+  const trimmed = String(input || '').trim();
+  if (!trimmed) return undefined;
+
+  const unquoted = trimmed.replace(/^['"]+|['"]+$/g, '');
+  if (!unquoted) return undefined;
+
+  if (unquoted === ':memory:') {
+    return unquoted;
+  }
+
+  if (unquoted.startsWith('file:')) {
+    return unquoted.replace(/^file:/, '');
+  }
+
+  // Ignore remote database URLs when booting the local SQLite adapter.
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(unquoted)) {
+    return undefined;
+  }
+
+  return unquoted;
+}
+
 /**
  * Get or create database connection
  */
 export function getDb(): Database.Database {
   if (!db) {
     const envPath = process.env.DATABASE_URL || process.env.DATABASE_PATH;
-    const normalizedEnvPath = envPath?.startsWith('file:') ? envPath.replace(/^file:/, '') : envPath;
+    const normalizedEnvPath = normalizeSqlitePath(envPath);
     const vercelFallback = join('/tmp', 'endless-molt.db');
     const isVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV;
     const defaultPath = isVercel ? vercelFallback : join(process.cwd(), 'database', 'endless-molt.db');
