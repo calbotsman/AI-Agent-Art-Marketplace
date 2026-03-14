@@ -5,8 +5,35 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TS="$(date +"%Y-%m-%d_%H%M%S")"
 OUTDIR="$ROOT/reports/self-improve"
 OUT="$OUTDIR/health_$TS.md"
+LOCK_FILE="$ROOT/loops/.self_improve.lock"
+LOCK_TIMEOUT_SECONDS=7200  # 2 hours
 
 mkdir -p "$OUTDIR"
+
+# Lock file collision prevention
+if [[ -f "$LOCK_FILE" ]]; then
+  LOCK_AGE=$(($(date +%s) - $(stat -f %m "$LOCK_FILE" 2>/dev/null || stat -c %Y "$LOCK_FILE" 2>/dev/null || echo "0")))
+  if [[ $LOCK_AGE -lt $LOCK_TIMEOUT_SECONDS ]]; then
+    echo "# Self-improve health run (skipped)" > "$OUT"
+    echo >> "$OUT"
+    echo "- timestamp: $(date)" >> "$OUT"
+    echo "- host: $(hostname)" >> "$OUT"
+    echo "- root: $ROOT" >> "$OUT"
+    echo >> "$OUT"
+    echo "Lock file exists and is fresh (${LOCK_AGE}s old). Skipping run to avoid collision." >> "$OUT"
+    echo "$OUT"
+    exit 0
+  else
+    echo "Lock file is stale (${LOCK_AGE}s old). Removing and proceeding." >&2
+    rm -f "$LOCK_FILE"
+  fi
+fi
+
+# Create lock file
+touch "$LOCK_FILE"
+
+# Remove lock file on exit (success or failure)
+trap "rm -f '$LOCK_FILE'" EXIT
 
 {
   echo "# Self-improve health run"
