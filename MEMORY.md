@@ -6,15 +6,12 @@
 - Use no name by default; do not greet by first name unless explicitly requested.
 - Never ask for API keys in chat.
 
-## Active Thread (2026-03-05, 4:01 PM)
-- **Active Task:** Fix the `clawhub` skill installer.
-- **Objective:** Restore the ability to install new skills.
-- **Status:** **Root cause identified.** The installer is failing due to a server-side API rate limit ("Rate limit exceeded"). The `clawhub` CLI is not logged into an account, which is likely the reason for the low limit.
-- **Next Steps:**
-    - **Propose Solution:** Log in to ClawHub to potentially increase the rate limit.
-    - **Await Confirmation:** Ask the user for permission to initiate the interactive login process.
-    - **(If Approved):** Run `clawhub login` and guide the user through authentication.
-    - **(Once Logged In):** Retry installing the `weather` skill to confirm the fix.
+## Active Thread (2026-03-14, 01:42 AM)
+- **Active Task:** None currently pending.
+- **Status:** All recent requests completed. System in idle monitoring state.
+- **Recent Activity:** Test messages and heartbeat checks on 2026-03-13.
+- **Next Steps:** Awaiting new user request.
+- **Infrastructure Note:** Gemini API key expired as of 2026-03-14. Cron jobs using `google/gemini-2.5-flash` are failing; fallback to Claude Sonnet/GPT-5-mini is configured. User awareness needed for key renewal.
 
 ## DM Continuity Rules
 - In direct chats, never answer short check-ins with generic "How can I help?".
@@ -53,8 +50,8 @@
 
 <!-- AUTO_HANDOFF_START -->
 ## Auto Session Handoff
-- Updated: 2026-03-05 18:01 EST
-- Last user message: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK. Current time: Thursday, March 5th, 2026 — 5:58 PM (America/New_York)
-- Last assistant message: Okay, I've found the problem. The skill installer itself isn't broken. It's failing because the ClawHub server is rate-limiting me, which is why it was working intermittently. I'm not logged into a ClawHub account, so I'm being treated as an anonymous user with a very low requ...
-- Most recent actionable request: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK. Current time: Thursday, March 5th, 2026 — 5:58 PM (America/New_York)
+- Updated: 2026-03-14 01:42 EDT
+- Last user message: (cron self-improvement loop execution)
+- Last assistant message: (self-improvement report generated)
+- Most recent actionable request: Monitor Gemini API key fallback behavior and clean stale git branches.
 <!-- AUTO_HANDOFF_END -->
