@@ -233,13 +233,76 @@ export async function getListings(filters: ListingFilters = {}): Promise<Listing
   return rows;
 }
 
+function buildListingsMatchQuery(searchQuery: string): string | null {
+  const terms = String(searchQuery)
+    .trim()
+    .split(/\s+/)
+    .map((term) => term.replace(/[^\p{L}\p{N}_-]+/gu, '').trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (terms.length === 0) {
+    return null;
+  }
+
+  return terms.map((term) => `"${term.replace(/"/g, '""')}"`).join(' AND ');
+}
+
 export async function searchListings(searchQuery: string, filters: ListingFilters = {}): Promise<Listing[]> {
+  const matchQuery = buildListingsMatchQuery(searchQuery);
   const limit = filters.limit || 50;
   const offset = filters.offset || 0;
 
   if (getDbBackend() === 'sqlite') {
+    if (matchQuery) {
+      let sqliteQuery = `
+        SELECT l.*
+        FROM listings l
+        INNER JOIN listings_fts ON l.id = listings_fts.listing_id
+        WHERE listings_fts MATCH $1
+      `;
+      const sqliteParams: any[] = [matchQuery];
+
+      if (filters.agent_id) {
+        sqliteParams.push(filters.agent_id);
+        sqliteQuery += ` AND l.agent_id = $${sqliteParams.length}`;
+      }
+
+      if (filters.status) {
+        sqliteParams.push(filters.status);
+        sqliteQuery += ` AND l.status = $${sqliteParams.length}`;
+      } else {
+        sqliteQuery += " AND l.status IN ('active', 'in_auction')";
+      }
+
+      if (filters.min_price !== undefined) {
+        sqliteParams.push(filters.min_price);
+        sqliteQuery += ` AND l.price >= $${sqliteParams.length}`;
+      }
+
+      if (filters.max_price !== undefined) {
+        sqliteParams.push(filters.max_price);
+        sqliteQuery += ` AND l.price <= $${sqliteParams.length}`;
+      }
+
+      if (filters.featured) {
+        sqliteQuery += ' AND l.featured = 1';
+      }
+
+      sqliteParams.push(limit);
+      sqliteQuery += ` ORDER BY bm25(listings_fts), l.featured DESC, l.created_at DESC LIMIT $${sqliteParams.length}`;
+      sqliteParams.push(offset);
+      sqliteQuery += ` OFFSET $${sqliteParams.length}`;
+
+      try {
+        const rows = (await query(sqliteQuery, sqliteParams)) as Listing[];
+        return rows;
+      } catch {
+        // Fall through to substring search below.
+      }
+    }
+
     try {
-      // Preferred path: FTS5 index for relevance ranking.
       const rows = (await query(
         `SELECT l.*
          FROM listings l
@@ -253,28 +316,59 @@ export async function searchListings(searchQuery: string, filters: ListingFilter
 
       return rows;
     } catch {
-      // fall back
+      // Fall through to substring search below.
     }
   }
 
-  // Safety fallback (and the default for Postgres): substring search.
+  let queryText = 'SELECT * FROM listings WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters.status) {
+    params.push(filters.status);
+    queryText += ` AND status = $${params.length}`;
+  } else {
+    queryText += " AND status IN ('active', 'in_auction')";
+  }
+
+  if (filters.agent_id) {
+    params.push(filters.agent_id);
+    queryText += ` AND agent_id = $${params.length}`;
+  }
+
+  if (filters.min_price !== undefined) {
+    params.push(filters.min_price);
+    queryText += ` AND price >= $${params.length}`;
+  }
+
+  if (filters.max_price !== undefined) {
+    params.push(filters.max_price);
+    queryText += ` AND price <= $${params.length}`;
+  }
+
+  if (filters.featured) {
+    queryText += ' AND featured = 1';
+  }
+
   const like = `%${searchQuery}%`;
   const op = getDbBackend() === 'postgres' ? 'ILIKE' : 'LIKE';
 
-  const rows = (await query(
-    `SELECT *
-     FROM listings
-     WHERE status IN ('active', 'in_auction')
-     AND (
-       title ${op} $1
-       OR COALESCE(description, '') ${op} $1
-       OR COALESCE(tags, '') ${op} $1
-     )
-     ORDER BY featured DESC, created_at DESC
-     LIMIT $2 OFFSET $3`,
-    [like, limit, offset],
-  )) as Listing[];
+  params.push(like);
+  const likeParam = `$${params.length}`;
+  queryText += `
+    AND (
+      title ${op} ${likeParam}
+      OR COALESCE(description, '') ${op} ${likeParam}
+      OR COALESCE(tags, '') ${op} ${likeParam}
+    )
+    ORDER BY featured DESC, created_at DESC
+  `;
 
+  params.push(limit);
+  queryText += ` LIMIT $${params.length}`;
+  params.push(offset);
+  queryText += ` OFFSET $${params.length}`;
+
+  const rows = (await query(queryText, params)) as Listing[];
   return rows;
 }
 
