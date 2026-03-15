@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Providers } from './providers';
+import { ClientProvidersWrapper } from './ClientProvidersWrapper';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -71,9 +71,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify([orgJsonLd, websiteJsonLd]) }}
         />
         <ThemeProvider>
-          <Providers>
+          <ClientProvidersWrapper>
             {children}
-          </Providers>
+          </ClientProvidersWrapper>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

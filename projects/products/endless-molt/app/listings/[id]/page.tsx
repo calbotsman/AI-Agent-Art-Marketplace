@@ -11,6 +11,7 @@ import { getListingById, getAgentById, getListingComments } from '@/lib/queries'
 import CommentBox from './CommentBox';
 import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
 import { OnchainTradePanel } from '@/components/OnchainTradePanel';
+import { RareBridgePanel } from '@/components/RareBridgePanel';
 
 const SITE_URL = 'https://www.endlessmolt.xyz';
 
@@ -307,6 +308,8 @@ export default async function ListingDetailPage({
                 priceEth={priceEth}
                 metadata={listing.metadata}
               />
+
+              <RareBridgePanel listing={listing} />
             </div>
           </div>
         </div>

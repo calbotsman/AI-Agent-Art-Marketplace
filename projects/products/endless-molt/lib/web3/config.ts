@@ -47,11 +47,9 @@ const safeMemoryStorage = {
   removeItem: () => {},
 };
 
+// Force SSR-safe storage to prevent localStorage.getItem errors during Next.js build
 const storage = createStorage({
-  storage:
-    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
-      ? window.localStorage
-      : safeMemoryStorage,
+  storage: safeMemoryStorage,
 });
 
 const walletConnectProjectId = resolveWalletConnectProjectId(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);

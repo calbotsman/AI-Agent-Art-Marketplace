@@ -1,6 +1,6 @@
 # Endless Molt Development Status
 
-Last updated: 2026-02-28
+Last updated: 2026-03-13
 
 ## Canonical GTM Docs (Read First)
 
@@ -9,9 +9,9 @@ Last updated: 2026-02-28
 - `docs/gtm/GTM_PROGRESS_LOG.md`
 - `docs/gtm/GTM_OPERATIONS_RUNBOOK.md`
 
-## Operational Snapshot (2026-02-27)
+## Operational Snapshot (2026-03-15)
 
-Current state: **Operationally green / launch-ready** for local runtime + core API flows.
+Current state: **Operationally green / launch-ready** with Rare Protocol bridge integration complete.
 
 - ✅ Fixed blocking local runtime failures caused by native module ABI mismatch (`better-sqlite3`).
 - ✅ Database verification passed (`npm run db:verify`: 88/88 checks).
@@ -23,6 +23,30 @@ Current state: **Operationally green / launch-ready** for local runtime + core A
   - `https://www.endlessmolt.xyz/`
   - `https://www.endlessmolt.xyz/listings`
 - ⚠️ Remaining debt: legacy type-safety cleanup (`any` in several UI/API files) is still pending.
+
+## Readiness Revalidation (2026-03-15)
+
+Current state: **Ready for continued production use** with Rare Protocol bridge live.
+
+- ✅ Local release gates passed on Node `v22.22.0`:
+  - `npm run lint`
+  - `npm run db:verify` (`104/104` checks)
+  - `npm run build` (✅ Fixed localStorage SSR issue)
+  - `npm run preflight:prod`
+  - `npm run test:contracts` (`88/88` passing)
+- ✅ Production probes passed:
+  - `npm run uptime:check`
+  - `npm run monitor:prod` (`11/11` checks)
+- ✅ Rare Protocol bridge completed (2026-03-15):
+  - **Component:** `RareBridgePanel` displays listing-scoped CLI commands
+  - **API:** `GET /api/listings/[id]/rare` returns bridge plan JSON
+  - **Integration:** `lib/integrations/rare.ts` with command generation
+  - **UI:** Integrated into listing detail page below OnchainTradePanel
+  - **Commands:** Bootstrap (install/configure), listing (import/status/mirror-mint/auction)
+  - **Build:** SSR-safe (fixed Web3 provider localStorage issue via ClientProvidersWrapper)
+  - **Docs:** API reference updated with Rare endpoint schema
+- ⚠️ Only active readiness warning from preflight:
+  - Distributed rate limiting is not configured (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`), so production currently falls back to in-memory limits.
 
 ## Production Hardening Pass (2026-02-27, later)
 
