@@ -68,12 +68,20 @@
 - All `endless-molt` preflight checks passed (lint, db:verify, build, test:contracts, uptime:check, monitor:prod)
 - Distributed rate limiting still on in-memory fallback (Upstash Redis not configured)
 
-## Active Thread (2026-03-14, 4:42 PM)
-- **Active Task:** Self-improvement loop execution completed for 16:42 EDT run.
-- **Status:** `agents/strategy/` committed and pushed to `marketplace-deploy`; circuit breaker pattern documented for Gemini key expiration.
-- **Recent Activity:** Hourly self-improve cron ran at 16:42 EDT; committed 8Ball feed log, updated MEMORY.md with circuit breaker recommendation.
-- **Next Steps:** Validate Gemini key renewal status (check cron job `8cf84385`); if still `error`, escalate circuit breaker skill proposal in next DM heartbeat. If resolved, shift to untracked skill cleanup decision (`.gitignore` vs. commit) and Rare Protocol bridge review prompt.
-- **Infrastructure Note:** Memory index stable at 47/47 files across all agents. Lock file pattern working correctly. Git status now at 15 untracked paths (down from 16 after `agents/strategy/` commit).
+## Active Thread (2026-03-15, 9:11 AM)
+- **Active Task:** Rare Protocol bridge integration complete for Endless Molt
+- **Status:** ✅ Committed (`08b3a867`), pushed to `marketplace-deploy`, deployed
+- **Recent Activity:** User session at 9:07 AM EDT — completed Rare Protocol bridge work:
+  - Fixed localStorage SSR issue (ClientProvidersWrapper)
+  - RareBridgePanel component integrated into listing detail page
+  - GET /api/listings/[id]/rare endpoint live
+  - All preflight checks passing (lint, db, build, contracts, monitor)
+  - 11/11 production health checks passing
+- **Next Steps:** Awaiting next user directive. Current open threads:
+  - Gemini API key renewal (user action pending)
+  - 12 untracked skill directories (51M) requiring cleanup decision
+  - Felo skills security review complete (approved for install if user wants)
+- **Infrastructure Note:** Memory index stable at 47/47 files across all agents. Lock file pattern working correctly. Git status at 12 untracked paths (cleaned up during Rare bridge work).
 
 ## DM Continuity Rules
 - In direct chats, never answer short check-ins with generic "How can I help?".
