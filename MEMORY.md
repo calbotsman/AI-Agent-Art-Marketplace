@@ -19,13 +19,26 @@
 - **Status:** Expected alert on every health check. Safe to ignore under current configuration. Do not attempt to enable Docker sandboxing without Docker installed.
 - **Last validated:** 2026-03-14 11:42 EDT (confirmed Docker still unavailable).
 
-### Gemini API Key Expired (User Action Required)
+### Gemini API Key Expiration (Circuit Breaker Candidate)
 - **Alert:** Google Gemini API key expired on 2026-03-14. Cron job `8cf84385` (TCR Morning Briefing) fails with `API_KEY_INVALID`.
 - **Status:** User notified via `HEARTBEAT.md` (2026-03-14 08:42 EDT). No further self-improve loop action required.
 - **Renewal:** User must run `openclaw configure --set ai.gemini.apiKey="<new-key>"` after obtaining key from https://aistudio.google.com/apikey.
-- **Last flagged:** 2026-03-14 10:42 EDT.
+- **First occurrence:** 2026-03-14 08:42 EDT
+- **Recurring:** 8+ hours (identical `API_KEY_INVALID` error)
+- **Recommendation:** Implement circuit breaker pattern for cron jobs:
+  - Auto-pause job after 3 consecutive identical failures
+  - Send one alert (not 72/day)
+  - Resume on error change or manual action
+  - Reduces log noise + alert fatigue during known outages
+- **Reference:** [Odown Blog: Circuit Breaker Pattern for Cron Jobs](https://odown.com/blog/cron-job-monitoring/) (2026)
+- **Last flagged:** 2026-03-14 16:42 EDT.
 
 ## Recent Changes
+
+### 2026-03-14 16:42 EDT — agents/strategy/ Committed + Circuit Breaker Documentation
+- **`agents/strategy/` committed:** 8Ball feed log from cron job `87cd55e8` (created 00:33 EDT) committed to git and pushed to `marketplace-deploy`.
+- **Circuit breaker recommendation added:** Gemini API key expiration section now includes circuit breaker pattern proposal (auto-pause after 3 consecutive identical failures; one alert; resume on error change or manual action).
+- **Reference:** `/Users/calbotsman/clawd/reports/self-improve/agent_2026-03-14_1642.md`
 
 ### 2026-03-14 11:42 EDT — Security Audit Documentation + Loop Updates Committed
 - **Security audit alert expanded:** "Docker Sandbox CRITICAL Alert" now explicitly documents why Docker sandboxing is non-actionable (command unavailable, would crash gateway). Expanded with mitigation strategy and accepted risk statement.
@@ -55,12 +68,12 @@
 - All `endless-molt` preflight checks passed (lint, db:verify, build, test:contracts, uptime:check, monitor:prod)
 - Distributed rate limiting still on in-memory fallback (Upstash Redis not configured)
 
-## Active Thread (2026-03-14, 11:42 AM)
-- **Active Task:** Self-improvement loop execution completed for 11:42 EDT run.
-- **Status:** Security audit alert documentation expanded; loop updates committed and pushed to `marketplace-deploy`.
-- **Recent Activity:** Hourly self-improve cron ran at 11:42 EDT; documented Docker sandbox alert as non-actionable, committed loop updates.
-- **Next Steps:** Validate security audit noise reduction in next run (12:42 EDT); track Gemini key renewal progress.
-- **Infrastructure Note:** Memory index stable at 47/47 files across all agents. Lock file pattern working correctly.
+## Active Thread (2026-03-14, 4:42 PM)
+- **Active Task:** Self-improvement loop execution completed for 16:42 EDT run.
+- **Status:** `agents/strategy/` committed and pushed to `marketplace-deploy`; circuit breaker pattern documented for Gemini key expiration.
+- **Recent Activity:** Hourly self-improve cron ran at 16:42 EDT; committed 8Ball feed log, updated MEMORY.md with circuit breaker recommendation.
+- **Next Steps:** Validate Gemini key renewal status (check cron job `8cf84385`); if still `error`, escalate circuit breaker skill proposal in next DM heartbeat. If resolved, shift to untracked skill cleanup decision (`.gitignore` vs. commit) and Rare Protocol bridge review prompt.
+- **Infrastructure Note:** Memory index stable at 47/47 files across all agents. Lock file pattern working correctly. Git status now at 15 untracked paths (down from 16 after `agents/strategy/` commit).
 
 ## DM Continuity Rules
 - In direct chats, never answer short check-ins with generic "How can I help?".
@@ -99,8 +112,8 @@
 
 <!-- AUTO_HANDOFF_START -->
 ## Auto Session Handoff
-- Updated: 2026-03-14 11:42 EDT
-- Last user message: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK. Current time: Saturday, March 14th, 2026 — 11:42 AM (America/New_York)
-- Last assistant message: Self-improvement loop execution for 11:42 EDT. Documented Docker security audit as non-actionable; committed loop updates to git.
-- Most recent actionable request: Self-improvement loop hourly execution (cron job 193ea106-9345-4971-809e-e82055247f9a).
+- Updated: 2026-03-14 20:42 EDT
+- Last user message: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK. Current time: Saturday, March 14th, 2026 — 8:30 PM (America/New_York)
+- Last assistant message: **⚠️ Action Required: Gemini API Key Expired** Your Gemini API key expired today (2026-03-14). This affects: - TCR Morning Briefing - Other Gemini-powered cron jobs **To renew:** 1. Get new key: https://aistudio.google.com/apikey 2. Run: `openclaw configure --set ai.gemini.api...
+- Most recent actionable request: Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK. Current time: Saturday, March 14th, 2026 — 8:30 PM (America/New_York)
 <!-- AUTO_HANDOFF_END -->

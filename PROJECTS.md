@@ -1,7 +1,7 @@
 # PROJECTS
 This file is the canonical map of active projects and their home paths. Resolve project identity here before running tools or searching logs.
 
-Last updated: 2026-02-20
+Last updated: 2026-03-14
 
 ## Resolution Rules
 - Exact name match wins.
@@ -60,3 +60,18 @@ Last updated: 2026-02-20
 - Purpose: Iterative brand rounds and review artifacts.
 - Primary docs: /Users/calbotsman/clawd/projects/brands/solvida/round-1
 - Keywords: solvida, brand, rounds
+
+## Agents & Infrastructure
+
+### agency-agents
+- Path: /Users/calbotsman/clawd/projects/agency-agents
+- Purpose: External collection of specialized AI agent personalities (frontend, marketing, testing, support, etc.). Born from Reddit thread; MIT-licensed open-source collection.
+- Primary docs: /Users/calbotsman/clawd/projects/agency-agents/README.md
+- Keywords: agency, agents, specialized, reddit, msitarzewski, personality, deliverables
+- Structure: 13 subdirectories (design, engineering, marketing, product, project-management, spatial-computing, specialized, strategy, support, testing, etc.)
+
+### clawd
+- Path: /Users/calbotsman/clawd
+- Purpose: Cal's workspace root (OpenClaw runtime, memory, projects, skills).
+- Primary docs: /Users/calbotsman/clawd/AGENTS.md
+- Keywords: clawd, cal, workspace, openclaw
