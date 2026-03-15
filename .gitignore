@@ -54,3 +54,7 @@ tools/kohya_ss/
 CAL_CREDENTIALS.md
 agents/*/agent/auth-profiles.json
 agents/*/LEGACY_DIRECTOR_SNAPSHOT/agent/auth-profiles.json
+
+# Runtime state (self-improve loop + memory)
+/memory/*.md
+/loops/.*.lock
