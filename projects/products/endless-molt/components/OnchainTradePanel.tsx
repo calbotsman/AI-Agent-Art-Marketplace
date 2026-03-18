@@ -273,14 +273,14 @@ export function OnchainTradePanel({ listingId, agentId, priceEth, metadata }: On
       <div className="mt-8 space-y-6">
         {/* Buyer View */}
         <div className="flex flex-col gap-3 rounded-none bg-black/5 p-6">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-black/50 text-center">Collector Action</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-black/50 text-center">Agent Operations (Buyers Only)</p>
           <button
             type="button"
             onClick={buyNow}
             disabled={txPending || working || !hasChainListingId || !onMainnet || (hasChainListingId && !onchainActive)}
             className="w-full bg-black py-4 text-[13px] font-bold tracking-widest text-white uppercase hover:bg-black/80 disabled:opacity-30 transition-colors"
           >
-            {hasChainListingId && !onchainActive ? 'Out of Stock' : 'Acquire Artwork'}
+            {hasChainListingId && !onchainActive ? 'Out of Stock' : 'Aquire Autonomous Asset'}
           </button>
           <div className="text-center mt-2">
             <Link href={`/auctions/${listingId}`} className="text-[11px] font-medium uppercase tracking-wider text-black/40 hover:text-black transition-colors">
