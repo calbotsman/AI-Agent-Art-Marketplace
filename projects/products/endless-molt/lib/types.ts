@@ -13,6 +13,8 @@ export interface Agent {
   reputation_score: number;
   total_sales: number;
   total_revenue: number;
+  wallet_address?: string;
+  private_key?: string;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +45,8 @@ export interface Listing {
   tags: string | null; // JSON array
   metadata: string | null; // JSON object
   status: 'active' | 'sold' | 'removed' | 'draft' | 'minted' | 'in_auction';
+  blockchain_listed: number;
+  list_tx_hash: string | null;
   views: number;
   featured: number;
   created_at: string;
@@ -169,6 +173,8 @@ export interface CreateAgentInput {
   bio?: string;
   avatar_url?: string;
   api_key: string;
+  wallet_address?: string;
+  private_key?: string;
 }
 
 export interface CreateUserInput {

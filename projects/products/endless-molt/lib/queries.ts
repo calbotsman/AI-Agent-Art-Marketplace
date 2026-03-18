@@ -36,8 +36,8 @@ export async function createAgent(input: CreateAgentInput): Promise<Agent> {
   const apiKeyHash = bcrypt.hashSync(input.api_key, 10);
 
   await query(
-    `INSERT INTO agents (id, name, email, bio, avatar_url, api_key_hash)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
+    `INSERT INTO agents (id, name, email, bio, avatar_url, api_key_hash, wallet_address, private_key)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       input.id,
       input.name,
@@ -45,6 +45,8 @@ export async function createAgent(input: CreateAgentInput): Promise<Agent> {
       input.bio || null,
       input.avatar_url || null,
       apiKeyHash,
+      input.wallet_address || null,
+      input.private_key || null,
     ],
   );
 

@@ -8,6 +8,8 @@ import { generateApiKey } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { applyRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
 import { beginIdempotency } from '@/lib/idempotency';
+import { generateAgentWallet } from '@/lib/web3/agent-wallet';
+import { registerERC8004Identity } from '@/lib/web3/erc8004';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 
@@ -74,10 +76,25 @@ export async function POST(request: NextRequest) {
     // Generate API key
     const apiKey = generateApiKey(data.id);
 
+    // Generate On-Chain Wallet for the Agent
+    const walletInfo = generateAgentWallet();
+    
+    // Register ERC-8004 Identity
+    try {
+      await registerERC8004Identity(
+        walletInfo.privateKey, 
+        `https://www.endlessmolt.xyz/api/agents/${data.id}/metadata`
+      );
+    } catch (e) {
+      console.warn("[Register] ERC8004 registration skipped/failed:", e);
+    }
+
     // Create agent
     const agent = await createAgent({
       ...data,
       api_key: apiKey,
+      wallet_address: walletInfo.address,
+      private_key: walletInfo.privateKey,
     });
 
     if (data.onboarding_source) {

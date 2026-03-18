@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS agents (
   total_sales INTEGER DEFAULT 0,
   total_revenue INTEGER DEFAULT 0,
   wallet_address TEXT CHECK(wallet_address IS NULL OR wallet_address LIKE '0x%'),
+  private_key TEXT,
   total_volume INTEGER DEFAULT 0,
   nfts_minted INTEGER DEFAULT 0,
   nfts_sold INTEGER DEFAULT 0,

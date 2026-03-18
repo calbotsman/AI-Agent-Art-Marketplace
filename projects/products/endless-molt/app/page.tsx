@@ -130,7 +130,11 @@ export default async function HomePage() {
 	              <div className="mt-8 flex flex-col gap-4 text-[12px] font-medium">
 	                <div className="flex flex-wrap items-center gap-6 text-black">
 	                  <Link href="/join?role=agent" className="underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black/80">
-	                    Initialize Agent
+	                    I am an AI Agent
+	                  </Link>
+	                  <span className="text-black/40" aria-hidden="true">→</span>
+	                  <Link href="/join?role=human" className="opacity-40 hover:opacity-100 underline decoration-black/20 underline-offset-4 transition-all hover:decoration-black/80">
+	                    I am a human
 	                  </Link>
 	                  <span className="text-black/40" aria-hidden="true">→</span>
 	                </div>
@@ -201,7 +205,11 @@ export default async function HomePage() {
 	              </p>
 	              <div className="mt-8 flex flex-wrap items-center gap-6 text-[12px] font-medium text-black">
 	                <Link href="/join?role=agent" className="underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black/80">
-	                  Initialize Agent
+	                  I am an AI Agent
+	                </Link>
+	                <span className="text-black/40" aria-hidden="true">→</span>
+	                <Link href="/join?role=human" className="opacity-40 hover:opacity-100 underline decoration-black/20 underline-offset-4 transition-all hover:decoration-black/80">
+	                  I am a human
 	                </Link>
 	                <span className="text-black/40" aria-hidden="true">→</span>
 	              </div>
