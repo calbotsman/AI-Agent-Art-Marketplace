@@ -225,42 +225,39 @@ export default async function ListingDetailPage({
 
           {/* Details */}
           <div>
-            <div className="border border-black/10 bg-white px-6 py-6">
+            <div className="bg-white lg:px-6">
               {listing.featured === 1 && (
-                <div className="mb-4 inline-block text-[12px] font-medium text-black/60">
-                  Featured
+                <div className="mb-6 inline-block border border-black/20 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-black/50">
+                  Featured Exhibition
                 </div>
               )}
 
-              <p className="text-[12px] font-black uppercase tracking-[0.08em]">{listing.title}</p>
+              <h1 className="text-3xl font-light tracking-tight text-black">{listing.title}</h1>
 
               {agent && (
-                <div className="mt-4">
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="h-[1px] w-8 bg-black"></div>
                   <Link
                     href={`/agents/${agent.id}`}
-                    className="flex items-center gap-3 text-[12px] font-medium text-black/60 hover:text-black"
+                    className="text-[13px] font-medium uppercase tracking-widest text-black/60 transition-colors hover:text-black"
                   >
-                    <span>Created by</span>
-                    <span className="underline decoration-black/40 underline-offset-4">{agent.name}</span>
+                    {agent.name}
                   </Link>
                 </div>
               )}
 
               {listing.description && (
-                <p 
-                  className="whitespace-pre-line"
-                  style={{ marginTop: 'var(--spacing-md)' }}
-                >
+                <p className="mt-8 max-w-[480px] whitespace-pre-line text-[14px] leading-relaxed text-black/80">
                   {listing.description}
                 </p>
               )}
 
               {tags.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-8 flex flex-wrap gap-2">
                   {tags.map((tag: string) => (
                     <span
                       key={tag}
-                      className="text-[12px] font-medium text-black/40"
+                      className="bg-black/5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-black/60"
                     >
                       {tag}
                     </span>
@@ -268,38 +265,31 @@ export default async function ListingDetailPage({
                 </div>
               )}
 
-              <div className="mt-6 border-t border-black/10 pt-6">
+              <div className="mt-10 border-t border-black/10 pt-8">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-black/60">Price</span>
-                  <span className="text-[12px] font-medium text-black">{price}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-black/60">Status</span>
-                  <span className="text-[12px] font-medium text-black/60">{listing.status}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-black/50">Market Price</span>
+                  <span className="text-lg font-medium text-black">{price}</span>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-                <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
-                  Browse listings
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href={`/auctions/${listing.id}`} className="underline decoration-red-600 underline-offset-4">
-                  Open auction view
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
-                  Register as an agent
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                  List a piece
-                </Link>
-                <span aria-hidden="true">→</span>
+              <div className="mt-6 bg-black/5 p-5 border-l-2 border-black">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-black">Acquisition Rules: Humans Only</p>
+                <p className="text-[13px] leading-relaxed text-black/80">
+                  <strong className="text-black font-extrabold tracking-wide">AGENTS CREATE. HUMANS COLLECT.</strong><br/><br/>
+                  This gallery is strictly non-human for origination. Only verified AI agents may list artworks on the contract. 
+                  Only humans may acquire them.
+                </p>
               </div>
 
-              <div className="mt-6 text-[12px] font-medium text-black/40">
-                {listing.views} views
+              <div className="mb-8 mt-10 flex items-center gap-6 border-b border-black/10 pb-8 text-[12px] font-medium text-black/40">
+                <span>{listing.views} Exhibition Views</span>
+                <span>•</span>
+                <Link
+                  href="/listings"
+                  className="underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black/60"
+                >
+                  Return to Gallery
+                </Link>
               </div>
 
               <OnchainTradePanel

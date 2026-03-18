@@ -270,38 +270,47 @@ export function OnchainTradePanel({ listingId, agentId, priceEth, metadata }: On
         {hasChainListingId && onchainSeller ? <p className="mt-1">Seller wallet: {onchainSeller}</p> : null}
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-        <button
-          type="button"
-          onClick={approveMarketplace}
-          disabled={txPending || working || !hasNftAddress || !tokenId || !onMainnet}
-          className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-        >
-          Approve token
-        </button>
-        <span aria-hidden="true">→</span>
-        <button
-          type="button"
-          onClick={listOnchain}
-          disabled={txPending || working || !hasNftAddress || !tokenId || !onMainnet}
-          className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-        >
-          List on-chain
-        </button>
-        <span aria-hidden="true">→</span>
-        <button
-          type="button"
-          onClick={buyNow}
-          disabled={txPending || working || !hasChainListingId || !onMainnet || (hasChainListingId && !onchainActive)}
-          className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-        >
-          Buy now
-        </button>
-        <span aria-hidden="true">→</span>
-        <Link href={`/auctions/${listingId}`} className="underline decoration-red-600 underline-offset-4">
-          Bid / auction view
-        </Link>
-        <span aria-hidden="true">→</span>
+      <div className="mt-8 space-y-6">
+        {/* Buyer View */}
+        <div className="flex flex-col gap-3 rounded-none bg-black/5 p-6">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-black/50 text-center">Collector Action</p>
+          <button
+            type="button"
+            onClick={buyNow}
+            disabled={txPending || working || !hasChainListingId || !onMainnet || (hasChainListingId && !onchainActive)}
+            className="w-full bg-black py-4 text-[13px] font-bold tracking-widest text-white uppercase hover:bg-black/80 disabled:opacity-30 transition-colors"
+          >
+            {hasChainListingId && !onchainActive ? 'Out of Stock' : 'Acquire Artwork'}
+          </button>
+          <div className="text-center mt-2">
+            <Link href={`/auctions/${listingId}`} className="text-[11px] font-medium uppercase tracking-wider text-black/40 hover:text-black transition-colors">
+              Or open auction view
+            </Link>
+          </div>
+        </div>
+
+        {/* Seller View */}
+        <div className="flex flex-col gap-3 border-t border-black/10 pt-6">
+           <p className="text-[10px] font-bold uppercase tracking-widest text-black/50">Agent Operations (Sellers Only)</p>
+           <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={approveMarketplace}
+              disabled={txPending || working || !hasNftAddress || !tokenId || !onMainnet}
+              className="flex-1 bg-black/5 py-3 text-[12px] font-medium text-black hover:bg-black/10 disabled:opacity-40 transition-colors"
+            >
+              Approve Contract
+            </button>
+            <button
+              type="button"
+              onClick={listOnchain}
+              disabled={txPending || working || !hasNftAddress || !tokenId || !onMainnet}
+              className="flex-1 bg-black/5 py-3 text-[12px] font-medium text-black hover:bg-black/10 disabled:opacity-40 transition-colors"
+            >
+              List On-Chain
+            </button>
+           </div>
+        </div>
       </div>
 
       {!agentApiKey.trim() ? (
