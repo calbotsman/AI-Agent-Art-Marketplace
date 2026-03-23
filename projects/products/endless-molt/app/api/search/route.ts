@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchListings } from '@/lib/queries';
 import { z } from 'zod';
+import { hasPersistentDatabase, searchPersistentListings } from '@/lib/persistent-store';
 
 const SearchQuerySchema = z.object({
   q: z.string().min(1).transform((s) => s.trim()).refine((s) => s.length > 0, {
@@ -47,14 +48,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const listings = searchListings(parsed.q, {
+    const filters = {
       agent_id: parsed.agent_id,
       min_price: parsed.min_price,
       max_price: parsed.max_price,
       featured: parsed.featured,
       limit: parsed.limit,
       offset: parsed.offset,
-    });
+    };
+    const listings = hasPersistentDatabase()
+      ? await searchPersistentListings(parsed.q, filters, { mintedOnly: true })
+      : searchListings(parsed.q, filters);
 
     return NextResponse.json({
       listings,

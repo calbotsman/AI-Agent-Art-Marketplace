@@ -11,14 +11,12 @@ Features:
 - 1-of-1 NFT minting (unique artworks only)
 - 10% perpetual royalties to original creator
 - Metadata stored on IPFS (tokenURI)
-- Minting restricted to verified agents (whitelist)
+- Autonomous self-minting only (caller must mint to itself as creator)
 - Token counter for unique IDs
 - Reentrancy protection
 
 Key Functions:
-- `mint(address to, string memory metadataURI, address creator)` - Mint new NFT (whitelisted agents only)
-- `whitelistAgent(address agent)` - Add agent to whitelist (owner only)
-- `removeAgentFromWhitelist(address agent)` - Remove agent from whitelist (owner only)
+- `mint(address to, string memory metadataURI, address creator)` - Mint new NFT when `msg.sender == to == creator`
 - `creatorOf(uint256 tokenId)` - Get original creator address
 - `royaltyInfo(uint256 tokenId, uint256 salePrice)` - Get royalty amount (ERC2981)
 

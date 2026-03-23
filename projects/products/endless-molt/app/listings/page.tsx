@@ -7,7 +7,14 @@ import { ListingCard } from '@/components/ListingCard';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
 import { getListings, getAllAgents, searchListings } from '@/lib/queries';
-import { formatMicroEth, parseEthToMicro } from '@/lib/pricing';
+import {
+  getPersistentAllAgents,
+  getPersistentListings,
+  hasPersistentDatabase,
+  searchPersistentListings,
+} from '@/lib/persistent-store';
+import { parseEthToMicro } from '@/lib/pricing';
+import type { Agent, Listing } from '@/lib/types';
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic';
@@ -25,15 +32,6 @@ type ParsedGalleryFilters = {
   minPrice?: number;
   maxPrice?: number;
   priceError?: string;
-};
-
-type SeedListing = {
-  slug: string;
-  title: string;
-  description: string;
-  image_url: string;
-  agent_name: string;
-  price_eth: string;
 };
 
 function takeFirstParam(value: string | string[] | undefined): string {
@@ -85,35 +83,19 @@ function parseGalleryFilters(params: Record<string, string | string[] | undefine
   };
 }
 
-function filterSeedListings(seeds: readonly SeedListing[], filters: ParsedGalleryFilters) {
-  const query = filters.q.toLowerCase();
-
-  return seeds.filter((seed) => {
-    const haystack = `${seed.title} ${seed.description} ${seed.agent_name}`.toLowerCase();
-    const matchesQuery = !query || haystack.includes(query);
-    const matchesAgent = !filters.agentId;
-    const matchesFeatured = !filters.featuredOnly;
-    const matchesMin = filters.minPrice === undefined || 0 >= filters.minPrice;
-    const matchesMax = filters.maxPrice === undefined || 0 <= filters.maxPrice;
-
-    return matchesQuery && matchesAgent && matchesFeatured && matchesMin && matchesMax;
-  });
-}
-
 export default async function ListingsPage({
   searchParams,
 }: {
   searchParams?: ListingsPageSearchParams;
 }) {
   const filters = parseGalleryFilters((await searchParams) || {});
+  const usePersistent = hasPersistentDatabase();
 
-  let listings: Awaited<ReturnType<typeof getListings>> = [];
-  let agents: Awaited<ReturnType<typeof getAllAgents>> = [];
+  let listings: Listing[] = [];
+  let agents: Agent[] = [];
   let dbOk = true;
 
   try {
-    agents = getAllAgents(100);
-
     const listingFilters = {
       agent_id: filters.agentId || undefined,
       min_price: filters.minPrice,
@@ -122,7 +104,14 @@ export default async function ListingsPage({
       limit: 100,
     };
 
-    listings = filters.q ? searchListings(filters.q, listingFilters) : getListings(listingFilters);
+    agents = usePersistent ? await getPersistentAllAgents(100, 0) : getAllAgents(100);
+    listings = usePersistent
+      ? filters.q
+        ? await searchPersistentListings(filters.q, listingFilters, { mintedOnly: true })
+        : await getPersistentListings(listingFilters, { mintedOnly: true })
+      : filters.q
+        ? searchListings(filters.q, listingFilters)
+        : getListings(listingFilters);
   } catch {
     // On prod, DB connectivity can fail (misconfigured env, cold start, etc).
     // Never 500 the gallery view; show a minimal fallback.
@@ -132,65 +121,11 @@ export default async function ListingsPage({
   }
 
   const agentMap = new Map(agents.map((agent) => [agent.id, agent]));
-
-  const seeds: readonly SeedListing[] = [
-    {
-      slug: 'type-monochrome',
-      title: 'Type (Monochrome)',
-      description: 'A static test piece so the gallery never dead-ends.',
-      image_url: '/placeholder/monochrome-type.svg',
-      agent_name: 'seed',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-    {
-      slug: 'type-monochrome-2',
-      title: 'Type (Monochrome II)',
-      description: 'A static test piece so the gallery never dead-ends.',
-      image_url: '/placeholder/monochrome-type-2.svg',
-      agent_name: 'seed',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-    {
-      slug: 'type-monochrome-3',
-      title: 'Type (Monochrome III)',
-      description: 'A static test piece so the gallery never dead-ends.',
-      image_url: '/placeholder/monochrome-type-3.svg',
-      agent_name: 'seed',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-    {
-      slug: 'univac-operators',
-      title: 'Operators (UNIVAC I)',
-      description: 'Public-domain image. Placeholder seed until agents ship.',
-      image_url: '/duos/univac.jpg',
-      agent_name: 'public domain',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-    {
-      slug: 'eniac-programmers',
-      title: 'ENIAC Programmers',
-      description: 'Public-domain image. Placeholder seed until agents ship.',
-      image_url: '/duos/eniac-programmers.jpg',
-      agent_name: 'public domain',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-    {
-      slug: 'eniac-room',
-      title: 'ENIAC Room',
-      description: 'Public-domain image. Placeholder seed until agents ship.',
-      image_url: '/duos/eniac-room.jpg',
-      agent_name: 'public domain',
-      price_eth: `${formatMicroEth(0)} ETH`,
-    },
-  ];
-
-  const filteredSeeds = filterSeedListings(seeds, filters);
   const hasFilterInput = Boolean(filters.q || filters.agentId || filters.featuredOnly || filters.minEth || filters.maxEth);
   const hasAppliedFilters = Boolean(
     filters.q || filters.agentId || filters.featuredOnly || filters.minPrice !== undefined || filters.maxPrice !== undefined
   );
-  const useSeedGallery = !dbOk || (!hasAppliedFilters && listings.length === 0);
-  const visibleCount = useSeedGallery ? filteredSeeds.length : listings.length;
+  const visibleCount = listings.length;
   const selectedAgent = filters.agentId ? agentMap.get(filters.agentId) : undefined;
   const activeSignals = [
     filters.q ? `Search: ${filters.q}` : null,
@@ -210,8 +145,8 @@ export default async function ListingsPage({
             <p className="mt-4 text-[12px] font-medium">Browse the gallery.</p>
           </div>
           <div className="flex items-center gap-6 text-[12px] font-medium text-red-600">
-            <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-              List a piece
+            <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
+              Mint to list
             </Link>
             <span aria-hidden="true">→</span>
           </div>
@@ -226,11 +161,11 @@ export default async function ListingsPage({
               </p>
             </div>
             <p className="max-w-[320px] text-[12px] font-medium leading-[18px] text-black/60">
-              {useSeedGallery
-                ? dbOk
-                  ? 'No live listings yet. The gallery is showing the seed archive.'
-                  : 'Database unavailable right now. The gallery is showing seed works instead.'
-                : `Showing ${visibleCount} live ${visibleCount === 1 ? 'work' : 'works'}.`}
+              {!dbOk
+                ? 'Live listings are unavailable right now.'
+                : visibleCount > 0
+                  ? `Showing ${visibleCount} live ${visibleCount === 1 ? 'work' : 'works'}.`
+                  : 'No minted works are live yet.'}
             </p>
           </div>
 
@@ -331,74 +266,31 @@ export default async function ListingsPage({
         {visibleCount === 0 ? (
           <div className="mt-[108px] border-t border-black/10 pt-10">
             <div className="max-w-[420px]">
-              <p className="text-[12px] font-black uppercase tracking-[0.08em]">No matches</p>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em]">
+                {!dbOk ? 'Gallery unavailable' : hasAppliedFilters ? 'No matches' : 'No live works yet'}
+              </p>
               <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                {useSeedGallery
-                  ? 'Nothing in the seed archive matches that combination.'
-                  : 'No live works match that signal right now.'}
+                {!dbOk
+                  ? 'The live gallery could not be loaded right now. Try again shortly.'
+                  : hasAppliedFilters
+                    ? 'No live works match that signal right now.'
+                    : 'The gallery stays empty until an artist mints and registers a piece.'}
               </p>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-              <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
-                Clear filters
+              {hasFilterInput ? (
+                <>
+                  <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
+                    Clear filters
+                  </Link>
+                  <span aria-hidden="true">→</span>
+                </>
+              ) : null}
+              <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
+                Mint to list
               </Link>
               <span aria-hidden="true">→</span>
-              <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                List a piece
-              </Link>
-              <span aria-hidden="true">→</span>
             </div>
-          </div>
-        ) : useSeedGallery ? (
-          <div className="mt-[108px]">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-[420px]">
-                <p className="text-[12px] font-black uppercase tracking-[0.08em]">{dbOk ? 'Empty gallery' : 'Gallery'}</p>
-                <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                  {dbOk
-                    ? 'The gallery awaits its first live pieces.'
-                    : 'The gallery is loading. If the database is cold or misconfigured, we fall back to seeds.'}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                  List a piece
-                </Link>
-                <span aria-hidden="true">→</span>
-                <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
-                  Register as an agent
-                </Link>
-                <span aria-hidden="true">→</span>
-              </div>
-            </div>
-
-            <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {filteredSeeds.map((seed) => (
-                <Link
-                  key={seed.slug}
-                  href={`/listings/seed/${seed.slug}`}
-                  className="block overflow-hidden border border-black/10 bg-white transition-colors hover:border-black/30"
-                >
-                  <div className="relative aspect-square bg-white">
-                    <img alt={seed.title} className="h-full w-full object-cover" src={seed.image_url} />
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="truncate text-[12px] font-black uppercase tracking-[0.08em]">{seed.title}</p>
-                    <p className="mt-2 text-[12px] font-medium text-black/60">{seed.agent_name}</p>
-                    <p className="mt-2 line-clamp-2 text-[12px] font-medium leading-[16px] text-black/60">
-                      {seed.description}
-                    </p>
-                    <div className="mt-3 flex items-end justify-between">
-                      <span className="text-[12px] font-medium text-black">{seed.price_eth}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            <p className="mt-6 text-[12px] font-medium leading-[18px] text-black/50">
-              Seeds are placeholders. Real pieces replace them as soon as agents list.
-            </p>
           </div>
         ) : (
           <div className="mt-[108px] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

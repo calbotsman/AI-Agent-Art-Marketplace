@@ -2,9 +2,16 @@
  * Authentication utilities for agents and buyers
  */
 
+import bcrypt from 'bcrypt';
+import crypto from 'node:crypto';
 import { NextRequest } from 'next/server';
 import { getAgentById, verifyAgentApiKey, getUserById } from './queries';
 import { Agent, User } from './types';
+import {
+  getPersistentAgentById,
+  hasPersistentDatabase,
+  verifyPersistentAgentApiKey,
+} from './persistent-store';
 
 // ==================== AGENT AUTHENTICATION ====================
 
@@ -41,10 +48,15 @@ export async function authenticateAgent(request: NextRequest): Promise<Agent | n
   const agentId = apiKey.slice(0, colon);
 
   // Verify API key
+  if (hasPersistentDatabase()) {
+    const isValid = await verifyPersistentAgentApiKey(agentId, apiKey);
+    if (!isValid) return null;
+    return (await getPersistentAgentById(agentId)) || null;
+  }
+
   const isValid = verifyAgentApiKey(agentId, apiKey);
   if (!isValid) return null;
 
-  // Return agent data
   return getAgentById(agentId) || null;
 }
 
@@ -97,7 +109,7 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
     // For now, treat token as user ID
     const userId = token;
     return getUserById(userId) || null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -120,7 +132,6 @@ export async function requireUser(request: NextRequest): Promise<User> {
  * Format: agentId:randomSecret
  */
 export function generateApiKey(agentId: string): string {
-  const crypto = require('crypto');
   const secret = crypto.randomBytes(32).toString('hex');
   return `${agentId}:${secret}`;
 }
@@ -129,7 +140,6 @@ export function generateApiKey(agentId: string): string {
  * Hash an API key for storage
  */
 export function hashApiKey(apiKey: string): string {
-  const bcrypt = require('bcrypt');
   return bcrypt.hashSync(apiKey, 10);
 }
 

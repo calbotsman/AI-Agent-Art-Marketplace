@@ -17,7 +17,7 @@
 - [ ] **Get Sepolia ETH** (10 min)
   - Visit: https://sepoliafaucet.com/
   - Login with Alchemy (free)
-  - Paste Cal's address: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+  - Paste Cal's address: `0x43550De0806B182D64D39a6c99591CfE868F6C89`
   - Request 0.5 ETH
   - Alternative: https://www.alchemy.com/faucets/ethereum-sepolia
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { useAccount, useSignMessage, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { parseAbi } from 'viem';
 import { BrandLink } from '@/components/BrandLink';
@@ -10,14 +10,21 @@ import { MinimalFooter } from '@/components/MinimalFooter';
 import { config as wagmiConfig, CONTRACTS } from '@/lib/web3/config';
 import { mainnet } from 'wagmi/chains';
 import { WalletConnect } from '@/components/WalletConnect';
+import { buildMintRegistrationMessage } from '@/lib/mint-registration';
+import { getErrorMessage, getStringValue, isJsonRecord, readJsonRecord } from '@/lib/safe';
+import {
+  getArtworkSubmissionError,
+  MIN_ARTIST_STATEMENT_LENGTH,
+  MIN_ARTWORK_TITLE_LENGTH,
+  normalizeArtistStatement,
+  normalizeArtworkTitle,
+} from '@/lib/artwork-submission';
 
 const NFT_ABI = parseAbi([
-  'function verifiedAgents(address) view returns (bool)',
-  'function whitelistAgent(address agent)',
   'function mint(address to, string metadataURI, address creator) returns (uint256)',
 ]);
 
-const OWNER_ADDRESS = '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B' as const;
+const AGENT_API_KEY_STORAGE_KEY = 'endlessmolt_agent_api_key';
 
 type StorageMode = 'ipfs' | 'url' | 'onchain_minimal';
 
@@ -44,146 +51,175 @@ function makeTinyOnchainTokenUri(input: { name: string; description: string }) {
   return `data:application/json;base64,${encoded}`;
 }
 
+function getMintError(error: unknown, fallback: string) {
+  if (isJsonRecord(error) && typeof error.shortMessage === 'string' && error.shortMessage.trim()) {
+    return error.shortMessage;
+  }
+
+  return getErrorMessage(error, fallback);
+}
+
+function getStoredAgentApiKey() {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    return localStorage.getItem(AGENT_API_KEY_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
 export default function MintPage() {
   const { address, isConnected, chainId } = useAccount();
   const { writeContractAsync, isPending: isWriting } = useWriteContract();
+  const { signMessageAsync, isPending: isSigning } = useSignMessage();
 
-  // UX gating only. Humans should not land here.
-  // On-chain minting is always controlled by the connected wallet.
-  const [agentKeyPresent, setAgentKeyPresent] = useState(false);
-
-  const [title, setTitle] = useState('Monochrome Field (Genesis)');
-  const [description, setDescription] = useState('A monochrome type field to prove the pipe. Replace with real work.');
+  const [title, setTitle] = useState('');
+  const [artistStatement, setArtistStatement] = useState('');
+  const [priceEth, setPriceEth] = useState('0.05');
+  const [tags, setTags] = useState('monochrome, genesis');
 
   const [storageMode, setStorageMode] = useState<StorageMode>('ipfs');
   const [file, setFile] = useState<File | null>(null);
   const [tokenUri, setTokenUri] = useState(''); // ipfs://... metadata link
-
-  const [inviteCode, setInviteCode] = useState<string>('');
-  const [whitelistTarget, setWhitelistTarget] = useState<string>('');
+  const [galleryImageUrl, setGalleryImageUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
 
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [listingUrl, setListingUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const nftAddress = CONTRACTS.mainnet.nft;
-
-  const { data: isVerified, refetch: refetchVerified, isFetching: isFetchingVerified } = useReadContract({
-    address: nftAddress as `0x${string}`,
-    abi: NFT_ABI,
-    functionName: 'verifiedAgents',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+  const normalizedTitle = normalizeArtworkTitle(title);
+  const normalizedArtistStatement = normalizeArtistStatement(artistStatement);
+  const submissionError = getArtworkSubmissionError({
+    title: normalizedTitle,
+    artistStatement: normalizedArtistStatement,
   });
+  const showSubmissionError = Boolean(title.trim() || artistStatement.trim());
+  const titleLength = normalizedTitle.length;
+  const artistStatementLength = normalizedArtistStatement.length;
 
   const needsMainnet = chainId !== undefined && chainId !== mainnet.id;
-  const verified = Boolean(isVerified);
-  const isOwner = !!address && address.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-  const canMint = verified || isOwner;
 
   useEffect(() => {
     setError(null);
   }, [address, chainId]);
 
   useEffect(() => {
-    try {
-      const v = localStorage.getItem('endlessmolt_agent_api_key');
-      setAgentKeyPresent(!!(v && v.trim()));
-    } catch {
-      setAgentKeyPresent(false);
-    }
+    const loadApiKey = () => setApiKey(getStoredAgentApiKey());
+    loadApiKey();
+
+    window.addEventListener('storage', loadApiKey);
+    return () => window.removeEventListener('storage', loadApiKey);
   }, []);
+
+  function invalidateUploadedMetadata() {
+    if (storageMode !== 'ipfs') return;
+    setTokenUri('');
+    setGalleryImageUrl('');
+  }
 
   async function uploadToIpfs(): Promise<string> {
     try {
       setError(null);
       setStatus(null);
       setTxHash(null);
+      setListingUrl(null);
 
       if (!file) throw new Error('Choose an image file first.');
-      if (!title.trim()) throw new Error('Title required.');
+      if (submissionError) throw new Error(submissionError);
+      if (!apiKey.trim()) throw new Error('Agent API key required for IPFS upload.');
 
       setStatus('Uploading to IPFS…');
       const form = new FormData();
       form.append('file', file);
-      form.append('title', title.trim());
-      form.append('description', description.trim());
+      form.append('title', normalizedTitle);
+      form.append('description', normalizedArtistStatement);
+      form.append('artist_statement', normalizedArtistStatement);
 
-      const res = await fetch('/api/ipfs/pin', { method: 'POST', body: form });
-      const data = await res.json().catch(() => ({} as any));
-      if (!res.ok) throw new Error((data && data.error) || `Upload failed (HTTP ${res.status})`);
+      const res = await fetch('/api/ipfs/pin', {
+        method: 'POST',
+        headers: { 'X-API-Key': apiKey.trim() },
+        body: form,
+      });
+      const data = await readJsonRecord(res);
+      if (!res.ok) throw new Error(getStringValue(data, 'error') || `Upload failed (HTTP ${res.status})`);
 
-      const uri = String(data.tokenUri || '').trim();
+      const uri = getStringValue(data, 'tokenUri')?.trim() || '';
       if (!uri) throw new Error('IPFS pin succeeded but returned an empty metadata link.');
+      const imageGateway = getStringValue(data, 'imageGateway')?.trim() || '';
 
       setTokenUri(uri);
+      if (imageGateway) {
+        setGalleryImageUrl(imageGateway);
+      }
       setStatus(null);
       return uri;
-    } catch (e: any) {
+    } catch (error: unknown) {
       setStatus(null);
-      setError(e?.message || 'Upload failed');
+      setError(getErrorMessage(error, 'Upload failed'));
       return '';
     }
   }
 
-  async function requestWhitelist() {
-    try {
-      setError(null);
-      setStatus(null);
-      setTxHash(null);
-      if (!address) throw new Error('Connect a wallet first.');
-      if (!inviteCode.trim()) throw new Error('Enter an invite code.');
-
-      setStatus('Requesting whitelist…');
-      const res = await fetch('/api/agents/whitelist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, invite_code: inviteCode.trim() }),
-      });
-      const data = await res.json().catch(() => ({} as any));
-      if (!res.ok) {
-        const msg = (data && typeof data === 'object' && 'error' in data) ? (data as any).error : '';
-        throw new Error(msg || `Whitelist request failed (HTTP ${res.status})`);
-      }
-
-      setTxHash(data.hash || null);
-      setStatus('Whitelist transaction submitted. Waiting a few seconds, then re-checking…');
-      await new Promise((r) => setTimeout(r, 3500));
-      await refetchVerified();
-      setStatus(null);
-    } catch (e: any) {
-      setStatus(null);
-      setError(e?.message || 'Whitelist request failed');
+  async function registerMintedListing(hash: string, walletAddress: string) {
+    const trimmedApiKey = apiKey.trim();
+    if (!trimmedApiKey) {
+      setStatus('Mint confirmed. Add your agent API key to register the gallery listing.');
+      return;
     }
-  }
 
-  async function whitelistWallet() {
-    try {
-      setError(null);
-      if (!isOwner) {
-        throw new Error(`Only the owner wallet can whitelist. Connect ${OWNER_ADDRESS}.`);
-      }
-      const target = whitelistTarget.trim();
-      if (!/^0x[a-fA-F0-9]{40}$/.test(target)) {
-        throw new Error('Enter a valid EVM address to whitelist.');
-      }
-
-      setStatus('Submitting whitelist transaction…');
-      const hash = await writeContractAsync({
-        address: nftAddress as `0x${string}`,
-        abi: NFT_ABI,
-        functionName: 'whitelistAgent',
-        args: [target as `0x${string}`],
-      });
-
-      setTxHash(hash);
-      setStatus('Waiting for confirmation…');
-      await waitForTransactionReceipt(wagmiConfig, { hash });
-      setStatus(null);
-    } catch (e: any) {
-      setStatus(null);
-      setError(e?.message || 'Whitelist failed');
+    const agentId = trimmedApiKey.split(':')[0]?.trim();
+    if (!agentId) {
+      throw new Error('Stored agent API key is malformed.');
     }
+
+    const imageUrl = galleryImageUrl.trim();
+    if (!imageUrl) {
+      throw new Error('Gallery image URL required to register the listing.');
+    }
+
+    const registrationMessage = buildMintRegistrationMessage({
+      agentId,
+      txHash: hash,
+      walletAddress,
+    });
+
+    setStatus('Signing listing registration…');
+    const signature = await signMessageAsync({ message: registrationMessage });
+
+    setStatus('Registering minted work in the gallery…');
+    const res = await fetch('/api/nfts/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': trimmedApiKey,
+      },
+      body: JSON.stringify({
+        title: normalizedTitle,
+        description: normalizedArtistStatement,
+        artist_statement: normalizedArtistStatement,
+        image_url: imageUrl,
+        price_eth: priceEth.trim(),
+        tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        tx_hash: hash,
+        wallet_address: walletAddress,
+        signature,
+      }),
+    });
+
+    const data = await readJsonRecord(res);
+    if (!res.ok) {
+      throw new Error(getStringValue(data, 'error') || `Listing registration failed (HTTP ${res.status})`);
+    }
+
+    const createdListingUrl = getStringValue(data, 'listing_url')?.trim() || '';
+    if (createdListingUrl) {
+      setListingUrl(createdListingUrl);
+    }
+    setStatus(createdListingUrl ? 'Mint confirmed. Listing live.' : 'Mint confirmed. Listing registration complete.');
   }
 
   async function mintNow() {
@@ -191,9 +227,14 @@ export default function MintPage() {
       setError(null);
       setStatus('Submitting mint transaction…');
       setTxHash(null);
+      setListingUrl(null);
 
-      const name = title.trim() || 'Untitled';
-      const desc = description.trim() || '';
+      if (submissionError) {
+        throw new Error(submissionError);
+      }
+
+      const name = normalizedTitle;
+      const desc = normalizedArtistStatement;
       let uri = '';
 
       if (storageMode === 'onchain_minimal') {
@@ -210,8 +251,11 @@ export default function MintPage() {
       }
 
       if (!uri) throw new Error('Missing metadata link. Upload to IPFS or paste a metadata URL.');
-      if (storageMode !== 'onchain_minimal' && !(uri.startsWith('ipfs://') || uri.startsWith('https://') || uri.startsWith('http://'))) {
-        throw new Error('Metadata link must be ipfs:// or https://');
+      if (
+        storageMode !== 'onchain_minimal' &&
+        !(uri.startsWith('ipfs://') || uri.startsWith('https://') || uri.startsWith('http://') || uri.startsWith('data:'))
+      ) {
+        throw new Error('Metadata link must be ipfs://, https://, or data:');
       }
 
       const hash = await writeContractAsync({
@@ -224,10 +268,14 @@ export default function MintPage() {
       setTxHash(hash);
       setStatus('Waiting for confirmation…');
       await waitForTransactionReceipt(wagmiConfig, { hash });
-      setStatus('Mint confirmed.');
-    } catch (e: any) {
+      if (address) {
+        await registerMintedListing(hash, address);
+      } else {
+        setStatus('Mint confirmed.');
+      }
+    } catch (error: unknown) {
       setStatus(null);
-      setError(e?.shortMessage || e?.message || 'Mint failed');
+      setError(getMintError(error, 'Mint failed'));
     }
   }
 
@@ -255,7 +303,8 @@ export default function MintPage() {
               Use IPFS or a short URL.
             </p>
             <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/60">
-              Minting uses your wallet. It does not require a Moltbook API key or an Endless Molt agent API key.
+              This is the browser version of the autonomous agent flow. The connected wallet self-mints to itself. The
+              agent API key handles authenticated upload and gallery registration.
             </p>
             <div className="mt-6">
               <WalletConnect />
@@ -267,57 +316,9 @@ export default function MintPage() {
               <div className="mt-6">
                 <p className="text-black/70">Wallet</p>
                 <p className="mt-1 font-medium text-black">{address}</p>
-                <p className="mt-3 text-black/70">
-                  Verified agent wallet:{' '}
-                  <span className="text-black">
-                    {isFetchingVerified ? 'checking…' : canMint ? (isOwner && !verified ? 'yes (owner)' : 'yes') : 'no'}
-                  </span>
+                <p className="mt-3 text-[12px] font-medium leading-[18px] text-black/50">
+                  Autonomous rule: the connected wallet must mint to itself and register the work under the same agent.
                 </p>
-
-                {!canMint && !isOwner ? (
-                  <div className="mt-4 text-black/70">
-                    <p>This wallet is not whitelisted.</p>
-                    <div className="mt-4">
-                      <label className="block text-[12px] font-medium text-black/70">Invite code</label>
-                      <input
-                        value={inviteCode}
-                        onChange={(e) => setInviteCode(e.target.value)}
-                        placeholder="first-cohort-2026"
-                        className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
-                      />
-                      <button
-                        onClick={requestWhitelist}
-                        className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-                      >
-                        Request verification
-                        <span aria-hidden="true">→</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                {isOwner ? (
-                  <div className="mt-6">
-                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">Owner controls</p>
-                    <p className="mt-3 text-black/70">
-                      Whitelist a wallet to allow it to mint. This is an on-chain transaction (gas).
-                    </p>
-                    <input
-                      value={whitelistTarget}
-                      onChange={(e) => setWhitelistTarget(e.target.value)}
-                      placeholder="0x…"
-                      className="mt-3 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
-                    />
-                    <button
-                      onClick={whitelistWallet}
-                      disabled={isWriting}
-                      className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4 disabled:opacity-50"
-                    >
-                      Whitelist wallet
-                      <span aria-hidden="true">→</span>
-                    </button>
-                  </div>
-                ) : null}
               </div>
             ) : null}
 
@@ -335,29 +336,24 @@ export default function MintPage() {
               </p>
             ) : null}
 
+            {listingUrl ? (
+              <p className="mt-4 text-black/70">
+                Listing:{' '}
+                <a
+                  className="underline decoration-red-600 underline-offset-4 text-red-600"
+                  href={listingUrl}
+                >
+                  {listingUrl}
+                </a>
+              </p>
+            ) : null}
+
             {status ? <p className="mt-4 text-black/70">{status}</p> : null}
             {error ? <p className="mt-4 text-red-600">{error}</p> : null}
+            {!error && showSubmissionError && submissionError ? <p className="mt-4 text-red-600">{submissionError}</p> : null}
           </div>
 
           <div className="max-w-[760px]">
-            {!agentKeyPresent ? (
-              <div className="border border-black/10 bg-white px-4 py-4 text-[12px] font-medium leading-[18px] text-black/70">
-                <p className="text-[12px] font-black uppercase tracking-[0.08em] text-black">Agents only</p>
-                <p className="mt-4">This minting cockpit is for autonomous artists. Humans are view-only right now.</p>
-                <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-                  <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">
-                    Go to agent onboarding
-                  </Link>
-                  <span aria-hidden="true">→</span>
-                  <Link href="/listings" className="underline decoration-red-600 underline-offset-4">
-                    Back to gallery
-                  </Link>
-                  <span aria-hidden="true">→</span>
-                </div>
-              </div>
-            ) : null}
-
-            {agentKeyPresent ? (
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-[12px] font-medium text-black/70">Storage</label>
@@ -390,22 +386,86 @@ export default function MintPage() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-black/70">Title</label>
+                <label className="block text-[12px] font-medium text-black/70">Agent API key</label>
                 <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
                   className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                  placeholder="agent_id:secret"
                 />
+                <p className="mt-2 text-[12px] text-black/50">
+                  Required for IPFS upload and automatic gallery registration after the mint confirms.
+                </p>
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-black/70">Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
+                <label className="block text-[12px] font-medium text-black/70">Title</label>
+                <input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    invalidateUploadedMetadata();
+                  }}
                   className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                  placeholder="Birth of Nulloborn"
                 />
+                <p className="mt-2 text-[12px] text-black/50">
+                  Minimum {MIN_ARTWORK_TITLE_LENGTH} characters. Required before image upload or mint.
+                </p>
+                <p className="mt-2 text-[12px] text-black/40">{titleLength}/200</p>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-black/70">Artist statement</label>
+                <textarea
+                  value={artistStatement}
+                  onChange={(e) => {
+                    setArtistStatement(e.target.value);
+                    invalidateUploadedMetadata();
+                  }}
+                  rows={6}
+                  className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                  placeholder="Write the conceptual frame for the work, what the piece is doing, and why it belongs in the world."
+                />
+                <p className="mt-2 text-[12px] text-black/50">
+                  Minimum {MIN_ARTIST_STATEMENT_LENGTH} characters. This becomes the work description in gallery and token metadata.
+                </p>
+                <p className="mt-2 text-[12px] text-black/40">{artistStatementLength}/2000</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label className="block text-[12px] font-medium text-black/70">Price (ETH)</label>
+                  <input
+                    value={priceEth}
+                    onChange={(e) => setPriceEth(e.target.value)}
+                    className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                    placeholder="0.05"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-black/70">Tags</label>
+                  <input
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                    placeholder="minimal, black, white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-black/70">Gallery image URL</label>
+                <input
+                  value={galleryImageUrl}
+                  onChange={(e) => setGalleryImageUrl(e.target.value)}
+                  className="mt-2 w-full border border-black/20 px-3 py-2 text-[12px] font-medium outline-none focus:border-black"
+                  placeholder="https://..."
+                />
+                <p className="mt-2 text-[12px] text-black/50">
+                  Used for the gallery card. IPFS upload will fill this automatically with a gateway URL.
+                </p>
               </div>
 
               <div>
@@ -418,13 +478,17 @@ export default function MintPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        setFile(e.target.files?.[0] || null);
+                        invalidateUploadedMetadata();
+                      }}
                       className="block w-full text-[12px] font-medium"
                     />
                     <button
                       type="button"
                       onClick={uploadToIpfs}
-                      className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4"
+                      disabled={Boolean(submissionError)}
+                      className="mt-4 inline-flex items-center gap-2 text-red-600 underline decoration-red-600 underline-offset-4 disabled:opacity-50"
                     >
                       Upload to IPFS
                       <span aria-hidden="true">→</span>
@@ -463,19 +527,18 @@ export default function MintPage() {
               <div className="flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
                 <button
                   onClick={mintNow}
-                  disabled={!isConnected || needsMainnet || !canMint || isWriting}
+                  disabled={!isConnected || needsMainnet || isWriting || isSigning || Boolean(submissionError)}
                   className="underline decoration-red-600 underline-offset-4 disabled:opacity-50"
                 >
-                  Mint now
+                  {isWriting || isSigning ? 'Working…' : 'Mint + register'}
                 </button>
                 <span aria-hidden="true">→</span>
                 <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                  List in gallery (agent API key)
+                  Listing policy
                 </Link>
                 <span aria-hidden="true">→</span>
               </div>
             </div>
-            ) : null}
           </div>
         </div>
 

@@ -1,269 +1,543 @@
 /**
  * @endless-molt/agent-sdk
- * Simple SDK for AI agents to mint & sell NFTs
+ * Self-acting NFT minting for Endless Molt agents.
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { ethers } from 'ethers';
-import axios from 'axios';
+
+export type AgentRole = 'artist' | 'curator' | 'critic' | 'patron';
+
+export interface AgentRegisterOptions {
+  id?: string;
+  name: string;
+  email: string;
+  bio?: string;
+  role: AgentRole;
+  mission: string;
+  avatarUrl?: string;
+  baseUrl?: string;
+}
+
+export interface RegisteredAgent {
+  agent: {
+    id: string;
+    name: string;
+    email: string;
+    bio?: string | null;
+    role?: AgentRole | null;
+    mission?: string | null;
+    avatar_url?: string | null;
+  };
+  apiKey: string;
+}
+
+export interface Trait {
+  trait_type: string;
+  value: string | number;
+}
 
 export interface MintOptions {
   title: string;
   description: string;
+  artistStatement?: string;
   imageUrl?: string;
-  imageFile?: Buffer;
-  price?: string; // ETH amount, e.g. "0.1"
-  traits?: Array<{ trait_type: string; value: string }>;
+  imageFile?: string | Buffer;
+  priceEth?: string;
+  tags?: string[];
+  traits?: Trait[];
 }
 
-export interface EndlessMoltConfig {
-  privateKey: string;
-  network?: 'mainnet' | 'sepolia';
-  rpcUrl?: string;
+export interface UploadResult {
+  tokenUri: string;
+  imageUrl: string;
+  imageGatewayUrl: string;
+  storage: 'pinata' | 'inline';
+}
+
+export interface WalletStatus {
+  address: string;
+  network: 'mainnet' | 'sepolia';
+  nftContract: string;
+  autonomous: true;
 }
 
 export interface MintResult {
   tokenId: string;
   txHash: string;
+  tokenUri: string;
+  imageUrl: string;
+  imageGatewayUrl: string;
+  storage: 'pinata' | 'inline';
   etherscanUrl: string;
   galleryUrl: string;
+  listingUrl: string;
 }
 
-// Contract addresses (updated after mainnet deployment)
-const CONTRACTS = {
-  mainnet: {
-    nft: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',
-    marketplace: '0xD0834204Bde70B789d26DBA7B81591a793718B18'
-  },
-  sepolia: {
-    nft: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',
-    marketplace: '0xD0834204Bde70B789d26DBA7B81591a793718B18'
-  }
-};
+export interface EndlessMoltConfig {
+  apiKey: string;
+  privateKey: string;
+  wallet?: string;
+  network?: 'mainnet' | 'sepolia';
+  rpcUrl?: string;
+  baseUrl?: string;
+  nftContract?: string;
+}
+
+const DEFAULT_BASE_URL = 'https://www.endlessmolt.xyz';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const NFT_CONTRACTS = {
+  mainnet: '0x63464838F22630686b3EEC315442b4510aa4F440',
+  sepolia: ZERO_ADDRESS,
+} as const;
 
 const NFT_ABI = [
   'function mint(address to, string metadataURI, address creator) returns (uint256)',
-  'function approve(address to, uint256 tokenId)',
-  'function verifiedAgents(address) view returns (bool)',
-  'function ownerOf(uint256 tokenId) view returns (address)',
-  'function tokenURI(uint256 tokenId) view returns (string)'
-];
+  'event NFTMinted(uint256 indexed tokenId, address indexed creator, address indexed to, string metadataURI)',
+] as const;
+const MIN_ARTWORK_TITLE_LENGTH = 3;
+const MAX_ARTWORK_TITLE_LENGTH = 200;
+const MIN_ARTIST_STATEMENT_LENGTH = 80;
+const MAX_ARTIST_STATEMENT_LENGTH = 2000;
 
-const MARKETPLACE_ABI = [
-  'function listNFT(address nftContract, uint256 tokenId, uint256 price) returns (bytes32)',
-  'function buyNFT(bytes32 listingId) payable',
-  'function getListing(bytes32 listingId) view returns (tuple(address seller, address nftContract, uint256 tokenId, uint256 price, bool active))',
-  'event Listed(bytes32 indexed listingId, address indexed seller, address indexed nftContract, uint256 tokenId, uint256 price)',
-  'event Sale(bytes32 indexed listingId, address indexed buyer, address indexed seller, uint256 price, uint256 platformFee, uint256 buyerFee, uint256 royaltyAmount)'
-];
+function slugifyAgentId(input: string) {
+  const slug = input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
 
-export class EndlessMolt {
-  private wallet: ethers.Wallet;
-  private provider: ethers.Provider;
-  private network: 'mainnet' | 'sepolia';
-  private contracts: typeof CONTRACTS.mainnet;
+  return slug || `agent-${Math.random().toString(36).slice(2, 8)}`;
+}
 
-  constructor(config: EndlessMoltConfig) {
-    this.network = config.network || 'mainnet';
-    
-    // Setup provider
-    const rpcUrl = config.rpcUrl || (
-      this.network === 'mainnet' 
-        ? 'https://cloudflare-eth.com'
-        : 'https://ethereum-sepolia-rpc.publicnode.com'
-    );
-    this.provider = new ethers.JsonRpcProvider(rpcUrl);
-    
-    // Setup wallet
-    this.wallet = new ethers.Wallet(config.privateKey, this.provider);
-    this.contracts = CONTRACTS[this.network];
-    
-    console.log(`🎨 EndlessMolt SDK initialized on ${this.network}`);
-    console.log(`📡 Wallet: ${this.wallet.address}`);
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/+$/g, '');
+}
+
+function normalizePrivateKey(privateKey: string) {
+  const trimmed = privateKey.trim();
+  return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
+}
+
+function parseAgentId(apiKey: string) {
+  const candidate = apiKey.split(':')[0]?.trim();
+  if (!candidate) {
+    throw new Error('Agent API key must be in the form "agent_id:secret".');
+  }
+  return candidate;
+}
+
+function normalizeArtworkTitle(value: string) {
+  return value.trim();
+}
+
+function normalizeArtistStatement(value: string) {
+  return value.trim();
+}
+
+function resolveArtistStatement(options: Pick<MintOptions, 'description' | 'artistStatement'>) {
+  return normalizeArtistStatement(options.artistStatement || options.description || '');
+}
+
+function getArtworkSubmissionError(input: { title: string; artistStatement: string }) {
+  const title = normalizeArtworkTitle(input.title);
+  const artistStatement = normalizeArtistStatement(input.artistStatement);
+
+  if (!title) {
+    return 'Title is required before upload.';
+  }
+  if (title.length < MIN_ARTWORK_TITLE_LENGTH) {
+    return `Title must be at least ${MIN_ARTWORK_TITLE_LENGTH} characters.`;
+  }
+  if (title.length > MAX_ARTWORK_TITLE_LENGTH) {
+    return `Title must be ${MAX_ARTWORK_TITLE_LENGTH} characters or fewer.`;
+  }
+  if (!artistStatement) {
+    return 'Artist statement is required before upload.';
+  }
+  if (artistStatement.length < MIN_ARTIST_STATEMENT_LENGTH) {
+    return `Artist statement must be at least ${MIN_ARTIST_STATEMENT_LENGTH} characters.`;
+  }
+  if (artistStatement.length > MAX_ARTIST_STATEMENT_LENGTH) {
+    return `Artist statement must be ${MAX_ARTIST_STATEMENT_LENGTH} characters or fewer.`;
   }
 
-  /**
-   * Check if the agent wallet is verified to mint
-   */
-  async isVerified(): Promise<boolean> {
-    const nft = new ethers.Contract(this.contracts.nft, NFT_ABI, this.provider);
-    return await nft.verifiedAgents(this.wallet.address);
-  }
+  return null;
+}
 
-  /**
-   * Upload image to IPFS and create metadata
-   */
-  private async createMetadata(options: MintOptions): Promise<string> {
-    if (options.imageFile) {
-      // Upload to IPFS (would need IPFS integration)
-      throw new Error('File upload not implemented yet. Use imageUrl for now.');
-    }
+function getExplorerBaseUrl(network: 'mainnet' | 'sepolia') {
+  return network === 'mainnet' ? 'https://etherscan.io' : 'https://sepolia.etherscan.io';
+}
 
-    if (!options.imageUrl) {
-      // Create simple on-chain SVG
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
-        <rect width="100%" height="100%" fill="#000"/>
-        <text x="512" y="400" text-anchor="middle" fill="#fff" font-size="48">${options.title}</text>
-        <text x="512" y="500" text-anchor="middle" fill="#666" font-size="24">by AI Agent</text>
-      </svg>`;
-      options.imageUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-    }
+function getDefaultRpcUrl(network: 'mainnet' | 'sepolia') {
+  return network === 'mainnet' ? 'https://ethereum-rpc.publicnode.com' : 'https://rpc.sepolia.org';
+}
 
-    const metadata = {
-      name: options.title,
-      description: options.description,
-      image: options.imageUrl,
-      attributes: options.traits || [
-        { trait_type: 'Artist Type', value: 'AI Agent' },
-        { trait_type: 'Network', value: this.network }
-      ]
-    };
-
-    // Return base64 encoded JSON
-    const encoded = Buffer.from(JSON.stringify(metadata)).toString('base64');
-    return `data:application/json;base64,${encoded}`;
-  }
-
-  /**
-   * Mint an NFT
-   */
-  async mint(options: MintOptions): Promise<MintResult> {
-    console.log(`🔨 Minting "${options.title}"...`);
-
-    // Check verification
-    const verified = await this.isVerified();
-    if (!verified) {
-      console.warn('⚠️  Wallet not verified. Minting may fail unless you are the contract owner.');
-    }
-
-    // Create metadata
-    const metadataUri = await this.createMetadata(options);
-    console.log(`📝 Metadata: ${metadataUri.slice(0, 100)}...`);
-
-    // Mint NFT
-    const nft = new ethers.Contract(this.contracts.nft, NFT_ABI, this.wallet);
-    const tx = await nft.mint(
-      this.wallet.address,  // to
-      metadataUri,          // metadataURI
-      this.wallet.address   // creator
-    );
-
-    console.log(`✅ Transaction submitted: ${tx.hash}`);
-    const receipt = await tx.wait();
-
-    // Extract token ID from events
-    const mintEvent = receipt.logs.find((log: any) => {
-      try {
-        const parsed = nft.interface.parseLog(log);
-        return parsed?.name === 'Transfer' && parsed.args.from === ethers.ZeroAddress;
-      } catch { return false; }
-    });
-
-    let tokenId = '0';
-    if (mintEvent) {
-      const parsed = nft.interface.parseLog(mintEvent);
-      tokenId = parsed?.args.tokenId.toString();
-    }
-
-    console.log(`🎉 Mint confirmed! Token ID: ${tokenId}`);
-    
-    const etherscanUrl = this.network === 'mainnet' 
-      ? `https://etherscan.io/token/${this.contracts.nft}?a=${tokenId}`
-      : `https://sepolia.etherscan.io/token/${this.contracts.nft}?a=${tokenId}`;
-      
-    const galleryUrl = `https://endless-molt.vercel.app/listings/${tokenId}`;
-    
-    return { 
-      tokenId, 
-      txHash: tx.hash,
-      etherscanUrl,
-      galleryUrl
-    };
-  }
-
-  /**
-   * List an NFT for sale
-   */
-  async list(tokenId: string, priceEth: string): Promise<{ txHash: string; listingId: string }> {
-    console.log(`💰 Listing Token ID ${tokenId} for ${priceEth} ETH...`);
-
-    const nft = new ethers.Contract(this.contracts.nft, NFT_ABI, this.wallet);
-    const marketplace = new ethers.Contract(this.contracts.marketplace, MARKETPLACE_ABI, this.wallet);
-    const priceWei = ethers.parseEther(priceEth);
-
-    // Ensure marketplace is approved to transfer the token.
-    console.log('🔓 Approving marketplace transfer...');
-    const approveTx = await nft.approve(this.contracts.marketplace, tokenId);
-    await approveTx.wait();
-
-    const tx = await marketplace.listNFT(this.contracts.nft, tokenId, priceWei);
-    console.log(`✅ Listing submitted: ${tx.hash}`);
-    const receipt = await tx.wait();
-
-    // Extract listingId from event.
-    let listingId = '';
-    try {
-      const iface = new ethers.Interface(MARKETPLACE_ABI);
-      for (const log of receipt.logs) {
-        try {
-          const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
-          if (parsed?.name === 'Listed') {
-            listingId = String(parsed.args[0]);
-            break;
-          }
-        } catch {
-          // ignore unrelated logs
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    if (!listingId) {
-      throw new Error('Listing confirmed but listingId was not found in logs');
-    }
-
-    console.log(`🛒 Listed successfully! listingId=${listingId}`);
-    return { txHash: tx.hash, listingId };
-  }
-
-  /**
-   * Buy a listed NFT.
-   */
-  async buy(listingId: string): Promise<string> {
-    console.log(`🧾 Buying listing ${listingId}...`);
-
-    const marketplace = new ethers.Contract(this.contracts.marketplace, MARKETPLACE_ABI, this.wallet);
-    const listing = await marketplace.getListing(listingId);
-    const priceWei = listing?.price as bigint;
-    if (!priceWei || priceWei <= 0n) {
-      throw new Error('Listing price unavailable');
-    }
-
-    const tx = await marketplace.buyNFT(listingId, { value: priceWei });
-    console.log(`✅ Purchase submitted: ${tx.hash}`);
-    await tx.wait();
-    console.log('🎉 Purchase confirmed.');
-    return tx.hash;
-  }
-
-  /**
-   * Mint and immediately list for sale
-   */
-  async mintAndList(options: MintOptions & { price: string }): Promise<{ tokenId: string; listingHash: string }> {
-    const { tokenId, txHash: mintHash } = await this.mint(options);
-    const { txHash: listingHash } = await this.list(tokenId, options.price);
-    
-    return { tokenId, listingHash };
-  }
-
-  /**
-   * Get wallet ETH balance
-   */
-  async getBalance(): Promise<string> {
-    const balance = await this.provider.getBalance(this.wallet.address);
-    return ethers.formatEther(balance);
+function inferMimeType(filename: string) {
+  const ext = path.extname(filename).toLowerCase();
+  switch (ext) {
+    case '.svg':
+      return 'image/svg+xml';
+    case '.png':
+      return 'image/png';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.gif':
+      return 'image/gif';
+    case '.webp':
+      return 'image/webp';
+    case '.mp4':
+      return 'video/mp4';
+    case '.webm':
+      return 'video/webm';
+    case '.glb':
+      return 'model/gltf-binary';
+    case '.html':
+      return 'text/html';
+    case '.json':
+      return 'application/json';
+    default:
+      return 'application/octet-stream';
   }
 }
 
-// Export for convenience
+async function parseResponseBody(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return { error: text } as Record<string, unknown>;
+  }
+}
+
+function getResponseError(data: Record<string, unknown> | null, fallback: string) {
+  const error = data?.error;
+  if (typeof error === 'string' && error.trim()) return error;
+
+  const message = data?.message;
+  if (typeof message === 'string' && message.trim()) return message;
+
+  return fallback;
+}
+
+function shouldRetryRegistrationWithExplicitId(data: Record<string, unknown> | null) {
+  const details = data?.details;
+  if (!Array.isArray(details)) return false;
+
+  return details.some((detail) => {
+    if (!detail || typeof detail !== 'object') return false;
+
+    const detailRecord = detail as Record<string, unknown>;
+    const path = detailRecord.path;
+    return Array.isArray(path) && path.length === 1 && path[0] === 'id';
+  });
+}
+
+function buildMintRegistrationMessage(args: { agentId: string; txHash: string; walletAddress: string }) {
+  return `Endless Molt register mint\nagent:${args.agentId.trim()}\nwallet:${args.walletAddress.trim().toLowerCase()}\ntx:${args.txHash
+    .trim()
+    .toLowerCase()}`;
+}
+
+async function loadArtwork(input: MintOptions) {
+  if (input.imageFile) {
+    if (typeof input.imageFile === 'string') {
+      const filename = path.basename(input.imageFile);
+      const bytes = await fs.readFile(input.imageFile);
+      return {
+        bytes,
+        filename,
+        contentType: inferMimeType(filename),
+      };
+    }
+
+    return {
+      bytes: Buffer.from(input.imageFile),
+      filename: 'artwork',
+      contentType: 'application/octet-stream',
+    };
+  }
+
+  if (!input.imageUrl) {
+    throw new Error('Provide imageFile or imageUrl. Endless Molt self-minting does not create a custodial placeholder for you.');
+  }
+
+  const res = await fetch(input.imageUrl);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch artwork from ${input.imageUrl} (HTTP ${res.status})`);
+  }
+
+  const url = new URL(input.imageUrl);
+  const filename = path.basename(url.pathname) || 'artwork';
+  const bytes = Buffer.from(await res.arrayBuffer());
+  const contentType = res.headers.get('content-type') || inferMimeType(filename);
+
+  return { bytes, filename, contentType };
+}
+
+export async function registerAgent(input: AgentRegisterOptions): Promise<RegisteredAgent> {
+  const baseUrl = trimTrailingSlash(input.baseUrl || DEFAULT_BASE_URL);
+  const payload = {
+    id: input.id?.trim() || undefined,
+    name: input.name.trim(),
+    email: input.email.trim(),
+    bio: input.bio?.trim() || undefined,
+    role: input.role,
+    mission: input.mission.trim(),
+    avatar_url: input.avatarUrl?.trim() || undefined,
+  };
+
+  let response = await fetch(`${baseUrl}/api/agents/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data = await parseResponseBody(response);
+  if (!response.ok && !payload.id && shouldRetryRegistrationWithExplicitId(data)) {
+    response = await fetch(`${baseUrl}/api/agents/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...payload,
+        id: slugifyAgentId(input.name),
+      }),
+    });
+    data = await parseResponseBody(response);
+  }
+
+  if (!response.ok) {
+    throw new Error(getResponseError(data, `Agent registration failed (HTTP ${response.status})`));
+  }
+
+  const apiKey = typeof data?.api_key === 'string' ? data.api_key : '';
+  const agent = typeof data?.agent === 'object' && data.agent ? (data.agent as RegisteredAgent['agent']) : null;
+
+  if (!apiKey || !agent) {
+    throw new Error('Agent registration succeeded but no API key was returned.');
+  }
+
+  return { agent, apiKey };
+}
+
+export class EndlessMolt {
+  private readonly apiKey: string;
+  private readonly agentId: string;
+  private readonly wallet: ethers.Wallet;
+  private readonly provider: ethers.JsonRpcProvider;
+  private readonly network: 'mainnet' | 'sepolia';
+  private readonly nftContract: string;
+  private readonly baseUrl: string;
+
+  constructor(config: EndlessMoltConfig) {
+    this.apiKey = config.apiKey.trim();
+    this.agentId = parseAgentId(this.apiKey);
+    this.network = config.network || 'mainnet';
+    this.baseUrl = trimTrailingSlash(config.baseUrl || DEFAULT_BASE_URL);
+
+    const privateKey = normalizePrivateKey(config.privateKey);
+    this.provider = new ethers.JsonRpcProvider(config.rpcUrl || getDefaultRpcUrl(this.network));
+    this.wallet = new ethers.Wallet(privateKey, this.provider);
+
+    if (config.wallet) {
+      const configuredWallet = ethers.getAddress(config.wallet);
+      if (configuredWallet !== this.wallet.address) {
+        throw new Error(`Configured wallet ${configuredWallet} does not match the supplied private key (${this.wallet.address}).`);
+      }
+    }
+
+    const fallbackContract = NFT_CONTRACTS[this.network];
+    const nftContract = config.nftContract || fallbackContract;
+    this.nftContract = ethers.getAddress(nftContract);
+
+    if (this.nftContract === ethers.getAddress(ZERO_ADDRESS)) {
+      throw new Error(`No Endless Molt NFT contract is configured for ${this.network}. Provide nftContract explicitly.`);
+    }
+  }
+
+  get address() {
+    return this.wallet.address;
+  }
+
+  async getWalletStatus(): Promise<WalletStatus> {
+    return {
+      address: this.wallet.address,
+      network: this.network,
+      nftContract: this.nftContract,
+      autonomous: true,
+    };
+  }
+
+  async isVerified(): Promise<boolean> {
+    return true;
+  }
+
+  async uploadToIpfs(options: Pick<MintOptions, 'title' | 'description' | 'artistStatement' | 'imageFile' | 'imageUrl'>): Promise<UploadResult> {
+    const artwork = await loadArtwork(options);
+    const title = normalizeArtworkTitle(options.title);
+    const artistStatement = resolveArtistStatement(options);
+    const submissionError = getArtworkSubmissionError({ title, artistStatement });
+
+    if (submissionError) {
+      throw new Error(submissionError);
+    }
+
+    const form = new FormData();
+    const blobBytes = new Uint8Array(artwork.bytes);
+    const blob = new Blob([blobBytes], { type: artwork.contentType });
+
+    form.set('file', blob, artwork.filename);
+    form.set('title', title);
+    form.set('description', artistStatement);
+    form.set('artist_statement', artistStatement);
+
+    const response = await fetch(`${this.baseUrl}/api/ipfs/pin`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': this.apiKey,
+      },
+      body: form,
+    });
+
+    const data = await parseResponseBody(response);
+    if (!response.ok) {
+      throw new Error(getResponseError(data, `IPFS upload failed (HTTP ${response.status})`));
+    }
+
+    const tokenUri = typeof data?.tokenUri === 'string' ? data.tokenUri : '';
+    const imageUrl = typeof data?.image === 'string' ? data.image : '';
+    const imageGatewayUrl = typeof data?.imageGateway === 'string' ? data.imageGateway : '';
+    const storage = data?.storage === 'inline' ? 'inline' : 'pinata';
+
+    if (!tokenUri || !imageUrl || !imageGatewayUrl) {
+      throw new Error('IPFS upload succeeded but Endless Molt did not return the required token or image URLs.');
+    }
+
+    return {
+      tokenUri,
+      imageUrl,
+      imageGatewayUrl,
+      storage,
+    };
+  }
+
+  async mint(options: MintOptions): Promise<MintResult> {
+    const title = normalizeArtworkTitle(options.title);
+    const artistStatement = resolveArtistStatement(options);
+    const submissionError = getArtworkSubmissionError({ title, artistStatement });
+
+    if (submissionError) {
+      throw new Error(submissionError);
+    }
+
+    const upload = await this.uploadToIpfs(options);
+    const nft = new ethers.Contract(this.nftContract, NFT_ABI, this.wallet);
+    const tx = await nft.mint(this.wallet.address, upload.tokenUri, this.wallet.address);
+    const receipt = await tx.wait();
+
+    if (!receipt || receipt.status !== 1) {
+      throw new Error('Mint transaction did not confirm successfully.');
+    }
+
+    const iface = new ethers.Interface(NFT_ABI);
+    let tokenId = '';
+
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog({ topics: [...log.topics], data: log.data });
+        if (parsed?.name === 'NFTMinted') {
+          tokenId = parsed.args[0].toString();
+          break;
+        }
+      } catch {
+        // Ignore unrelated logs.
+      }
+    }
+
+    if (!tokenId) {
+      throw new Error('Mint confirmed but tokenId was not found in the NFTMinted event.');
+    }
+
+    const registrationMessage = buildMintRegistrationMessage({
+      agentId: this.agentId,
+      txHash: tx.hash,
+      walletAddress: this.wallet.address,
+    });
+    const signature = await this.wallet.signMessage(registrationMessage);
+
+    const registrationResponse = await fetch(`${this.baseUrl}/api/nfts/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': this.apiKey,
+      },
+      body: JSON.stringify({
+        title,
+        description: artistStatement,
+        artist_statement: artistStatement,
+        image_url: upload.imageGatewayUrl,
+        price_eth: options.priceEth?.trim() || '0',
+        tags: options.tags || options.traits?.map((trait) => `${trait.trait_type}:${String(trait.value)}`),
+        tx_hash: tx.hash,
+        wallet_address: this.wallet.address,
+        signature,
+      }),
+    });
+
+    const registrationData = await parseResponseBody(registrationResponse);
+    if (!registrationResponse.ok) {
+      throw new Error(getResponseError(registrationData, `Mint registration failed (HTTP ${registrationResponse.status})`));
+    }
+
+    const listingUrl =
+      typeof registrationData?.listing_url === 'string' && registrationData.listing_url
+        ? registrationData.listing_url
+        : `${this.baseUrl}/listings/${tokenId}`;
+
+    return {
+      tokenId,
+      txHash: tx.hash,
+      tokenUri: upload.tokenUri,
+      imageUrl: upload.imageUrl,
+      imageGatewayUrl: upload.imageGatewayUrl,
+      storage: upload.storage,
+      etherscanUrl: `${getExplorerBaseUrl(this.network)}/tx/${tx.hash}`,
+      galleryUrl: listingUrl,
+      listingUrl,
+    };
+  }
+
+  async mintAndList(options: MintOptions): Promise<MintResult> {
+    return this.mint(options);
+  }
+
+  async list(): Promise<never> {
+    throw new Error('Direct listing is disabled. Mint the work with EndlessMolt.mint(); the listing is created automatically.');
+  }
+
+  async createAuction(): Promise<never> {
+    throw new Error('Auctions are not live in the agent SDK yet.');
+  }
+
+  async getNFTs(): Promise<unknown[]> {
+    const response = await fetch(`${this.baseUrl}/api/agents/${this.agentId}`);
+    const data = await parseResponseBody(response);
+
+    if (!response.ok) {
+      throw new Error(getResponseError(data, `Failed to fetch agent profile (HTTP ${response.status})`));
+    }
+
+    return Array.isArray(data?.listings) ? data.listings : [];
+  }
+}
+
 export default EndlessMolt;

@@ -54,7 +54,7 @@ Work with your team:
 ## 🔴 Current Blockers
 
 **CRITICAL - Can't Deploy Contracts:**
-- Need 0.5 Sepolia ETH in Cal's wallet: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+- Need 0.5 Sepolia ETH in Cal's wallet: `0x43550De0806B182D64D39a6c99591CfE868F6C89`
 - User action required (faucet)
 - **Work around this:** Focus on frontend/API work that doesn't need blockchain
 

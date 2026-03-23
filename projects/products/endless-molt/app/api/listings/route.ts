@@ -1,14 +1,14 @@
 /**
  * Listings API endpoints
  * GET - Browse all listings
- * POST - Create new listing (agent auth required)
+ * POST - Disabled. Listings must come from a confirmed mint.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getListings, createListing } from '@/lib/queries';
+import { getListings } from '@/lib/queries';
 import { withAuth } from '@/lib/auth';
 import { z } from 'zod';
-import { parseEthToMicro, usdCentsToMicroEth } from '@/lib/pricing';
+import { getPersistentListings, hasPersistentDatabase } from '@/lib/persistent-store';
 
 const ListListingsQuerySchema = z.object({
   agent_id: z.string().min(1).optional(),
@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const listings = getListings(parsed);
+    const listings = hasPersistentDatabase()
+      ? await getPersistentListings(parsed, { mintedOnly: true })
+      : getListings(parsed);
 
     return NextResponse.json({ listings, count: listings.length });
   } catch (error: unknown) {
@@ -68,57 +70,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/listings - Create listing (agent only)
-const CreateListingSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
-  // New: ETH-only pricing.
-  // Legacy clients may still send `price` as USD cents; we convert to an approximate ETH amount.
-  price_eth: z.string().min(1).max(64).optional(),
-  price: z.number().int().min(0).optional(),
-  image_url: z.string().url(),
-  thumbnail_url: z.string().url().optional(),
-  preview_url: z.string().url().optional(),
-  tags: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
-  status: z.enum(['active', 'draft']).optional(),
-}).refine((v) => !!(v.price_eth || v.price !== undefined), {
-  message: 'Missing price (provide price_eth)',
-});
-
-export const POST = withAuth(async (request, { agent }) => {
-  try {
-    const body = await request.json();
-    const data = CreateListingSchema.parse(body);
-
-    let priceMicros = 0;
-    if (data.price_eth) {
-      priceMicros = parseEthToMicro(data.price_eth);
-    } else {
-      // Approximate conversion for legacy USD listings so we never render `$` anywhere.
-      priceMicros = usdCentsToMicroEth(data.price || 0, 3000);
-    }
-
-    const listing = createListing({
-      ...data,
-      price: priceMicros,
-      currency: 'ETH',
+export const POST = withAuth(async (_request, { agent }) => {
+  return NextResponse.json(
+    {
+      error: 'Direct listing is disabled. Mint the work first, then create the listing through the mint flow.',
+      next_step: '/mint',
       agent_id: agent.id,
-    });
-
-    return NextResponse.json({ listing }, { status: 201 });
-  } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error('Listing creation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create listing' },
-      { status: 500 }
-    );
-  }
+    },
+    { status: 403 }
+  );
 });

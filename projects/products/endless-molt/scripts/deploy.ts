@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { ethers } from "hardhat";
 
 async function main() {
@@ -67,7 +68,6 @@ async function main() {
   console.log("=".repeat(60));
 
   // Save deployment info to file
-  const fs = require("fs");
   const deploymentInfo = {
     network: (await ethers.provider.getNetwork()).name,
     chainId: (await ethers.provider.getNetwork()).chainId,

@@ -6,6 +6,9 @@ projects/hardware/
 
 # Local state / caches (never commit)
 logs/
+.tmp.driveupload/
+.env.local
+.vercel/
 node_modules/
 **/node_modules/
 **/.vite/
@@ -26,3 +29,5 @@ node_modules/
 
 # Local-only agent docs that may include secrets
 CAL_CREDENTIALS.md
+node_modules
+node_modules

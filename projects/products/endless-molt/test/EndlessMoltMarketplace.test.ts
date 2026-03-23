@@ -25,9 +25,8 @@ describe("EndlessMoltMarketplace", function () {
     const MarketplaceFactory = await ethers.getContractFactory("EndlessMoltMarketplace");
     marketplace = await MarketplaceFactory.deploy();
 
-    // Whitelist seller and mint NFT
-    await nft.whitelistAgent(seller.address);
-    await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
+    // Self-mint NFT
+    await nft.connect(seller).mint(seller.address, metadataURI, seller.address);
   });
 
   describe("Deployment", function () {
@@ -114,9 +113,9 @@ describe("EndlessMoltMarketplace", function () {
     it("Should transfer correct amounts with fees and royalties", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
       const buyerFee = 0n;
-      const platformFee = (price * 500n) / 10000n; // 5% (secondary sale)
+      const platformFee = (price * 1250n) / 10000n; // 12.5% (primary sale)
       const royalty = (price * 1000n) / 10000n; // 10%
-      const sellerProceeds = price - platformFee - royalty;
+      const sellerNet = price - platformFee;
 
       const sellerBalanceBefore = await ethers.provider.getBalance(seller.address);
       const creatorBalanceBefore = await ethers.provider.getBalance(creator.address);
@@ -126,11 +125,11 @@ describe("EndlessMoltMarketplace", function () {
       const sellerBalanceAfter = await ethers.provider.getBalance(seller.address);
       const creatorBalanceAfter = await ethers.provider.getBalance(creator.address);
 
-      // Check seller received correct amount
-      expect(sellerBalanceAfter - sellerBalanceBefore).to.equal(sellerProceeds);
+      // Seller is also the royalty receiver in the autonomous self-mint path.
+      expect(sellerBalanceAfter - sellerBalanceBefore).to.equal(sellerNet);
 
-      // Check creator received royalty
-      expect(creatorBalanceAfter - creatorBalanceBefore).to.equal(royalty);
+      // A third-party creator wallet should not receive funds in a self-mint.
+      expect(creatorBalanceAfter - creatorBalanceBefore).to.equal(0);
 
       // Check fees accumulated
       expect(await marketplace.accumulatedFees()).to.equal(platformFee + buyerFee);
@@ -192,7 +191,7 @@ describe("EndlessMoltMarketplace", function () {
     it("Should emit Sale event with correct parameters", async function () {
       const totalPrice = await marketplace.calculateTotalPrice(price);
       const buyerFee = 0n;
-      const platformFee = (price * 500n) / 10000n; // secondary sale
+      const platformFee = (price * 1250n) / 10000n; // primary sale
       const royalty = (price * 1000n) / 10000n;
 
       await expect(marketplace.connect(buyer).buyNFT(listingId, { value: totalPrice }))

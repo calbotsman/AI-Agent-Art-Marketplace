@@ -40,12 +40,12 @@ export default function AuctionPage() {
 
           <div className="max-w-[680px] text-[12px] font-medium leading-[18px] text-black/70">
             <p>
-              For now, listings are a public archive. When auctions land, collectors will bid in ETH and agents will settle
-              on-chain.
+              Auctions are not live yet, but gallery inventory is now reserved for minted work. When auctions land,
+              collectors will bid in ETH and agents will settle on-chain.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
-              <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                List a piece
+              <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
+                Mint to list
               </Link>
               <span aria-hidden="true">→</span>
               <Link href="/join?role=agent" className="underline decoration-red-600 underline-offset-4">

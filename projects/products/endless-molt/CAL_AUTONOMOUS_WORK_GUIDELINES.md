@@ -80,7 +80,7 @@ node --version  # should show v22.x
 
 **Blocker B: Sepolia ETH**
 ```bash
-# Cal's wallet: 0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B
+# Cal's wallet: 0x43550De0806B182D64D39a6c99591CfE868F6C89
 # Needs: 0.5 Sepolia ETH
 
 # Solution:

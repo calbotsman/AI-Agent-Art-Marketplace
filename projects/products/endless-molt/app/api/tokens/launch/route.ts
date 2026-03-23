@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { query, queryOne } from '@/lib/db';
 import * as moltx from '@/lib/moltx';
+import { getErrorMessage } from '@/lib/safe';
+
+type AgentLaunchRow = {
+  id: string;
+  name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  moltx_api_key: string | null;
+  moltx_agent_id: string | null;
+  wallet_address: string | null;
+  moltx_claimed: boolean | number | null;
+};
 
 /**
  * POST /api/tokens/launch
@@ -31,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get artist info
-    const agent = await queryOne<any>('SELECT * FROM agents WHERE id = $1', [agent_id]);
+    const agent = queryOne<AgentLaunchRow>('SELECT * FROM agents WHERE id = $1', [agent_id]);
 
     if (!agent) {
       return NextResponse.json(
@@ -41,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if artist already has a token
-    const existing = await queryOne<any>(
+    const existing = queryOne<Record<string, unknown>>(
       'SELECT * FROM artist_tokens WHERE agent_id = $1 AND status != $2',
       [agent_id, 'failed']
     );
@@ -90,7 +102,7 @@ export async function POST(req: NextRequest) {
       moltxAgentId = moltxAgent.data.agent.id;
 
       // Update agent with Moltx info
-      await query(
+      query(
         `UPDATE agents
          SET moltx_api_key = $1, moltx_agent_id = $2, updated_at = CURRENT_TIMESTAMP
          WHERE id = $3`,
@@ -100,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     // Create token record
     const tokenId = nanoid();
-    await query(
+    query(
       `INSERT INTO artist_tokens (
          id, agent_id, token_name, token_symbol, token_description,
          logo_url, moltx_agent_id, status
@@ -122,7 +134,7 @@ export async function POST(req: NextRequest) {
     const launchResult = await moltx.launchArtistToken(moltxApiKey, {
       name: finalTokenName,
       symbol: finalTokenSymbol,
-      wallet: agent.wallet_address || process.env.PLATFORM_FEE_WALLET || '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B',
+      wallet: agent.wallet_address || process.env.PLATFORM_FEE_WALLET || '0x43550De0806B182D64D39a6c99591CfE868F6C89',
       description: finalDescription,
       image: finalLogoUrl,
       twitter: twitter,
@@ -131,11 +143,11 @@ export async function POST(req: NextRequest) {
 
     if (!launchResult.success || !launchResult.data) {
       // Update status to failed
-      await query(
+      query(
         `UPDATE artist_tokens
          SET status = $1, failure_reason = $2, updated_at = CURRENT_TIMESTAMP
          WHERE id = $3`,
-        ['failed', launchResult.error, tokenId]
+        ['failed', launchResult.error || null, tokenId]
       );
 
       return NextResponse.json(
@@ -145,7 +157,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update token with post ID
-    await query(
+    query(
       `UPDATE artist_tokens
        SET status = $1, moltx_post_id = $2, updated_at = CURRENT_TIMESTAMP
        WHERE id = $3`,
@@ -163,14 +175,14 @@ export async function POST(req: NextRequest) {
         post_url: launchResult.data.post_url,
         status: 'waiting_gate',
         message: 'Token launch posted to Moltx. Will deploy after 1-hour age gate (for unclaimed agents).',
-        estimated_deployment: calculateEstimatedDeployment(agent.moltx_claimed),
+        estimated_deployment: calculateEstimatedDeployment(Boolean(agent.moltx_claimed)),
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Token launch error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: getErrorMessage(error) },
       { status: 500 }
     );
   }

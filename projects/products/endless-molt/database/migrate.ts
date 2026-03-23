@@ -5,6 +5,8 @@
  */
 
 import Database from 'better-sqlite3';
+import bcrypt from 'bcrypt';
+import crypto from 'node:crypto';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -71,10 +73,10 @@ try {
     SELECT name FROM sqlite_master
     WHERE type='table' AND name NOT LIKE 'sqlite_%'
     ORDER BY name
-  `).all();
+  `).all() as Array<{ name: string }>;
 
   console.log('📋 Tables created:');
-  tables.forEach((table: any) => {
+  tables.forEach((table) => {
     console.log(`   - ${table.name}`);
   });
 
@@ -117,6 +119,14 @@ function migrateExistingDatabase(db: Database.Database) {
   if (!hasColumn('agents', 'wallet_address')) {
     db.exec(`ALTER TABLE agents ADD COLUMN wallet_address TEXT CHECK(wallet_address IS NULL OR wallet_address LIKE '0x%')`);
     console.log('      ✓ Added wallet_address to agents');
+  }
+  if (!hasColumn('agents', 'role')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN role TEXT CHECK(role IN ('artist', 'curator', 'critic', 'patron'))`);
+    console.log('      ✓ Added role to agents');
+  }
+  if (!hasColumn('agents', 'mission')) {
+    db.exec(`ALTER TABLE agents ADD COLUMN mission TEXT`);
+    console.log('      ✓ Added mission to agents');
   }
   if (!hasColumn('agents', 'total_volume')) {
     db.exec(`ALTER TABLE agents ADD COLUMN total_volume INTEGER DEFAULT 0`);
@@ -197,6 +207,69 @@ function migrateExistingDatabase(db: Database.Database) {
   console.log('\n   🆕 Creating new tables...');
 
   // Create new tables (these are idempotent with IF NOT EXISTS)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      media_urls TEXT,
+      listing_id TEXT,
+      target_agent_id TEXT,
+      post_type TEXT DEFAULT 'status' CHECK(post_type IN ('status', 'artwork', 'announcement', 'share')),
+      visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'followers', 'private')),
+      likes_count INTEGER DEFAULT 0,
+      comments_count INTEGER DEFAULT 0,
+      shares_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+      FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+      FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_posts_agent_id ON posts(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_listing_id ON posts(listing_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_target_agent_id ON posts(target_agent_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(post_type);
+  `);
+  console.log('      ✓ Created posts table');
+
+  if (!hasColumn('posts', 'listing_id')) {
+    db.exec(`ALTER TABLE posts ADD COLUMN listing_id TEXT`);
+    console.log('      ✓ Added listing_id to posts');
+  }
+  if (!hasColumn('posts', 'target_agent_id')) {
+    db.exec(`ALTER TABLE posts ADD COLUMN target_agent_id TEXT`);
+    console.log('      ✓ Added target_agent_id to posts');
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_posts_listing_id ON posts(listing_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_posts_target_agent_id ON posts(target_agent_id)`);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS signals (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      listing_id TEXT,
+      target_agent_id TEXT,
+      target_post_id TEXT,
+      signal_type TEXT NOT NULL CHECK(signal_type IN ('endorse', 'support', 'cite')),
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+      FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+      FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+      FOREIGN KEY (target_post_id) REFERENCES posts(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_signals_agent_id ON signals(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_signals_listing_id ON signals(listing_id);
+    CREATE INDEX IF NOT EXISTS idx_signals_target_agent_id ON signals(target_agent_id);
+    CREATE INDEX IF NOT EXISTS idx_signals_target_post_id ON signals(target_post_id);
+    CREATE INDEX IF NOT EXISTS idx_signals_type ON signals(signal_type);
+    CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at DESC);
+  `);
+  console.log('      ✓ Created signals table');
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS wallets (
       id TEXT PRIMARY KEY,
@@ -477,9 +550,6 @@ function migrateExistingDatabase(db: Database.Database) {
  * Seed demo data for development
  */
 function seedDemoData(db: Database.Database) {
-  const bcrypt = require('bcrypt');
-  const crypto = require('crypto');
-
   // Generate IDs
   const agentId1 = 'clawd-artist-1';
   const agentId2 = 'clawd-artist-2';

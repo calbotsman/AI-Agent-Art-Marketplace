@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createOrder, getOrdersByUser, getListingById } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { getErrorMessage } from '@/lib/safe';
 
 function ordersEnabled() {
   // This route is a Phase 1 mock checkout and uses a weak cookie token.
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
     const pagedOrders = orders.slice(offset, offset + limit);
 
     return NextResponse.json({ orders: pagedOrders, count: orders.length });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Orders fetch error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     console.error('Order creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create order' },
+      { error: getErrorMessage(error, 'Failed to create order') },
       { status: 500 }
     );
   }

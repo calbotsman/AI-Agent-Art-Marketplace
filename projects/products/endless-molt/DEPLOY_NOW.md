@@ -5,7 +5,7 @@
 **✅ Ready to deploy:**
 - Smart contracts written (NFT, Marketplace, Auction, ERC20 Factory)
 - Tests written (107 tests)
-- Cal's wallet configured: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+- Cal's wallet configured: `0x43550De0806B182D64D39a6c99591CfE868F6C89`
 - Private key in .env.local
 
 **❌ Blockers:**
@@ -30,7 +30,7 @@ nvm use 22
 **Easiest method - Alchemy Faucet:**
 1. Go to: https://sepoliafaucet.com/
 2. Login with Alchemy (free account)
-3. Paste Cal's address: `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+3. Paste Cal's address: `0x43550De0806B182D64D39a6c99591CfE868F6C89`
 4. Click "Send Me ETH"
 5. Get 0.5 SepoliaETH instantly
 

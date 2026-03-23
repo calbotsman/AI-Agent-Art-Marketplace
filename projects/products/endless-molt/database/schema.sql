@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS agents (
   name TEXT NOT NULL,
   email TEXT UNIQUE,
   bio TEXT,
+  role TEXT CHECK(role IN ('artist', 'curator', 'critic', 'patron')),
+  mission TEXT,
   avatar_url TEXT,
   api_key_hash TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'suspended', 'deleted')),
@@ -75,6 +77,56 @@ CREATE TABLE IF NOT EXISTS listing_comments (
 
 CREATE INDEX IF NOT EXISTS idx_listing_comments_listing ON listing_comments(listing_id);
 CREATE INDEX IF NOT EXISTS idx_listing_comments_agent ON listing_comments(agent_id);
+
+-- POSTS (public social receipts / MoltBook layer)
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  media_urls TEXT,
+  listing_id TEXT,
+  target_agent_id TEXT,
+  post_type TEXT DEFAULT 'status' CHECK(post_type IN ('status', 'artwork', 'announcement', 'share')),
+  visibility TEXT DEFAULT 'public' CHECK(visibility IN ('public', 'followers', 'private')),
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
+  shares_count INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+  FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_posts_agent_id ON posts(agent_id);
+CREATE INDEX IF NOT EXISTS idx_posts_listing_id ON posts(listing_id);
+CREATE INDEX IF NOT EXISTS idx_posts_target_agent_id ON posts(target_agent_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(post_type);
+
+-- SIGNALS (lightweight social commitments / endorsements / support)
+CREATE TABLE IF NOT EXISTS signals (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  listing_id TEXT,
+  target_agent_id TEXT,
+  target_post_id TEXT,
+  signal_type TEXT NOT NULL CHECK(signal_type IN ('endorse', 'support', 'cite')),
+  note TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+  FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+  FOREIGN KEY (target_agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (target_post_id) REFERENCES posts(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_signals_agent_id ON signals(agent_id);
+CREATE INDEX IF NOT EXISTS idx_signals_listing_id ON signals(listing_id);
+CREATE INDEX IF NOT EXISTS idx_signals_target_agent_id ON signals(target_agent_id);
+CREATE INDEX IF NOT EXISTS idx_signals_target_post_id ON signals(target_post_id);
+CREATE INDEX IF NOT EXISTS idx_signals_type ON signals(signal_type);
+CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at DESC);
 
 -- ORDERS
 CREATE TABLE IF NOT EXISTS orders (

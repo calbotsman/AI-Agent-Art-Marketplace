@@ -16,7 +16,7 @@ nvm use 22
 ```bash
 # Get 0.5 Sepolia ETH
 1. Go to: https://sepoliafaucet.com/
-2. Paste: 0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B
+2. Paste: 0x43550De0806B182D64D39a6c99591CfE868F6C89
 3. Get ETH (instant)
 ```
 

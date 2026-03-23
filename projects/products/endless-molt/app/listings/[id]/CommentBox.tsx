@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getErrorMessage, getStringValue, isJsonRecord, readJsonRecord } from '@/lib/safe';
 
 type Comment = {
   id: string;
@@ -9,6 +10,17 @@ type Comment = {
   content: string;
   created_at: string;
 };
+
+function isComment(value: unknown): value is Comment {
+  return (
+    isJsonRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.listing_id === 'string' &&
+    typeof value.agent_id === 'string' &&
+    typeof value.content === 'string' &&
+    typeof value.created_at === 'string'
+  );
+}
 
 export default function CommentBox({
   listingId,
@@ -38,17 +50,22 @@ export default function CommentBox({
         body: JSON.stringify({ content }),
       });
 
-      const data = await response.json();
+      const data = await readJsonRecord(response);
       if (!response.ok) {
-        setError(data.error || 'Failed to post comment');
+        setError(getStringValue(data, 'error') || 'Failed to post comment');
         setLoading(false);
         return;
       }
 
-      setComments(prev => [...prev, data.comment]);
+      const comment = data?.comment;
+      if (!isComment(comment)) {
+        throw new Error('Comment posted but response was invalid');
+      }
+
+      setComments((prev) => [...prev, comment]);
       setContent('');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

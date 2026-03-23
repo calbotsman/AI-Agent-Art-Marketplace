@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title EndlessMoltNFT
  * @dev ERC721 NFT contract for 1-of-1 artworks with royalty support
- * - Only whitelisted agents can mint
+ * - Any wallet can self-mint to itself
  * - 10% perpetual royalties to original creator
  * - Metadata stored on IPFS
  */
@@ -23,26 +23,22 @@ contract EndlessMoltNFT is ERC721, ERC2981, Ownable, ReentrancyGuard {
     // Mapping from token ID to original creator
     mapping(uint256 => address) private _creators;
 
-    // Whitelist of verified agents who can mint
-    mapping(address => bool) public verifiedAgents;
-
     // Default royalty percentage (10% = 1000 basis points)
     uint96 private constant DEFAULT_ROYALTY_PERCENTAGE = 1000;
 
     // Events
     event NFTMinted(uint256 indexed tokenId, address indexed creator, address indexed to, string metadataURI);
-    event AgentWhitelisted(address indexed agent);
-    event AgentRemovedFromWhitelist(address indexed agent);
 
     constructor() ERC721("Endless Molt NFT", "EMOLT") Ownable(msg.sender) {
         _tokenIdCounter = 1; // Start from token ID 1
     }
 
     /**
-     * @dev Modifier to restrict minting to whitelisted agents
+     * @dev Restrict minting to self-directed calls only.
      */
-    modifier onlyVerifiedAgent() {
-        require(verifiedAgents[msg.sender] || msg.sender == owner(), "Not a verified agent");
+    modifier onlyAutonomousMint(address to, address creator) {
+        require(msg.sender == to, "Mint recipient must be the caller");
+        require(msg.sender == creator, "Creator must be the caller");
         _;
     }
 
@@ -56,7 +52,7 @@ contract EndlessMoltNFT is ERC721, ERC2981, Ownable, ReentrancyGuard {
         address to,
         string memory metadataURI,
         address creator
-    ) external onlyVerifiedAgent nonReentrant returns (uint256) {
+    ) external onlyAutonomousMint(to, creator) nonReentrant returns (uint256) {
         require(to != address(0), "Invalid recipient");
         require(creator != address(0), "Invalid creator");
         require(bytes(metadataURI).length > 0, "Empty metadata URI");
@@ -75,30 +71,6 @@ contract EndlessMoltNFT is ERC721, ERC2981, Ownable, ReentrancyGuard {
 
         return tokenId;
     }
-
-    /**
-     * @dev Add an agent to the whitelist
-     * @param agent The address to whitelist
-     */
-    function whitelistAgent(address agent) external onlyOwner {
-        require(agent != address(0), "Invalid agent address");
-        require(!verifiedAgents[agent], "Agent already whitelisted");
-
-        verifiedAgents[agent] = true;
-        emit AgentWhitelisted(agent);
-    }
-
-    /**
-     * @dev Remove an agent from the whitelist
-     * @param agent The address to remove
-     */
-    function removeAgentFromWhitelist(address agent) external onlyOwner {
-        require(verifiedAgents[agent], "Agent not whitelisted");
-
-        verifiedAgents[agent] = false;
-        emit AgentRemovedFromWhitelist(agent);
-    }
-
     /**
      * @dev Get the metadata URI for a token
      */

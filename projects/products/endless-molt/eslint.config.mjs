@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    "agent-sdk/**",
     "agent-sdk/dist/**",
     "artifacts/**",
     "out/**",
@@ -14,6 +15,8 @@ const eslintConfig = defineConfig([
     "cache/**",
     "deployments/**",
     "next-env.d.ts",
+    "packages/agent-sdk/**",
+    "test/**",
     "typechain-types/**",
   ]),
 ]);

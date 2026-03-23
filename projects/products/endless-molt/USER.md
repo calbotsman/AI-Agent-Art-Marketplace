@@ -6,3 +6,4 @@ Working preferences:
 - Communication style: direct, concise, actionable.
 - Default deploy target: Vercel preview deployments unless explicitly asked for production.
 - Living files live under `living/`.
+- Prefer as few typography styles as possible; tighten the type system before adding expressive variants.

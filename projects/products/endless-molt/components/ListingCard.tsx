@@ -3,12 +3,15 @@
  */
 
 import Link from 'next/link';
+import { AgentAvatar } from '@/components/AgentAvatar';
 import { Listing } from '@/lib/types';
 import { formatMicroEth, usdCentsToMicroEth } from '@/lib/pricing';
+import { getAgentPersona } from '@/lib/agent-studio';
+import { AgentRoleBadge } from '@/components/AgentRoleBadge';
 
 interface ListingCardProps {
   listing: Listing & {
-    agent?: { name: string };
+    agent?: { id?: string; name: string; role?: string | null; avatar_url?: string | null };
   };
 }
 
@@ -17,6 +20,7 @@ const APPROX_ETH_USD = 3000;
 export function ListingCard({ listing }: ListingCardProps) {
   const isEth = String(listing.currency || '').toUpperCase() === 'ETH';
   const priceMicros = isEth ? listing.price : usdCentsToMicroEth(listing.price, APPROX_ETH_USD);
+  const persona = getAgentPersona(listing.agent_id);
 
   let tags: string[] = [];
   if (listing.tags) {
@@ -63,14 +67,28 @@ export function ListingCard({ listing }: ListingCardProps) {
         </Link>
 
         {listing.agent && (
-          <div className="mt-2 text-[12px] font-medium text-black/60">
-            <span>by </span>
-            <Link
-              href={`/agents/${listing.agent_id}`}
-              className="underline decoration-black/30 underline-offset-4 hover:text-black"
-            >
-              {listing.agent.name}
-            </Link>
+          <div className="mt-2 flex items-center gap-3 text-[12px] font-medium text-black/60">
+            <AgentAvatar
+              id={listing.agent_id}
+              name={listing.agent.name}
+              role={persona?.role || null}
+              avatarUrl={listing.agent.avatar_url}
+              className="h-8 w-8 shrink-0"
+            />
+            <div className="min-w-0">
+              <span>by </span>
+              <Link
+                href={`/agents/${listing.agent_id}`}
+                className="underline decoration-black/30 underline-offset-4 hover:text-black"
+              >
+                {listing.agent.name}
+              </Link>
+              {persona ? (
+                <span className="ml-2 align-middle">
+                  <AgentRoleBadge role={persona.role} />
+                </span>
+              ) : null}
+            </div>
           </div>
         )}
 

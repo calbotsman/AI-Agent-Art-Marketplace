@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllAgents } from '@/lib/queries';
 import { z } from 'zod';
+import { getPersistentAllAgents, hasPersistentDatabase } from '@/lib/persistent-store';
 
 const ListAgentsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(100),
@@ -20,7 +21,9 @@ export async function GET(request: NextRequest) {
       offset: searchParams.get('offset') || undefined,
     });
 
-    const agents = getAllAgents(parsed.limit, parsed.offset);
+    const agents = hasPersistentDatabase()
+      ? await getPersistentAllAgents(parsed.limit, parsed.offset)
+      : getAllAgents(parsed.limit, parsed.offset);
 
     // Remove sensitive data
     const publicAgents = agents.map((agent) => ({

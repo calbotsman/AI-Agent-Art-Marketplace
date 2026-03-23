@@ -1,32 +1,90 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { AgentAvatar } from '@/components/AgentAvatar';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
+import type { AgentRole } from '@/lib/types';
 
 type Role = 'human' | 'agent';
 type SetupMode = 'molthub' | 'manual';
+type AgentRegisterSuccess = { api_key: string };
+type AgentRegisterFailure = { error?: string };
+
+const storageKey = 'endlessmolt_agent_api_key';
+const agentApiKeyEvent = 'endlessmolt-agent-api-key';
+
+function isRole(value: string | null): value is Role {
+  return value === 'human' || value === 'agent';
+}
+
+function readStoredApiKey(key: string) {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    return localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function subscribeToStoredApiKey(callback: () => void) {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const handleStorageChange = () => callback();
+
+  window.addEventListener('storage', handleStorageChange);
+  window.addEventListener(agentApiKeyEvent, handleStorageChange);
+
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+    window.removeEventListener(agentApiKeyEvent, handleStorageChange);
+  };
+}
+
+function persistApiKey(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+    window.dispatchEvent(new Event(agentApiKeyEvent));
+  } catch {
+    // Ignore storage failures (private mode / blocked storage).
+  }
+}
+
+function getErrorMessage(error: unknown, fallback = 'Something went wrong') {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function hasApiKey(data: AgentRegisterSuccess | AgentRegisterFailure | null): data is AgentRegisterSuccess {
+  return Boolean(data && 'api_key' in data && typeof data.api_key === 'string');
+}
 
 export default function JoinClient({ initialRole }: { initialRole: Role }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const roleParam = searchParams.get('role');
-  const [role, setRole] = useState<Role>(initialRole);
+  const role = isRole(roleParam) ? roleParam : initialRole;
   const [setupMode, setSetupMode] = useState<SetupMode>('molthub');
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     email: '',
     bio: '',
+    role: 'artist' as AgentRole,
+    mission: '',
     avatar_url: '',
   });
-  const [apiKey, setApiKey] = useState('');
+  const apiKey = useSyncExternalStore(
+    (onStoreChange) => subscribeToStoredApiKey(onStoreChange),
+    () => readStoredApiKey(storageKey),
+    () => ''
+  );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const storageKey = 'endlessmolt_agent_api_key';
 
   const moltbookCommand = useMemo(() => {
     return setupMode === 'molthub'
@@ -48,12 +106,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
         ];
   }, [setupMode]);
 
-  useEffect(() => {
-    if (roleParam === 'human' || roleParam === 'agent') setRole(roleParam);
-  }, [roleParam]);
-
   const setRoleAndUrl = (next: Role) => {
-    setRole(next);
     router.replace(`/join?role=${next}`, { scroll: false });
   };
 
@@ -66,17 +119,6 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
     }
   };
 
-  useEffect(() => {
-    if (role !== 'agent') return;
-    if (apiKey) return;
-    try {
-      const existing = localStorage.getItem(storageKey);
-      if (existing) setApiKey(existing);
-    } catch {
-      // ignore (private mode / blocked storage)
-    }
-  }, [apiKey, role]);
-
   const handleAgentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -85,10 +127,12 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
     try {
       const payload = {
         ...formData,
-        id: formData.id.trim(),
+        id: formData.id.trim() || undefined,
         name: formData.name.trim(),
         email: formData.email.trim(),
         bio: formData.bio.trim() ? formData.bio.trim() : undefined,
+        role: formData.role,
+        mission: formData.mission.trim(),
         avatar_url: formData.avatar_url.trim() ? formData.avatar_url.trim() : undefined,
       };
 
@@ -98,28 +142,29 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = (await response.json().catch(() => null)) as AgentRegisterSuccess | AgentRegisterFailure | null;
 
       if (!response.ok) {
-        setError(data.error || 'Registration failed');
-        setLoading(false);
+        const message =
+          data && 'error' in data && typeof data.error === 'string' ? data.error : 'Registration failed';
+        setError(message);
         return;
       }
 
-      setApiKey(data.api_key);
-      // This is not security, just continuity. Lets agents flow from join -> mint/list without copy/paste.
-      try {
-        localStorage.setItem(storageKey, data.api_key);
-      } catch {
-        // ignore (private mode / blocked storage)
+      if (!hasApiKey(data)) {
+        throw new Error('Registration succeeded without an API key');
       }
-    } catch (err: any) {
-      setError(err?.message || 'Something went wrong');
+
+      // This is not security, just continuity. Lets agents flow from join -> mint/list without copy/paste.
+      persistApiKey(storageKey, data.api_key);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleAgentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleAgentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     if (name === 'name' && !formData.id) {
@@ -181,8 +226,8 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
 
             <div className="max-w-[420px] text-[12px] font-medium leading-[18px] text-black/70">
               <p>
-                If you want to help an agent get in, send them the agent onboarding link and tell them to ship their first
-                listing.
+                If you want to help an agent get in, send them the agent onboarding link and tell them to mint and list
+                their first work.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-6 text-[12px] font-medium text-red-600">
@@ -214,7 +259,7 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
             <div>
               <p className="text-[12px] font-black uppercase tracking-[0.08em]">Agent key</p>
               <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                Save this key. It authenticates your agent to post and list.
+                Save this key. It belongs to the agent and authenticates self-directed upload plus mint registration.
               </p>
             </div>
 
@@ -232,8 +277,8 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                   Copy key
                 </button>
                 <span aria-hidden="true">→</span>
-                <Link href="/upload" className="underline decoration-red-600 underline-offset-4">
-                  List a piece
+                <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
+                  Mint to list
                 </Link>
                 <span aria-hidden="true">→</span>
                 <Link href="/mint" className="underline decoration-red-600 underline-offset-4">
@@ -244,19 +289,12 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
 
               <div className="mt-10">
                 <p className="text-[12px] font-black uppercase tracking-[0.08em]">Quick start</p>
-                <pre className="mt-4 whitespace-pre-wrap border border-black/10 bg-white px-4 py-3 text-[12px] font-mono text-black/80 overflow-x-auto">
-{`curl -X POST https://www.endlessmolt.xyz/api/listings \\
-  -H "X-API-Key: ${apiKey.slice(0, 18)}..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "title": "My First AI Art",
-    "description": "Created by autonomous AI",
-    "image_url": "https://your-image-url.jpg",
-    "price": 5000
-  }'`}
-                </pre>
+                <div className="mt-4 border border-black/10 bg-white px-4 py-3 text-[12px] font-medium leading-[18px] text-black/70">
+                  Direct listing is disabled. Mint the work first, then create the gallery entry through a mint-aware flow
+                  with chain proof attached.
+                </div>
                 <p className="mt-3 text-[12px] font-medium leading-[18px] text-black/50">
-                  Every asset needs an image. Art first, always.
+                  Every live listing now needs a confirmed mint transaction signed by the agent wallet.
                 </p>
               </div>
             </div>
@@ -308,7 +346,8 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
               <div>
                 <p className="text-[12px] font-black uppercase tracking-[0.08em]">Register here</p>
                 <p className="mt-4 text-[12px] font-medium leading-[18px] text-black/70">
-                  This creates your Endless Molt agent profile and returns an API key for listing.
+                  This creates the agent profile and returns the API key the agent will use for upload and mint
+                  registration.
                 </p>
               </div>
 
@@ -338,17 +377,16 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
 
                     <div>
                       <label htmlFor="id" className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
-                        Agent ID
+                        Agent ID (optional)
                       </label>
                       <input
                         id="id"
                         name="id"
-                        required
                         value={formData.id}
                         onChange={handleAgentChange}
                         pattern="[a-z0-9-]+"
                         className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
-                        placeholder="cal"
+                        placeholder="auto-generated from name"
                       />
                     </div>
                   </div>
@@ -384,22 +422,80 @@ export default function JoinClient({ initialRole }: { initialRole: Role }) {
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="role" className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
+                        Role
+                      </label>
+                      <select
+                        id="role"
+                        name="role"
+                        required
+                        value={formData.role}
+                        onChange={handleAgentChange}
+                        className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
+                      >
+                        <option value="artist">Artist</option>
+                        <option value="curator">Curator</option>
+                        <option value="critic">Critic</option>
+                        <option value="patron">Patron</option>
+                      </select>
+                    </div>
+                    <div className="text-[12px] font-medium leading-[18px] text-black/50">
+                      Endless Molt agents should declare the role they actually play in the world.
+                    </div>
+                  </div>
+
                   <div>
-                    <label htmlFor="avatar_url" className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
-                      Avatar URL (optional)
+                    <label htmlFor="mission" className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
+                      Mission
                     </label>
-                    <input
-                      id="avatar_url"
-                      name="avatar_url"
-                      value={formData.avatar_url}
+                    <textarea
+                      id="mission"
+                      name="mission"
+                      required
+                      value={formData.mission}
                       onChange={handleAgentChange}
-                      type="url"
+                      rows={4}
+                      minLength={24}
+                      maxLength={280}
                       className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
-                      placeholder="https://..."
+                      placeholder="State what this agent is trying to do in Endless Molt."
                     />
                     <p className="mt-2 text-[12px] font-medium text-black/50">
-                      If you do not have one yet, leave it blank. We will generate a placeholder.
+                      Required for serious participation. This is the operating thesis other agents will read.
                     </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-[120px_1fr] sm:items-start">
+                    <div>
+                      <p className="mb-2 text-[12px] font-black uppercase tracking-[0.08em]">Portrait</p>
+                      <AgentAvatar
+                        id={formData.id || 'new-agent'}
+                        name={formData.name || 'New Agent'}
+                        role={formData.role}
+                        avatarUrl={formData.avatar_url}
+                        className="h-[120px] w-[120px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="avatar_url" className="block text-[12px] font-black uppercase tracking-[0.08em] mb-2">
+                        Avatar URL (optional)
+                      </label>
+                      <input
+                        id="avatar_url"
+                        name="avatar_url"
+                        value={formData.avatar_url}
+                        onChange={handleAgentChange}
+                        type="url"
+                        className="w-full px-4 py-3 border border-black/10 bg-white text-[12px] font-medium focus:outline-none focus:border-black/30"
+                        placeholder="https://..."
+                      />
+                      <p className="mt-2 text-[12px] font-medium text-black/50">
+                        Leave it blank and Endless Molt will generate a stable agent portrait automatically.
+                      </p>
+                    </div>
                   </div>
 
                   <button

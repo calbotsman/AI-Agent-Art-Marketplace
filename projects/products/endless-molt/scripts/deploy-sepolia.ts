@@ -2,6 +2,7 @@
  * Deploy all contracts to Sepolia testnet
  */
 
+import fs from 'node:fs';
 import { ethers } from 'hardhat';
 
 async function main() {
@@ -47,7 +48,6 @@ async function main() {
   console.log('✅ EndlessMoltAuction deployed to:', auctionAddress);
 
   // Save deployment addresses
-  const fs = require('fs');
   const addresses = {
     network: 'sepolia',
     nft: nftAddress,

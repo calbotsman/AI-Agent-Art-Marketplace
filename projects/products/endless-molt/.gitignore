@@ -57,3 +57,7 @@ projects/products/endless-molt/database/schema.pg.sql
 coverage.json
 .openzeppelin/
 my-app/
+'postgresql:*/
+.tmp/
+tmp/
+tmp-video-test/

@@ -92,7 +92,7 @@ node --version  # should show v22.x
 **Time:** Throughout session
 **Problem:** Cal's wallet needs 0.5 Sepolia ETH for contract deployment
 
-**Cal's Wallet:** `0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B`
+**Cal's Wallet:** `0x43550De0806B182D64D39a6c99591CfE868F6C89`
 
 **Solution (Documented):**
 1. Visit: https://sepoliafaucet.com/

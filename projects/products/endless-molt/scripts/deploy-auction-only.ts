@@ -1,4 +1,5 @@
 import pkg from 'hardhat';
+import fs from 'node:fs';
 const { ethers } = pkg;
 
 async function main() {
@@ -15,7 +16,6 @@ async function main() {
   console.log('✅ EndlessMoltAuction deployed to:', auctionAddress);
 
   // Save all addresses
-  const fs = require('fs');
   const addresses = {
     network: 'sepolia',
     nft: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',

@@ -16,7 +16,7 @@ function transportFor(chainId: number) {
     const url =
       process.env.NEXT_PUBLIC_MAINNET_RPC_URL ||
       process.env.NEXT_PUBLIC_ETH_MAINNET_RPC_URL ||
-      'https://cloudflare-eth.com';
+      'https://ethereum-rpc.publicnode.com';
     return http(url);
   }
 
@@ -53,8 +53,8 @@ export const CONTRACTS = {
     auction: process.env.NEXT_PUBLIC_AUCTION_CONTRACT_SEPOLIA || '0x0000000000000000000000000000000000000000',
   },
   mainnet: {
-    // Deployed Feb 2026. Keep as defaults so production works even if env vars are missing.
-    nft: process.env.NEXT_PUBLIC_NFT_CONTRACT_MAINNET || '0xCB775D441729eD900DCD8766F4ae130D8613bAe2',
+    // Canonical mainnet NFT contract deployed from the recovered ops wallet on Mar 22, 2026.
+    nft: process.env.NEXT_PUBLIC_NFT_CONTRACT_MAINNET || '0x63464838F22630686b3EEC315442b4510aa4F440',
     marketplace:
       process.env.NEXT_PUBLIC_MARKETPLACE_CONTRACT_MAINNET || '0xD0834204Bde70B789d26DBA7B81591a793718B18',
     auction: process.env.NEXT_PUBLIC_AUCTION_CONTRACT_MAINNET || '0xB44f25f842f8389D6749040416fe4E054647E0aE',

@@ -128,6 +128,7 @@ export type QueryResult<T> = T | undefined;
  * Type-safe query results array
  */
 export type QueryResults<T> = T[];
+export type SqlParam = string | number | bigint | Buffer | Uint8Array | null;
 
 function normalizeSql(sql: string) {
   // A lot of this codebase uses Postgres-style positional params ($1, $2, ...).
@@ -146,20 +147,20 @@ function statementKind(sql: string) {
  * `query` returns rows for SELECT/CTE statements, otherwise returns the run result.
  * `queryOne` returns a single row for SELECT or `RETURNING` statements.
  */
-export function query(sql: string, params: any[] = []) {
+export function query<T = Record<string, unknown>>(sql: string, params: SqlParam[] = []) {
   const database = getDb();
   const normalized = normalizeSql(sql);
   const kind = statementKind(normalized);
   const stmt = database.prepare(normalized);
 
   if (kind === 'select' || kind === 'with' || kind === 'pragma') {
-    return stmt.all(params);
+    return stmt.all(...params) as QueryResults<T>;
   }
 
-  return stmt.run(params);
+  return stmt.run(...params);
 }
 
-export function queryOne<T = any>(sql: string, params: any[] = []): QueryResult<T> {
+export function queryOne<T = Record<string, unknown>>(sql: string, params: SqlParam[] = []): QueryResult<T> {
   const database = getDb();
   const normalized = normalizeSql(sql);
   const kind = statementKind(normalized);
@@ -167,10 +168,10 @@ export function queryOne<T = any>(sql: string, params: any[] = []): QueryResult<
   const hasReturning = /\breturning\b/i.test(normalized);
 
   if (kind === 'select' || kind === 'with' || kind === 'pragma' || hasReturning) {
-    return stmt.get(params) as QueryResult<T>;
+    return stmt.get(...params) as QueryResult<T>;
   }
 
   // Non-returning writes: execute and return undefined.
-  stmt.run(params);
+  stmt.run(...params);
   return undefined;
 }

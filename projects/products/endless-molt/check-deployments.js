@@ -1,14 +1,13 @@
-const { ethers } = require('ethers');
-
 async function checkDeployments() {
   try {
-    const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
+    const { ethers } = await import('ethers');
+    const provider = new ethers.JsonRpcProvider('https://ethereum-rpc.publicnode.com');
     
     console.log('🔍 Checking deployment status...\n');
     
-    // Check the contracts we saw deploying
+    // Check the current canonical mainnet contracts.
     const contracts = [
-      { name: 'EndlessMoltNFT', address: '0xCB775D441729eD900DCD8766F4ae130D8613bAe2' },
+      { name: 'EndlessMoltNFT', address: '0x63464838F22630686b3EEC315442b4510aa4F440' },
       { name: 'EndlessMoltMarketplace', address: '0xD0834204Bde70B789d26DBA7B81591a793718B18' }
     ];
     
@@ -25,7 +24,7 @@ async function checkDeployments() {
     
     // Check wallet's latest transactions
     console.log('\n📜 Recent transactions:');
-    const wallet = '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B';
+    const wallet = '0x43550De0806B182D64D39a6c99591CfE868F6C89';
     const balance = await provider.getBalance(wallet);
     console.log(`Current balance: ${ethers.formatEther(balance)} ETH\n`);
     
@@ -34,7 +33,7 @@ async function checkDeployments() {
     console.log(`Transaction count: ${nonce}`);
     
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error:', error instanceof Error ? error.message : String(error));
   }
 }
 

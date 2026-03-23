@@ -1,0 +1,94 @@
+<svg width="1400" height="1400" viewBox="0 0 1400 1400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1400" fill="white"/>
+  <rect x="70" y="70" width="1260" height="1260" fill="black"/>
+  <rect x="70" y="70" width="1260" height="1260" stroke="black" stroke-width="8"/>
+
+  <g stroke="white" stroke-width="6">
+    <line x1="170" y1="150" x2="1230" y2="150"/>
+    <line x1="170" y1="205" x2="1230" y2="205"/>
+    <line x1="170" y1="260" x2="1230" y2="260"/>
+  </g>
+
+  <g fill="white">
+    <rect x="170" y="118" width="56" height="34"/>
+    <rect x="278" y="118" width="56" height="34"/>
+    <rect x="386" y="118" width="56" height="34"/>
+    <rect x="494" y="118" width="56" height="34"/>
+    <rect x="850" y="118" width="56" height="34"/>
+    <rect x="958" y="118" width="56" height="34"/>
+    <rect x="1066" y="118" width="56" height="34"/>
+    <rect x="1174" y="118" width="56" height="34"/>
+    <circle cx="657" cy="135" r="17"/>
+    <circle cx="700" cy="135" r="17"/>
+    <circle cx="743" cy="135" r="17"/>
+  </g>
+
+  <g>
+    <rect x="182" y="356" width="122" height="694" fill="white"/>
+    <rect x="1096" y="356" width="122" height="694" fill="white"/>
+    <rect x="214" y="398" width="58" height="610" fill="black"/>
+    <rect x="1128" y="398" width="58" height="610" fill="black"/>
+
+    <circle cx="243" cy="432" r="18" fill="white"/>
+    <circle cx="243" cy="502" r="18" fill="white"/>
+    <circle cx="243" cy="572" r="18" fill="white"/>
+    <circle cx="243" cy="642" r="18" fill="white"/>
+    <circle cx="243" cy="712" r="18" fill="white"/>
+    <circle cx="243" cy="782" r="18" fill="white"/>
+    <circle cx="243" cy="852" r="18" fill="white"/>
+    <circle cx="243" cy="922" r="18" fill="white"/>
+
+    <circle cx="1157" cy="432" r="18" fill="white"/>
+    <circle cx="1157" cy="502" r="18" fill="white"/>
+    <circle cx="1157" cy="572" r="18" fill="white"/>
+    <circle cx="1157" cy="642" r="18" fill="white"/>
+    <circle cx="1157" cy="712" r="18" fill="white"/>
+    <circle cx="1157" cy="782" r="18" fill="white"/>
+    <circle cx="1157" cy="852" r="18" fill="white"/>
+    <circle cx="1157" cy="922" r="18" fill="white"/>
+  </g>
+
+  <g stroke="white" stroke-width="8">
+    <line x1="412" y1="322" x2="598" y2="482"/>
+    <line x1="988" y1="322" x2="802" y2="482"/>
+    <line x1="412" y1="1078" x2="598" y2="918"/>
+    <line x1="988" y1="1078" x2="802" y2="918"/>
+    <line x1="522" y1="1038" x2="618" y2="930"/>
+    <line x1="878" y1="930" x2="974" y2="1038"/>
+  </g>
+
+  <ellipse cx="700" cy="700" rx="230" ry="338" fill="white"/>
+  <ellipse cx="700" cy="700" rx="184" ry="292" stroke="black" stroke-width="10"/>
+  <ellipse cx="700" cy="700" rx="138" ry="246" stroke="black" stroke-width="8"/>
+  <ellipse cx="700" cy="700" rx="92" ry="200" stroke="black" stroke-width="6"/>
+  <path d="M700 426C745 512 772 604 772 700C772 796 745 888 700 974C655 888 628 796 628 700C628 604 655 512 700 426Z" fill="black"/>
+  <line x1="700" y1="388" x2="700" y2="1012" stroke="black" stroke-width="10"/>
+  <line x1="540" y1="700" x2="860" y2="700" stroke="black" stroke-width="8"/>
+
+  <g fill="white">
+    <circle cx="700" cy="700" r="23"/>
+    <circle cx="700" cy="618" r="12"/>
+    <circle cx="700" cy="782" r="12"/>
+  </g>
+
+  <g stroke="white" stroke-width="5">
+    <line x1="154" y1="1110" x2="1246" y2="1110"/>
+    <line x1="154" y1="1160" x2="1246" y2="1160"/>
+    <line x1="154" y1="1210" x2="1246" y2="1210"/>
+  </g>
+
+  <g fill="white">
+    <rect x="560" y="1092" width="280" height="20"/>
+    <rect x="604" y="1142" width="192" height="20"/>
+    <rect x="638" y="1192" width="124" height="20"/>
+  </g>
+
+  <g fill="white">
+    <circle cx="420" cy="1185" r="6"/>
+    <circle cx="460" cy="1185" r="6"/>
+    <circle cx="500" cy="1185" r="6"/>
+    <circle cx="900" cy="1185" r="6"/>
+    <circle cx="940" cy="1185" r="6"/>
+    <circle cx="980" cy="1185" r="6"/>
+  </g>
+</svg>

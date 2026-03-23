@@ -1,5 +1,12 @@
 import { ethers } from "hardhat";
 
+type ReceiptEventLike = {
+  fragment?: {
+    name?: string;
+  };
+  args?: readonly unknown[];
+};
+
 /**
  * Test Workflow Script
  *
@@ -50,13 +57,10 @@ async function main() {
   console.log(`  ✅ Auction deployed to: ${await auction.getAddress()}`);
   console.log("");
 
-  // Step 1: Whitelist agent and mint NFT
-  console.log("1️⃣  Whitelisting agent and minting NFT...");
-  await nft.whitelistAgent(agent.address);
-  console.log("  ✅ Agent whitelisted");
-
+  // Step 1: Self-mint NFT
+  console.log("1️⃣  Self-minting NFT...");
   const metadataURI = "ipfs://QmTestArtwork123abc";
-  const mintTx = await nft.connect(agent).mint(seller.address, metadataURI, creator.address);
+  const mintTx = await nft.connect(agent).mint(agent.address, metadataURI, agent.address);
   await mintTx.wait();
   console.log("  ✅ NFT minted (Token ID: 1)");
   console.log(`     Owner: ${await nft.ownerOf(1)}`);
@@ -67,13 +71,18 @@ async function main() {
   // Step 2: List on marketplace
   console.log("2️⃣  Listing NFT on marketplace...");
   const listPrice = ethers.parseEther("1.0");
-  await nft.connect(seller).approve(marketplace.target, 1);
+  await nft.connect(agent).approve(marketplace.target, 1);
   console.log("  ✅ Marketplace approved");
 
-  const listTx = await marketplace.connect(seller).listNFT(nft.target, 1, listPrice);
+  const listTx = await marketplace.connect(agent).listNFT(nft.target, 1, listPrice);
   const listReceipt = await listTx.wait();
-  const listEvent = listReceipt?.logs.find((log: any) => log.fragment?.name === "Listed");
-  const listingId = (listEvent as any).args[0];
+  const listEvent = listReceipt?.logs.find(
+    (log): log is ReceiptEventLike => (log as ReceiptEventLike).fragment?.name === "Listed"
+  );
+  const listingId = String(listEvent?.args?.[0] ?? "");
+  if (!listingId) {
+    throw new Error("Listing event did not include a listing id");
+  }
   console.log(`  ✅ NFT listed (Listing ID: ${listingId.slice(0, 10)}...)`);
   console.log(`     Price: ${ethers.formatEther(listPrice)} ETH`);
   console.log("");
@@ -83,15 +92,15 @@ async function main() {
   const totalPrice = await marketplace.calculateTotalPrice(listPrice);
   console.log(`  💰 Total price (including 3% buyer fee): ${ethers.formatEther(totalPrice)} ETH`);
 
-  const sellerBalanceBefore = await ethers.provider.getBalance(seller.address);
-  const creatorBalanceBefore = await ethers.provider.getBalance(creator.address);
+  const sellerBalanceBefore = await ethers.provider.getBalance(agent.address);
+  const creatorBalanceBefore = await ethers.provider.getBalance(agent.address);
 
   await marketplace.connect(buyer1).buyNFT(listingId, { value: totalPrice });
   console.log("  ✅ NFT purchased");
   console.log(`     New owner: ${await nft.ownerOf(1)}`);
 
-  const sellerBalanceAfter = await ethers.provider.getBalance(seller.address);
-  const creatorBalanceAfter = await ethers.provider.getBalance(creator.address);
+  const sellerBalanceAfter = await ethers.provider.getBalance(agent.address);
+  const creatorBalanceAfter = await ethers.provider.getBalance(agent.address);
 
   console.log(`     Seller received: ${ethers.formatEther(sellerBalanceAfter - sellerBalanceBefore)} ETH`);
   console.log(`     Creator received (royalty): ${ethers.formatEther(creatorBalanceAfter - creatorBalanceBefore)} ETH`);
@@ -100,7 +109,7 @@ async function main() {
 
   // Step 4: Mint second NFT for auction
   console.log("4️⃣  Minting second NFT for auction...");
-  await nft.connect(agent).mint(buyer1.address, "ipfs://QmTestArtwork456def", creator.address);
+  await nft.connect(buyer1).mint(buyer1.address, "ipfs://QmTestArtwork456def", buyer1.address);
   console.log("  ✅ Second NFT minted (Token ID: 2)");
   console.log("");
 
@@ -112,8 +121,13 @@ async function main() {
 
   const auctionTx = await auction.connect(buyer1).createAuction(nft.target, 2, reservePrice, duration);
   const auctionReceipt = await auctionTx.wait();
-  const auctionEvent = auctionReceipt?.logs.find((log: any) => log.fragment?.name === "AuctionCreated");
-  const auctionId = (auctionEvent as any).args[0];
+  const auctionEvent = auctionReceipt?.logs.find(
+    (log): log is ReceiptEventLike => (log as ReceiptEventLike).fragment?.name === "AuctionCreated"
+  );
+  const auctionId = String(auctionEvent?.args?.[0] ?? "");
+  if (!auctionId) {
+    throw new Error("AuctionCreated event did not include an auction id");
+  }
   console.log(`  ✅ Auction created (ID: ${auctionId.slice(0, 10)}...)`);
   console.log(`     Reserve price: ${ethers.formatEther(reservePrice)} ETH`);
   console.log(`     Duration: ${duration / 3600} hour`);

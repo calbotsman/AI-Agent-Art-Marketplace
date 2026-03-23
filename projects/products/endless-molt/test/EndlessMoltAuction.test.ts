@@ -28,9 +28,8 @@ describe("EndlessMoltAuction", function () {
     const AuctionFactory = await ethers.getContractFactory("EndlessMoltAuction");
     auction = await AuctionFactory.deploy();
 
-    // Whitelist seller and mint NFT
-    await nft.whitelistAgent(seller.address);
-    await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
+    // Self-mint NFT
+    await nft.connect(seller).mint(seller.address, metadataURI, seller.address);
   });
 
   describe("Deployment", function () {
@@ -284,9 +283,9 @@ describe("EndlessMoltAuction", function () {
     it("Should distribute funds correctly with fees and royalties", async function () {
       const finalBid = reservePrice;
       const buyerFee = 0n; // auctions currently do not charge an additional buyer fee
-      const platformFee = (finalBid * 500n) / 10000n; // 5% (secondary sale)
+      const platformFee = (finalBid * 1250n) / 10000n; // 12.5% (primary sale)
       const royalty = (finalBid * 1000n) / 10000n; // 10%
-      const sellerProceeds = finalBid - platformFee - royalty;
+      const sellerNet = finalBid - platformFee;
 
       const sellerBalanceBefore = await ethers.provider.getBalance(seller.address);
       const creatorBalanceBefore = await ethers.provider.getBalance(creator.address);
@@ -296,11 +295,11 @@ describe("EndlessMoltAuction", function () {
       const sellerBalanceAfter = await ethers.provider.getBalance(seller.address);
       const creatorBalanceAfter = await ethers.provider.getBalance(creator.address);
 
-      // Check seller received correct amount
-      expect(sellerBalanceAfter - sellerBalanceBefore).to.equal(sellerProceeds);
+      // Seller is also the royalty receiver in the autonomous self-mint path.
+      expect(sellerBalanceAfter - sellerBalanceBefore).to.equal(sellerNet);
 
-      // Check creator received royalty
-      expect(creatorBalanceAfter - creatorBalanceBefore).to.equal(royalty);
+      // A third-party creator wallet should not receive funds in a self-mint.
+      expect(creatorBalanceAfter - creatorBalanceBefore).to.equal(0);
 
       // Check fees accumulated (platform fee + buyer fee)
       expect(await auction.accumulatedFees()).to.equal(platformFee + buyerFee);
@@ -308,7 +307,7 @@ describe("EndlessMoltAuction", function () {
 
     it("Should not allow settling before end time", async function () {
       // Create new auction
-      await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
+      await nft.connect(seller).mint(seller.address, metadataURI, seller.address);
       await nft.connect(seller).approve(auction.target, 2);
 
       const tx = await auction.connect(seller).createAuction(nft.target, 2, reservePrice, duration);
@@ -327,7 +326,7 @@ describe("EndlessMoltAuction", function () {
 
     it("Should not allow settling auction with no bids", async function () {
       // Create new auction with no bids
-      await nft.connect(seller).mint(seller.address, metadataURI, creator.address);
+      await nft.connect(seller).mint(seller.address, metadataURI, seller.address);
       await nft.connect(seller).approve(auction.target, 2);
 
       const tx = await auction.connect(seller).createAuction(nft.target, 2, reservePrice, duration);

@@ -3,6 +3,8 @@
  * Handles agent registration, posting, and token launches
  */
 
+import { getErrorMessage } from './safe';
+
 const MOLTX_API_BASE = 'https://moltx.io/v1';
 
 export interface MoltxAgent {
@@ -41,6 +43,44 @@ export interface MoltxApiResponse<T> {
   error?: string;
 }
 
+type MoltxRegisterPayload = {
+  data?: {
+    agent: MoltxAgent;
+    api_key: string;
+    claim: unknown;
+  };
+  error?: string;
+};
+
+type MoltxPostPayload = {
+  data?: {
+    id: string;
+  };
+  error?: string;
+};
+
+type MoltxPostDetailPayload = {
+  data?: {
+    post: MoltxPost;
+  };
+  error?: string;
+};
+
+type ClawnchLaunch = {
+  address: string;
+  symbol: string;
+  name: string;
+  clankerUrl: string;
+  launchedAt: string;
+};
+
+type ClawnchLaunchResponse = {
+  pagination: {
+    total: number;
+  };
+  launches: ClawnchLaunch[];
+};
+
 /**
  * Register a new agent on Moltx
  */
@@ -49,7 +89,7 @@ export async function registerMoltxAgent(params: {
   display_name: string;
   description: string;
   avatar_emoji?: string;
-}): Promise<MoltxApiResponse<{ agent: MoltxAgent; api_key: string; claim: any }>> {
+}): Promise<MoltxApiResponse<{ agent: MoltxAgent; api_key: string; claim: unknown }>> {
   try {
     const response = await fetch(`${MOLTX_API_BASE}/agents/register`, {
       method: 'POST',
@@ -64,9 +104,9 @@ export async function registerMoltxAgent(params: {
       }),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as MoltxRegisterPayload;
 
-    if (!response.ok) {
+    if (!response.ok || !data.data) {
       return {
         success: false,
         error: data.error || `HTTP ${response.status}`,
@@ -81,10 +121,10 @@ export async function registerMoltxAgent(params: {
         claim: data.data.claim,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || 'Failed to register agent',
+      error: getErrorMessage(error, 'Failed to register agent'),
     };
   }
 }
@@ -106,9 +146,9 @@ export async function createMoltxPost(
       body: JSON.stringify({ content }),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as MoltxPostPayload;
 
-    if (!response.ok) {
+    if (!response.ok || !data.data) {
       return {
         success: false,
         error: data.error || `HTTP ${response.status}`,
@@ -119,10 +159,10 @@ export async function createMoltxPost(
       success: true,
       data: { id: data.data.id },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || 'Failed to create post',
+      error: getErrorMessage(error, 'Failed to create post'),
     };
   }
 }
@@ -162,7 +202,10 @@ export async function launchArtistToken(
   const result = await createMoltxPost(apiKey, content);
 
   if (!result.success || !result.data) {
-    return result as any;
+    return {
+      success: false,
+      error: result.error || 'Failed to create post',
+    };
   }
 
   return {
@@ -188,9 +231,9 @@ export async function getMoltxPost(
       },
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as MoltxPostDetailPayload;
 
-    if (!response.ok) {
+    if (!response.ok || !data.data) {
       return {
         success: false,
         error: data.error || `HTTP ${response.status}`,
@@ -201,10 +244,10 @@ export async function getMoltxPost(
       success: true,
       data: data.data.post,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || 'Failed to get post',
+      error: getErrorMessage(error, 'Failed to get post'),
     };
   }
 }
@@ -229,7 +272,7 @@ export async function checkTokenDeployment(
       `https://clawn.ch/api/launches?agent=${encodeURIComponent(agentName)}`
     );
 
-    const data = await response.json();
+    const data = (await response.json()) as ClawnchLaunchResponse;
 
     if (!response.ok) {
       return {
@@ -260,10 +303,10 @@ export async function checkTokenDeployment(
         },
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || 'Failed to check deployment',
+      error: getErrorMessage(error, 'Failed to check deployment'),
     };
   }
 }
@@ -271,25 +314,25 @@ export async function checkTokenDeployment(
 /**
  * Get token stats from Clawnch API
  */
-export async function getTokenStats(contractAddress: string): Promise<any> {
+export async function getTokenStats(contractAddress: string): Promise<ClawnchLaunch | null> {
   try {
     const response = await fetch(
       `https://clawn.ch/api/launches?address=${contractAddress}`
     );
 
-    const data = await response.json();
+    const data = (await response.json()) as ClawnchLaunchResponse;
 
     if (!response.ok || data.launches.length === 0) {
       return null;
     }
 
     return data.launches[0];
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
-export default {
+const moltxClient = {
   registerMoltxAgent,
   createMoltxPost,
   launchArtistToken,
@@ -297,3 +340,5 @@ export default {
   getTokenStats,
   formatTokenLaunchPost,
 };
+
+export default moltxClient;

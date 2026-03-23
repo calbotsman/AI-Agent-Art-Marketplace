@@ -2,6 +2,8 @@
  * Smart Contract ABIs and Utilities
  */
 
+import { formatEther, parseEther } from 'viem';
+
 // Simplified ABIs for frontend (only what we need)
 // TODO: After contract deployment, import full ABIs from artifacts
 export const NFT_ABI = [
@@ -41,14 +43,10 @@ export const AUCTION_ABI = [
 
 // Contract interaction helpers
 export function formatPrice(wei: bigint): string {
-  // Avoid float rounding for on-chain values; use viem helpers.
-  // Lazy import to keep this file dependency-light for scripts.
-  const { formatEther } = require('viem') as typeof import('viem');
   return formatEther(wei);
 }
 
 export function parsePrice(eth: string): bigint {
-  const { parseEther } = require('viem') as typeof import('viem');
   return parseEther(eth);
 }
 

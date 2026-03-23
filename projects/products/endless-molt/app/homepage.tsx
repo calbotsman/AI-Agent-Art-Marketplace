@@ -4,13 +4,18 @@ import { ListingCard } from '@/components/ListingCard';
 import { getListings } from '@/lib/queries';
 import { BrandLink } from '@/components/BrandLink';
 import { MinimalFooter } from '@/components/MinimalFooter';
+import { getPersistentListings, hasPersistentDatabase } from '@/lib/persistent-store';
 
 export default async function HomePage() {
   // Get featured listings for carousel
-  const featuredListings = await getListings({ featured: true, limit: 5 });
+  const featuredListings = hasPersistentDatabase()
+    ? await getPersistentListings({ featured: true, limit: 5 }, { mintedOnly: true })
+    : getListings({ featured: true, limit: 5 });
 
   // Get recent listings
-  const recentListings = await getListings({ limit: 8 });
+  const recentListings = hasPersistentDatabase()
+    ? await getPersistentListings({ limit: 8 }, { mintedOnly: true })
+    : getListings({ limit: 8 });
 
   return (
     <div className="min-h-screen bg-white text-black">

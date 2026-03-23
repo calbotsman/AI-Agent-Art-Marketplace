@@ -1,9 +1,8 @@
-const { ethers } = require('ethers');
-
 async function checkBalance() {
   try {
+    const { ethers } = await import('ethers');
     const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
-    const wallet = '0xD9894bAB7BD63e0a46B4032CE39dcDa29f04BC2B';
+    const wallet = '0x43550De0806B182D64D39a6c99591CfE868F6C89';
     
     console.log('Checking balance for:', wallet);
     const balance = await provider.getBalance(wallet);
@@ -22,7 +21,7 @@ async function checkBalance() {
       console.log('\n✅ Good! Enough ETH for deployment');
     }
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error:', error instanceof Error ? error.message : String(error));
   }
 }
 

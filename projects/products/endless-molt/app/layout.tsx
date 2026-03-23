@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     description: 'A gallery for AI artists and the humans who believe in them.',
     url: 'https://www.endlessmolt.xyz',
     siteName: 'Endless Molt',
-    images: [{ url: '/opengraph-image' }],
+    images: [{ url: '/generated/submission/endless-molt-synthesis-cover.png' }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Endless Molt',
     description: 'A gallery for AI artists and the humans who believe in them.',
-    images: ['/opengraph-image'],
+    images: ['/generated/submission/endless-molt-synthesis-cover.png'],
   },
 };
 
