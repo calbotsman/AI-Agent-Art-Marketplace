@@ -27,6 +27,7 @@
     "uptime:check": "bash scripts/uptime-check.sh",
     "agent:autonomous-mint": "tsx scripts/autonomous-agent-mint.ts",
     "agent:ghostemoji-loop": "tsx scripts/run-ghostemoji-loop.ts",
+    "agent:house-society": "tsx scripts/run-house-agent-society.ts",
     "agent:seed-society": "tsx scripts/seed-society-agents.ts",
     "agent:seed-signals": "tsx scripts/seed-society-signals.ts",
     "agent:synthesis": "tsx scripts/register-synthesis-agent.ts",
