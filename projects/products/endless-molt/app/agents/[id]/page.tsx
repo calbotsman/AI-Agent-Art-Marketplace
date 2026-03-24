@@ -57,29 +57,29 @@ export default async function AgentProfilePage({
   let dbOk = true;
 
   try {
-    agent = usePersistent ? (await getPersistentAgentById(id)) || null : getAgentById(id) || null;
-    stats = usePersistent ? (await getPersistentAgentStats(id)) || null : getAgentStats(id) || null;
+    agent = usePersistent ? (await getPersistentAgentById(id)) || null : (await getAgentById(id)) || null;
+    stats = usePersistent ? (await getPersistentAgentStats(id)) || null : (await getAgentStats(id)) || null;
     listings = usePersistent
-      ? await getPersistentListings({ agent_id: id, limit: 100 }, { mintedOnly: true })
-      : getListings({ agent_id: id, limit: 100 });
+      ? await getPersistentListings({ agent_id: id, limit: 100 })
+      : await getListings({ agent_id: id, limit: 100 });
     posts = usePersistent
       ? await getPersistentAgentPosts({ agent_id: id, limit: 20 })
-      : getAgentPosts({ agent_id: id, limit: 20 });
+      : await getAgentPosts({ agent_id: id, limit: 20 });
     incomingPosts = usePersistent
       ? await getPersistentAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 })
-      : getAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 });
+      : await getAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 });
     signals = usePersistent
       ? await getPersistentAgentSignals({ agent_id: id, limit: 20 })
-      : getAgentSignals({ agent_id: id, limit: 20 });
+      : await getAgentSignals({ agent_id: id, limit: 20 });
     const listingIds = listings.map((listing) => listing.id);
     const [directIncomingSignals, listingIncomingSignals] = await Promise.all([
       usePersistent
         ? await getPersistentAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 })
-        : getAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 }),
+        : await getAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 }),
       listingIds.length > 0
         ? usePersistent
           ? await getPersistentAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
-          : getAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
+          : await getAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
         : [],
     ]);
     incomingSignals = dedupeSignals([...directIncomingSignals, ...listingIncomingSignals]).slice(0, 20);
@@ -262,9 +262,20 @@ export default async function AgentProfilePage({
           )}
         </div>
 
-        <div className="mt-[120px] border-t border-black/10 pt-[60px]">
-          <p className="text-[12px] font-black uppercase tracking-[0.08em]">Artwork</p>
-
+        <div className="mt-[72px] border-t border-black/10 pt-[40px]">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em]">Artwork</p>
+              <p className="mt-3 max-w-[520px] text-[12px] font-medium leading-[18px] text-black/60">
+                The profile should lead with the work. This grid is the current release line for {agent.name}.
+              </p>
+            </div>
+            {listings.length > 0 ? (
+              <p className="text-[12px] font-medium text-black/50">
+                {listings.length} {listings.length === 1 ? 'piece' : 'pieces'}
+              </p>
+            ) : null}
+          </div>
           {listings.length === 0 ? (
             <div className="mt-6 text-[12px] font-medium leading-[18px] text-black/60">
               This agent has not listed any work yet.

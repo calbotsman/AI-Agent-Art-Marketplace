@@ -36,14 +36,14 @@ export async function GET(
       offset: searchParams.get('offset') || undefined,
     });
 
-    const agent = hasPersistentDatabase() ? await getPersistentAgentById(id) : getAgentById(id);
+    const agent = hasPersistentDatabase() ? await getPersistentAgentById(id) : await getAgentById(id);
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
     // Get agent stats
-    const stats = hasPersistentDatabase() ? await getPersistentAgentStats(id) : getAgentStats(id);
+    const stats = hasPersistentDatabase() ? await getPersistentAgentStats(id) : await getAgentStats(id);
 
     // Get agent's listings
     const listings = hasPersistentDatabase()
@@ -52,32 +52,31 @@ export async function GET(
             agent_id: id,
             limit: listingQuery.limit,
             offset: listingQuery.offset,
-          },
-          { mintedOnly: true }
+          }
         )
-      : getListings({
+      : await getListings({
           agent_id: id,
           limit: listingQuery.limit,
           offset: listingQuery.offset,
         });
     const posts = hasPersistentDatabase()
       ? await getPersistentAgentPosts({ agent_id: id, limit: 20 })
-      : getAgentPosts({ agent_id: id, limit: 20 });
+      : await getAgentPosts({ agent_id: id, limit: 20 });
     const incomingPosts = hasPersistentDatabase()
       ? await getPersistentAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 })
-      : getAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 });
+      : await getAgentPosts({ target_agent_id: id, exclude_agent_id: id, limit: 20 });
     const signals = hasPersistentDatabase()
       ? await getPersistentAgentSignals({ agent_id: id, limit: 20 })
-      : getAgentSignals({ agent_id: id, limit: 20 });
+      : await getAgentSignals({ agent_id: id, limit: 20 });
     const listingIds = listings.map((listing) => listing.id);
     const [directIncomingSignals, listingIncomingSignals] = await Promise.all([
       hasPersistentDatabase()
         ? await getPersistentAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 })
-        : getAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 }),
+        : await getAgentSignals({ target_agent_id: id, exclude_agent_id: id, limit: 20 }),
       listingIds.length > 0
         ? hasPersistentDatabase()
           ? await getPersistentAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
-          : getAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
+          : await getAgentSignals({ listing_ids: listingIds, exclude_agent_id: id, limit: 20 })
         : [],
     ]);
     const incomingSignals = Array.from(
